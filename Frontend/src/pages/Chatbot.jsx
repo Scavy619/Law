@@ -1,15 +1,15 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { AppContext } from '../context/AppContext';
-import Sidebar from '../components/Chatbot_UI/Sidebar';
-import ChatBox from '../components/Chatbot_UI/ChatBox';
-import { toast } from 'react-toastify';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import useApp from "../context/useApp";
+import Sidebar from "../components/Chatbot_UI/Sidebar";
+import ChatBox from "../components/Chatbot_UI/ChatBox";
+import { toast } from "react-toastify";
 
 const Chatbot = () => {
   const { sessionId: urlSessionId } = useParams();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
+
   const {
     token,
     userData,
@@ -17,8 +17,8 @@ const Chatbot = () => {
     setSessionId,
     currentSession,
     fetchUserChats,
-    createNewChat
-  } = useContext(AppContext);
+    createNewChat,
+  } = useApp();
 
   // Handle URL sessionId parameter
   useEffect(() => {
@@ -57,8 +57,12 @@ const Chatbot = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
-          <p className="text-gray-600">Please login to access the legal chatbot</p>
+          <h2 className="text-xl font-semibold mb-2">
+            Authentication Required
+          </h2>
+          <p className="text-gray-600">
+            Please login to access the legal chatbot
+          </p>
         </div>
       </div>
     );
@@ -67,16 +71,20 @@ const Chatbot = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Fixed Sidebar - 320px width */}
-      <div className={`fixed left-0 top-0 h-full w-80 z-30 transform transition-transform duration-300 ease-in-out ${
-        isMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div
+        className={`fixed left-0 top-0 h-full w-80 z-30 transform transition-transform duration-300 ease-in-out ${
+          isMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <Sidebar isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
       </div>
 
       {/* Main Chat Container - Fluid with proper spacing */}
-      <div className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
-        isMenuOpen ? 'ml-80' : 'ml-0'
-      }`}>
+      <div
+        className={`flex-1 flex flex-col h-screen transition-all duration-300 ease-in-out ${
+          isMenuOpen ? "ml-80" : "ml-0"
+        }`}
+      >
         {/* Toggle Button - Always visible */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -114,10 +122,9 @@ const Chatbot = () => {
                 Legal Assistant
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                {currentSession 
+                {currentSession
                   ? `Active Session`
-                  : 'Start a new legal consultation'
-                }
+                  : "Start a new legal consultation"}
               </p>
             </div>
             <div className="hidden sm:flex items-center gap-2 bg-green-50 px-3 py-1 rounded-full">

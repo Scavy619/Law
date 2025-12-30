@@ -1,10 +1,10 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AppContext } from '../context/AppContext'
+import useApp from '../context/useApp'
 const RelatedLawyers = ({ speciality, lawyerId }) => {
 
   const navigate = useNavigate()
-  const { lawyers } = useContext(AppContext)
+  const { lawyers } = useApp()
 
   const [relLaw, setRelLaw] = useState([])
 

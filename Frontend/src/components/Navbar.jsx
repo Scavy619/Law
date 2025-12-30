@@ -1,7 +1,7 @@
-import React, { useContext, useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { assets } from '../assets/assets'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { AppContext } from '../context/AppContext.jsx'
+import useApp from '../context/useApp'
 
 
 const Navbar = () => {
@@ -14,7 +14,8 @@ const Navbar = () => {
     const [activeLink, setActiveLink] = useState('/')
     const [dropletStyle, setDropletStyle] = useState({})
     const navRef = useRef(null)
-    const { token, setToken, userData } = useContext(AppContext)
+    const { token, setToken, userData } = useApp()
+    
     // const [ token, setToken ] = useState(true) // Set to false to show Create account button
 
     // Track active link and update droplet position

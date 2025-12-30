@@ -1,10 +1,10 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppContext } from '../context/AppContext';
+import useApp from '../context/useApp';
 
 const TopLawyers = () => {
     const navigate = useNavigate();
-    const { lawyers } = useContext(AppContext);
+    const { lawyers } = useApp()
 
     return (
         <div className='flex flex-col items-center gap-6 my-20 text-gray-900 md:mx-10'>

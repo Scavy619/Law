@@ -48,10 +48,6 @@ export const addlawyer = async (req, res) => {
       address,
     } = validatedData;
 
-    if (!imageFile) {
-      return res.status(400).json({ message: "Image is required" });
-    }
-
     // check if lawyer with the same email already exists
     const existingLawyer = await lawyerModel.findOne({
       email: validatedData.email,
@@ -63,14 +59,25 @@ export const addlawyer = async (req, res) => {
     }
 
     // hashing password
-    const { salt, password: hashedPassword } = await hashPasswordWithSalt(
-      password
-    );
+    const { salt, password: hashedPassword } =
+      await hashPasswordWithSalt(password);
 
-    const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
-      resource_type: "image",
+    // Upload image to Cloudinary using buffer and upload_stream
+    const imageUrl = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: "image",
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result.secure_url);
+          }
+        },
+      );
+      uploadStream.end(imageFile.buffer);
     });
-    const imageUrl = imageUpload.secure_url;
 
     // create new lawyer
     const newLawyer = new lawyerModel({
@@ -188,12 +195,10 @@ export const cancelAppointmentByAdmin = async (req, res) => {
 
     // check if appointment is already cancelled
     if (appointment.cancelled === "Cancelled by User") {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Appointment is already cancelled by User",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Appointment is already cancelled by User",
+      });
     }
 
     const updatedAppointment = await appointmentModel.findByIdAndUpdate(
@@ -201,45 +206,40 @@ export const cancelAppointmentByAdmin = async (req, res) => {
       {
         cancelled: "Cancelled by Admin",
       },
-      { new: true }
+      { new: true },
     );
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Appointment cancelled successfully by Admin",
-        appointment: updatedAppointment,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Appointment cancelled successfully by Admin",
+      appointment: updatedAppointment,
+    });
   } catch (error) {
     console.error("Error cancelling appointment:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
-
 export const adminDashboard = async (req, res) => {
-    try {
+  try {
+    const lawyers = await lawyerModel.find({});
+    const users = await UserModel.find({});
+    const appointments = await appointmentModel.find({});
 
-        const lawyers = await lawyerModel.find({})
-        const users = await UserModel.find({})
-        const appointments = await appointmentModel.find({})
+    // console.log(appointments);
+    // console.log(users);
+    // console.log(lawyers);
 
-        // console.log(appointments);
-        // console.log(users);
-        // console.log(lawyers);
+    const dashData = {
+      lawyers: lawyers.length,
+      appointments: appointments.length,
+      patients: users.length,
+      latestAppointments: appointments.reverse(),
+    };
 
-        const dashData = {
-            lawyers: lawyers.length,
-            appointments: appointments.length,
-            patients: users.length,
-            latestAppointments: appointments.reverse()
-        }
-
-        res.status(200).json({ success: true, dashData })
-
-    } catch (error) {
-        console.log(error)
-        res.status(500).json({ success: false, message: error.message })
-    }
-}
+    res.status(200).json({ success: true, dashData });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

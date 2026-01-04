@@ -1,33 +1,38 @@
-import Home from "../pages/Home.jsx";
-import Lawyers from "../pages/Lawyers.jsx";
-import Login from "../pages/Login.jsx";
-import About from "../pages/About.jsx";
-import Contact from "../pages/Contact.jsx";
-import MyProfile from "../pages/MyProfile.jsx";
-import MyAppointments from "../pages/MyAppointments.jsx";
-import Appointment from "../pages/Appointment.jsx";
-import PrivacyPolicy from "../pages/PrivacyPolicy.jsx";
-import TermsAndConditions from "../pages/TermsAndConditions.jsx";
-import RefundPolicy from "../pages/RefundPolicy.jsx";
-import ContactUs from "../pages/ContactUs.jsx";
-import Chatbot from "../pages/Chatbot.jsx";
-import Resources from "../pages/Resources.jsx";
-import VideoCall from "../pages/VideoCall.jsx";
-import ProtectedRoute from "../components/ProtectedRoute.jsx";
-import ResetPassword from "../pages/ResetPassword.jsx";
-import Verify from "../pages/Verify.jsx";
-import VerifyEmail from "../pages/VerifyEmail.jsx";
-import Layout from "../layouts/layout.jsx";
+import { lazy, Suspense } from "react";
 import {
   createBrowserRouter,
   createRoutesFromElements,
   Route,
 } from "react-router-dom";
 
+import Home from "../pages/Home.jsx";
+import Lawyers from "../pages/Lawyers.jsx";
+import Login from "../pages/Login.jsx";
+import MyProfile from "../pages/MyProfile.jsx";
+import MyAppointments from "../pages/MyAppointments.jsx";
+import Appointment from "../pages/Appointment.jsx";
+import Chatbot from "../pages/Chatbot.jsx";
+import VideoCall from "../pages/VideoCall.jsx";
+
+import Loading from "../components/Loading.jsx";
+import ProtectedRoute from "../components/ProtectedRoute.jsx";
+import Layout from "../layouts/layout.jsx";
+
+const About = lazy(() => import("../pages/About.jsx"));
+const Contact = lazy(() => import("../pages/Contact.jsx"));
+const PrivacyPolicy = lazy(() => import("../pages/PrivacyPolicy.jsx"));
+const TermsAndConditions = lazy(() => import("../pages/TermsAndConditions.jsx"));
+const RefundPolicy = lazy(() => import("../pages/RefundPolicy.jsx"));
+const ContactUs = lazy(() => import("../pages/ContactUs.jsx"));
+const Resources = lazy(() => import("../pages/Resources.jsx"));
+const ResetPassword = lazy(() => import("../pages/ResetPassword.jsx"));
+const Verify = lazy(() => import("../pages/Verify.jsx"));
+const VerifyEmail = lazy(() => import("../pages/VerifyEmail.jsx"));
+
+
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
-      {/* Chatbot – separate layout */}
       <Route
         path="/chatbot"
         element={
@@ -45,15 +50,49 @@ const router = createBrowserRouter(
         }
       />
 
-      {/* Main app layout */}
       <Route element={<Layout />}>
         <Route index element={<Home />} />
+
         <Route path="lawyers" element={<Lawyers />} />
         <Route path="lawyers/:speciality" element={<Lawyers />} />
+
         <Route path="login" element={<Login />} />
-        <Route path="verify-email" element={<VerifyEmail />} />
-        <Route path="about" element={<About />} />
-        <Route path="contact" element={<Contact />} />
+
+        <Route
+          path="verify-email"
+          element={
+            <Suspense fallback={<Loading />}>
+              <VerifyEmail />
+            </Suspense>
+          }
+        />
+
+        <Route
+          path="about"
+          element={
+            <Suspense fallback={<Loading />}>
+              <About />
+            </Suspense>
+          }
+        />
+
+        <Route
+          path="contact"
+          element={
+            <Suspense fallback={<Loading />}>
+              <Contact />
+            </Suspense>
+          }
+        />
+
+        <Route
+          path="resources"
+          element={
+            <Suspense fallback={<Loading />}>
+              <Resources />
+            </Suspense>
+          }
+        />
 
         <Route
           path="my-profile"
@@ -84,17 +123,62 @@ const router = createBrowserRouter(
           }
         />
 
-        <Route path="privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="terms-and-conditions" element={<TermsAndConditions />} />
-        <Route path="refund-policy" element={<RefundPolicy />} />
-        <Route path="contact-us" element={<ContactUs />} />
-        <Route path="resources" element={<Resources />} />
-        <Route path="verify-email/:token" element={<Verify />} />
-        <Route path="reset-password/:token" element={<ResetPassword />} />
+        <Route
+          path="privacy-policy"
+          element={
+            <Suspense fallback={<Loading />}>
+              <PrivacyPolicy />
+            </Suspense>
+          }
+        />
+
+        <Route
+          path="terms-and-conditions"
+          element={
+            <Suspense fallback={<Loading />}>
+              <TermsAndConditions />
+            </Suspense>
+          }
+        />
+
+        <Route
+          path="refund-policy"
+          element={
+            <Suspense fallback={<Loading />}>
+              <RefundPolicy />
+            </Suspense>
+          }
+        />
+
+        <Route
+          path="contact-us"
+          element={
+            <Suspense fallback={<Loading />}>
+              <ContactUs />
+            </Suspense>
+          }
+        />
+
+        <Route
+          path="verify-email/:token"
+          element={
+            <Suspense fallback={<Loading />}>
+              <Verify />
+            </Suspense>
+          }
+        />
+
+        <Route
+          path="reset-password/:token"
+          element={
+            <Suspense fallback={<Loading />}>
+              <ResetPassword />
+            </Suspense>
+          }
+        />
       </Route>
     </>
   )
 );
 
-
-export default router
+export default router;

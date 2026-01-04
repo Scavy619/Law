@@ -1,21 +1,53 @@
 import React, { useState } from "react";
 import useApp from "../context/useApp";
 import DeleteAccountModal from "./DeleteAccountModal";
-import api from "../api/axiosClient";
 import { updateUserProfile, forgotPassword } from "../api/user.api";
 import { toast } from "react-toastify";
+
+/* ================= IMAGE VALIDATION CONFIG ================= */
+const ALLOWED_TYPES = ["image/jpeg", "image/png"];
+const MAX_SIZE_MB = 2;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 const MyProfile = () => {
   const { token, backendUrl, userData, setUserData, loadUserProfileData } =
     useApp();
+
   const [isEdit, setIsEdit] = useState(false);
   const [image, setImage] = useState(null);
   const [resetLoading, setResetLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // ================= UPDATE PROFILE =================
+  /* ================= IMAGE CHANGE HANDLER ================= */
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // type check
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error("Only JPG and PNG images are allowed");
+      e.target.value = "";
+      return;
+    }
+
+    // size check
+    if (file.size > MAX_SIZE_BYTES) {
+      toast.error("Image size must be less than 2MB");
+      e.target.value = "";
+      return;
+    }
+
+    setImage(file);
+  };
+
+  /* ================= UPDATE PROFILE ================= */
   const updateUserProfileData = async () => {
     try {
+      if (image && image.size > MAX_SIZE_BYTES) {
+        toast.error("Invalid image selected");
+        return;
+      }
+
       const formData = new FormData();
       formData.append("name", userData.name);
       formData.append("phone", userData.phone);
@@ -39,12 +71,11 @@ const MyProfile = () => {
     }
   };
 
-  // ================= RESET PASSWORD =================
+  /* ================= RESET PASSWORD ================= */
   const handlePasswordReset = async () => {
     setResetLoading(true);
     try {
       const { data } = await forgotPassword(backendUrl, userData.email);
-
       toast.success(data.message || "Password reset email sent!");
     } catch {
       toast.error("Could not send reset email");
@@ -63,14 +94,17 @@ const MyProfile = () => {
         {isEdit ? (
           <div className="flex gap-3">
             <button
-              onClick={() => setIsEdit(false)}
-              className="px-6 py-2.5 rounded-lg border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-all"
+              onClick={() => {
+                setIsEdit(false);
+                setImage(null);
+              }}
+              className="px-6 py-2.5 rounded-lg border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               onClick={updateUserProfileData}
-              className="px-6 py-2.5 rounded-lg bg-primary text-white font-medium shadow-lg shadow-primary/30 hover:opacity-90"
+              className="px-6 py-2.5 rounded-lg bg-primary text-white font-medium shadow-lg shadow-primary/30"
             >
               Save Changes
             </button>
@@ -78,7 +112,7 @@ const MyProfile = () => {
         ) : (
           <button
             onClick={() => setIsEdit(true)}
-            className="px-6 py-2.5 rounded-lg border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white transition-all"
+            className="px-6 py-2.5 rounded-lg border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white"
           >
             Edit Profile
           </button>
@@ -98,7 +132,8 @@ const MyProfile = () => {
               <input
                 type="file"
                 hidden
-                onChange={(e) => setImage(e.target.files[0])}
+                accept="image/png, image/jpeg"
+                onChange={handleImageChange}
               />
               <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <span className="text-white text-sm font-medium">
@@ -139,7 +174,7 @@ const MyProfile = () => {
             </label>
             {isEdit ? (
               <input
-                className="w-full mt-2 border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-primary"
+                className="w-full mt-2 border-2 border-gray-300 rounded-lg px-4 py-3"
                 value={userData.phone || ""}
                 maxLength="10"
                 onChange={(e) =>
@@ -161,7 +196,7 @@ const MyProfile = () => {
             </label>
             {isEdit ? (
               <select
-                className="w-full mt-2 border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-primary"
+                className="w-full mt-2 border-2 border-gray-300 rounded-lg px-4 py-3"
                 value={userData.gender}
                 onChange={(e) =>
                   setUserData((prev) => ({ ...prev, gender: e.target.value }))
@@ -186,7 +221,7 @@ const MyProfile = () => {
             {isEdit ? (
               <input
                 type="date"
-                className="w-full mt-2 border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-primary"
+                className="w-full mt-2 border-2 border-gray-300 rounded-lg px-4 py-3"
                 value={userData.dob || ""}
                 onChange={(e) =>
                   setUserData((prev) => ({ ...prev, dob: e.target.value }))
@@ -205,7 +240,7 @@ const MyProfile = () => {
             {isEdit ? (
               <div className="space-y-3 mt-2">
                 <input
-                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-primary"
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3"
                   placeholder="Address Line 1"
                   value={userData.address.line1}
                   onChange={(e) =>
@@ -216,7 +251,7 @@ const MyProfile = () => {
                   }
                 />
                 <input
-                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-primary"
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3"
                   placeholder="Address Line 2"
                   value={userData.address.line2}
                   onChange={(e) =>
@@ -254,7 +289,7 @@ const MyProfile = () => {
           <button
             onClick={handlePasswordReset}
             disabled={resetLoading}
-            className="px-8 py-3 rounded-lg bg-primary text-white font-medium disabled:opacity-60 shadow-lg shadow-primary/30"
+            className="px-8 py-3 rounded-lg bg-primary text-white font-medium disabled:opacity-60"
           >
             {resetLoading ? "Sending..." : "Reset Password"}
           </button>
@@ -268,21 +303,19 @@ const MyProfile = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-red-50 rounded-xl p-6 border border-red-200">
           <div>
             <p className="text-lg font-medium text-red-600">Delete Account</p>
-            <p className="text-sm text-red-500 max-w-2xl">
-              Permanently delete your account and all associated data. This
-              action cannot be undone.
+            <p className="text-sm text-red-500">
+              Permanently delete your account and all associated data.
             </p>
           </div>
           <button
             onClick={() => setShowDeleteModal(true)}
-            className="px-8 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 shadow-lg whitespace-nowrap"
+            className="px-8 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700"
           >
             Delete Account
           </button>
         </div>
       </div>
 
-      {/* ================= DELETE MODAL ================= */}
       {showDeleteModal && (
         <DeleteAccountModal onClose={() => setShowDeleteModal(false)} />
       )}

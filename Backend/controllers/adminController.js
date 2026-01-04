@@ -222,24 +222,42 @@ export const cancelAppointmentByAdmin = async (req, res) => {
 
 export const adminDashboard = async (req, res) => {
   try {
-    const lawyers = await lawyerModel.find({});
-    const users = await UserModel.find({});
-    const appointments = await appointmentModel.find({});
+    const [dashboard] = await appointmentModel.aggregate([
+      {
+        $facet: {
+          totalAppointments: [
+            { $count: "count" }
+          ],
+          latestAppointments: [
+            { $sort: { createdAt: -1 } },
+            { $limit: 5 }
+          ]
+        }
+      }
+    ]);
 
-    // console.log(appointments);
-    // console.log(users);
-    // console.log(lawyers);
+    const [lawyersCount] = await lawyerModel.aggregate([
+      { $count: "count" }
+    ]);
 
-    const dashData = {
-      lawyers: lawyers.length,
-      appointments: appointments.length,
-      patients: users.length,
-      latestAppointments: appointments.reverse(),
-    };
+    const [usersCount] = await UserModel.aggregate([
+      { $count: "count" }
+    ]);
 
-    res.status(200).json({ success: true, dashData });
+    res.status(200).json({
+      success: true,
+      dashData: {
+        lawyers: lawyersCount?.count || 0,
+        appointments: dashboard.totalAppointments[0]?.count || 0,
+        patients: usersCount?.count || 0,
+        latestAppointments: dashboard.latestAppointments
+      }
+    });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Dashboard error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
   }
 };

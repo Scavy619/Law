@@ -3,7 +3,7 @@ import appointmentModel from "../models/appointmentModel.js";
 import { loginPostRequestBodySchema, updatePatchRequestBodySchemaForLawyer } from "../validations/reqValidation.js";
 import { verifyPassword } from "../utils/hash.js";
 import { createToken } from "../utils/token.js";
-
+import mongoose from "mongoose";
 
 export const changeAvailability = async (req, res) => {
     try{
@@ -299,41 +299,69 @@ export const updateLawyerProfile = async (req, res) => {
 }
 
 // api to get data for lawyer dashboard
+
+
 export const lawyerDashboard = async (req, res) => {
-    try{
-        const {lawyerId} = req.body;
-        
-        if(!lawyerId){
-            return res.status(400).json({ success: false, message: "Lawyer ID is required" })
-        }
+  try {
+    const { lawyerId } = req.body;
 
-        const appointments = await appointmentModel.find({lawyerId});
-
-        let earnings = 0;
-        appointments.map((item) => {
-            if (item.isCompleted || item.payment) {
-                earnings += item.amount
-            }
-        });
-
-        let users = []
-
-        appointments.map((item) => {
-            if (!users.includes(item.userId)) {
-                users.push(item.userId)
-            }
-        });
-
-        const dashboardData = {
-            earnings, 
-            appointments: appointments.length,
-            patients: users.length,
-            latestAppointments: appointments.reverse()
-        }
-
-        res.status(200).json({ success: true, dashData: dashboardData})
-
-    }catch(error){
-        res.status(500).json({ success: false, message: error.message })
+    if (!lawyerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Lawyer ID is required",
+      });
     }
-}
+
+    const [result] = await appointmentModel.aggregate([
+      {
+        $match: {
+          lawyerId: new mongoose.Types.ObjectId(lawyerId),
+        },
+      },
+      {
+        $facet: {
+          stats: [
+            {
+              $group: {
+                _id: null,
+                totalAppointments: { $sum: 1 },
+                totalEarnings: {
+                  $sum: {
+                    $cond: [
+                      { $or: ["$isCompleted", "$payment"] },
+                      "$amount",
+                      0,
+                    ],
+                  },
+                },
+                uniquePatients: { $addToSet: "$userId" },
+              },
+            },
+          ],
+          latestAppointments: [
+            { $sort: { createdAt: -1 } },
+            { $limit: 5 },
+          ],
+        },
+      },
+    ]);
+
+    const stats = result.stats[0] || {};
+
+    res.status(200).json({
+      success: true,
+      dashData: {
+        earnings: stats.totalEarnings || 0,
+        appointments: stats.totalAppointments || 0,
+        patients: stats.uniquePatients?.length || 0,
+        latestAppointments: result.latestAppointments || [],
+      },
+    });
+  } catch (error) {
+    console.error("Lawyer dashboard error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

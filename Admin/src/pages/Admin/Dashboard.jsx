@@ -5,18 +5,17 @@ import { AppContext } from "../../context/AppContext";
 import Loading from "../../components/Loading";
 
 const Dashboard = () => {
-  const { aToken, getDashData, cancelAppointment, dashData } =
-    useContext(AdminContext);
-  const { slotDateFormat } = useContext(AppContext);
+  const { getDashData, cancelAppointment, dashData } = useContext(AdminContext);
+  const { slotDateFormat, adminData } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (aToken) {
+    if (adminData) {
       getDashData().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
-  }, [aToken]);
+  }, [adminData]);
 
   if (loading) {
     return <Loading />;

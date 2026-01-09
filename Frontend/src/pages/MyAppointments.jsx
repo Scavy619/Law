@@ -67,7 +67,7 @@ const MyAppointments = () => {
         toast.error(data.message || "Failed to fetch appointments");
       }
     } catch (error) {
-      console.log("Appointment fetch error:", error);
+      // console.log("Appointment fetch error:", error);
       toast.error(
         error.response?.data?.message || "Failed to load appointments",
       );
@@ -90,7 +90,7 @@ const MyAppointments = () => {
         toast.error(data.message);
       }
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       toast.error(error.message);
     }
   };
@@ -112,7 +112,7 @@ const MyAppointments = () => {
             getUserAppointments();
           }
         } catch (error) {
-          console.log(error);
+          // console.log(error);
           toast.error(error.message);
         }
       },
@@ -132,7 +132,7 @@ const MyAppointments = () => {
         toast.error(data.message);
       }
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       toast.error(error.message);
     }
   };

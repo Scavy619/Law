@@ -50,7 +50,7 @@ const VideoCall = () => {
           }
           call.leave();
         } catch (error) {
-          console.log("Cleanup error:", error);
+          // console.log("Cleanup error:", error);
         }
       }
     };
@@ -83,7 +83,7 @@ const VideoCall = () => {
 
       // Add event listeners for call events
       const handleCallEnded = () => {
-        console.log("Call ended by another participant");
+        // console.log("Call ended by another participant");
         setIsCallEnded(true);
         setTimeout(() => {
           toast.info("Call ended by lawyer");
@@ -92,7 +92,7 @@ const VideoCall = () => {
       };
 
       const handleSessionEnded = () => {
-        console.log("Call session ended");
+        // console.log("Call session ended");
         setIsCallEnded(true);
         setTimeout(() => {
           toast.info("Call session ended");
@@ -114,7 +114,7 @@ const VideoCall = () => {
       // Update call status to joined
       await joinVideoCall(appointmentId);
     } catch (error) {
-      console.error("Video call initialization error:", error);
+      // console.error("Video call initialization error:", error);
       toast.error("Failed to join video call");
       navigate("/my-appointments");
     }
@@ -132,7 +132,7 @@ const VideoCall = () => {
       toast.success("Call ended");
       navigate("/my-appointments");
     } catch (error) {
-      console.error("Leave call error:", error);
+      // console.error("Leave call error:", error);
       navigate("/my-appointments");
     }
   };

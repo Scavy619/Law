@@ -39,7 +39,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
         toast.error(data.message || "Failed to load chat sessions");
       }
     } catch (error) {
-      console.log("Error loading chat sessions:", error);
+      // console.log("Error loading chat sessions:", error);
       toast.error("Failed to load chat sessions");
     } finally {
       setLoading(false);
@@ -56,7 +56,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
       setIsMenuOpen(false);
     } catch (error) {
       toast.error("Error loading chat session");
-      console.log(error);
+      // console.log(error);
     }
   };
 
@@ -90,7 +90,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
       }
     } catch (error) {
       toast.error("Error deleting chat");
-      console.log(error);
+      // console.log(error);
     }
   };
 
@@ -131,7 +131,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
         toast.error(data.message || "Failed to update chat title");
       }
     } catch (error) {
-      console.log("Error updating chat title:", error);
+      // console.log("Error updating chat title:", error);
       toast.error("Error updating chat title");
     }
   };

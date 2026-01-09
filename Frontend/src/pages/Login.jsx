@@ -79,22 +79,22 @@ const Login = () => {
     // ---------- LOGIN ----------
     try {
       const response = await loginUser(email, password);
-      console.log("Login response:", response);
+      // console.log("Login response:", response);
 
       const { data } = response;
 
       if (data.success) {
-        console.log("Login successful, setting tokens and user data");
+        // console.log("Login successful, setting tokens and user data");
         setAccessToken(data.accessToken);
         setUserData(data.user);
         toast.success("Login successful!");
         navigate("/");
       } else {
-        console.error("Login failed:", data);
+        // console.error("Login failed:", data);
         toast.error(data.message || "Login failed");
       }
     } catch (error) {
-      console.error("Login error:", error);
+      // console.error("Login error:", error);
       const status = error.response?.status;
       const msg = error.response?.data?.message;
 

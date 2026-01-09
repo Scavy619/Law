@@ -94,7 +94,7 @@ export const signupUser = async (req, res) => {
       success: true,
     });
   } catch (error) {
-    console.error("Error in signupUser:", error);
+    // console.error("Error in signupUser:", error);
     return res.status(500).json({
       error: "Internal Server Error",
       success: false,
@@ -105,7 +105,7 @@ export const signupUser = async (req, res) => {
 // api to login user
 export const loginUser = async (req, res) => {
   try {
-    console.log("Login request received:", { email: req.body.email });
+    // console.log("Login request received:", { email: req.body.email });
 
     // validation of request
     const validationResult = await loginPostRequestBodySchema.safeParseAsync(
@@ -113,7 +113,7 @@ export const loginUser = async (req, res) => {
     );
 
     if (validationResult.error) {
-      console.error("Login validation error:", validationResult.error);
+      // console.error("Login validation error:", validationResult.error);
       return res.status(400).json({
         success: false,
         error: validationResult.error.format(),
@@ -166,7 +166,7 @@ export const loginUser = async (req, res) => {
     existingUser.refreshToken = await hashToken(refreshToken);
     await existingUser.save({ validateBeforeSave: false });
 
-    console.log("Login successful, sending response with cookie");
+    // console.log("Login successful, sending response with cookie");
 
     // sending refresh token as cookie
     return res
@@ -188,7 +188,7 @@ export const loginUser = async (req, res) => {
         },
       });
   } catch (error) {
-    console.error("Error in loginUser:", error);
+    // console.error("Error in loginUser:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -279,7 +279,7 @@ export const resendVerificationEmail = async (req, res) => {
       success: true,
     });
   } catch (error) {
-    console.error("Resend verification error:", error);
+    // console.error("Resend verification error:", error);
     res.status(500).json({
       message: "Internal server error",
       success: false,
@@ -421,7 +421,7 @@ export const resetPassword = async (req, res) => {
       message: "Password reset successful. Please login again.",
     });
   } catch (error) {
-    console.error("Reset password error:", error);
+    // console.error("Reset password error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -497,7 +497,7 @@ export const updateUserProfile = async (req, res) => {
       message: "Profile updated successfully",
     });
   } catch (error) {
-    console.error("Update user profile error:", error);
+    // console.error("Update user profile error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -675,7 +675,7 @@ export const cancelAppointment = async (req, res) => {
       message: "Appointment cancelled successfully",
     });
   } catch (error) {
-    console.error("Cancel appointment error:", error);
+    // console.error("Cancel appointment error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -790,7 +790,7 @@ export const requestDeleteAccountOtp = async (req, res) => {
       message: "OTP sent to your email",
     });
   } catch (error) {
-    console.error("Request delete account OTP error:", error);
+    // console.error("Request delete account OTP error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -849,7 +849,7 @@ export const verifyDeleteAccountOtp = async (req, res) => {
       message: "Account deleted successfully",
     });
   } catch (error) {
-    console.error("Verify delete account OTP error:", error);
+    // console.error("Verify delete account OTP error:", error);
     return res.status(500).json({
       success: false,
       message: "Account deletion failed",
@@ -862,7 +862,9 @@ export const logout = async (req, res) => {
     res.clearCookie("refreshToken", {
       ...refreshCookieOptions,
     });
-
+    
+    // console.log("Cleared refresh Token!");
+    
     return res.status(200).json({
       success: true,
       message: "Logged out successfully",

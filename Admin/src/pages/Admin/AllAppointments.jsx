@@ -6,19 +6,20 @@ import { AppContext } from "../../context/AppContext";
 import Loading from "../../components/Loading";
 
 const AllAppointments = () => {
-  const { aToken, appointments, cancelAppointment, getAllAppointments } =
+  const { appointments, cancelAppointment, getAllAppointments } =
     useContext(AdminContext);
-  const { slotDateFormat, calculateAge, currency } = useContext(AppContext);
+  const { slotDateFormat, calculateAge, currency, adminData } =
+    useContext(AppContext);
   const [loading, setLoading] = useState(true);
 
   // page load gets all appointments
   useEffect(() => {
-    if (aToken) {
+    if (adminData) {
       getAllAppointments().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
-  }, [aToken]);
+  }, [adminData]);
 
   if (loading) {
     return <Loading />;

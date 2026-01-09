@@ -1,9 +1,8 @@
 import React, { useContext, useState } from "react";
 import { assets } from "../../assets/assets";
 import { toast } from "react-toastify";
-import axios from "axios";
-import { AdminContext } from "../../context/AdminContext";
 import { AppContext } from "../../context/AppContext";
+import api from "../../api/axiosClient";
 import Loading from "../../components/Loading";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png"];
@@ -24,8 +23,7 @@ const AddLawyer = () => {
   const [state, setState] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { backendUrl } = useContext(AppContext);
-  const { aToken } = useContext(AdminContext);
+  const { adminData } = useContext(AppContext);
 
   const onSubmitHandler = async (event) => {
     event.preventDefault();
@@ -60,21 +58,16 @@ const AddLawyer = () => {
         }),
       );
 
-      if (!aToken) {
+      if (!adminData) {
         toast.error("Please login first");
         return;
       }
 
-      const { data } = await axios.post(
-        backendUrl + "/api/admin/add-lawyer",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${aToken}`,
-            "Content-Type": "multipart/form-data",
-          },
+      const { data } = await api.post("/api/admin/add-lawyer", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
         },
-      );
+      });
 
       if (data.success) {
         toast.success(data.message);
@@ -93,7 +86,7 @@ const AddLawyer = () => {
       }
     } catch (error) {
       toast.error(error.message);
-      console.log(error);
+      // console.log(error);
     } finally {
       setLoading(false);
     }

@@ -116,7 +116,7 @@ const Appointment = () => {
         toast.error(data.message);
       }
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       toast.error(error.response?.data?.message || error.message);
     }
   };

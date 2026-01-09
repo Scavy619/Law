@@ -1,19 +1,21 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AdminContext } from "../../context/AdminContext";
+import { AppContext } from "../../context/AppContext";
 import Loading from "../../components/Loading";
 
 const LawyersList = () => {
-  const { lawyers, changeAvailability, aToken, getAllLawyers } =
+  const { lawyers, changeAvailability, getAllLawyers } =
     useContext(AdminContext);
+  const { adminData } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (aToken) {
+    if (adminData) {
       getAllLawyers().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
-  }, [aToken]);
+  }, [adminData]);
 
   if (loading) {
     return <Loading />;

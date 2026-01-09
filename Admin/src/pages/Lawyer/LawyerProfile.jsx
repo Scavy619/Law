@@ -2,13 +2,13 @@ import React, { useContext, useEffect, useState } from "react";
 import { LawyerContext } from "../../context/LawyerContext";
 import { AppContext } from "../../context/AppContext";
 import { toast } from "react-toastify";
-import axios from "axios";
+import api from "../../api/axiosClient";
 import Loading from "../../components/Loading";
 
 const LawyerProfile = () => {
-  const { lToken, profileData, setProfileData, getProfileData } =
+  const { profileData, setProfileData, getProfileData } =
     useContext(LawyerContext);
-  const { currency, backendUrl } = useContext(AppContext);
+  const { currency, lawyerData } = useContext(AppContext);
   const [isEdit, setIsEdit] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -21,15 +21,9 @@ const LawyerProfile = () => {
         available: profileData.available,
       };
 
-      const { data } = await axios.patch(
-        backendUrl + "/api/lawyer/update-profile",
+      const { data } = await api.patch(
+        "/api/lawyer/update-profile",
         updateData,
-        {
-          headers: {
-            Authorization: `Bearer ${lToken}`,
-            "Content-Type": "application/json",
-          },
-        },
       );
 
       if (data.success) {
@@ -43,17 +37,17 @@ const LawyerProfile = () => {
       setIsEdit(false);
     } catch (error) {
       toast.error(error.message);
-      console.log(error);
+      // console.log(error);
     }
   };
 
   useEffect(() => {
-    if (lToken) {
+    if (lawyerData) {
       getProfileData().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
-  }, [lToken]);
+  }, [lawyerData]);
 
   if (loading) {
     return <Loading />;

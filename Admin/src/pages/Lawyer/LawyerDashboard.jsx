@@ -7,23 +7,18 @@ import { AppContext } from "../../context/AppContext";
 import Loading from "../../components/Loading";
 
 const LawyerDashboard = () => {
-  const {
-    lToken,
-    dashData,
-    getDashData,
-    cancelAppointment,
-    completeAppointment,
-  } = useContext(LawyerContext);
-  const { slotDateFormat, currency } = useContext(AppContext);
+  const { dashData, getDashData, cancelAppointment, completeAppointment } =
+    useContext(LawyerContext);
+  const { slotDateFormat, currency, lawyerData } = useContext(AppContext);
   const [loading, setLoading] = React.useState(true);
 
   useEffect(() => {
-    if (lToken) {
+    if (lawyerData) {
       getDashData().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
-  }, [lToken]);
+  }, [lawyerData]);
 
   if (loading) {
     return <Loading />;

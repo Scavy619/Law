@@ -70,7 +70,7 @@ const Navbar = () => {
     try {
       await api.post("/api/auth/logout");
     } catch (err) {
-      console.error("Logout error:", err);
+      // console.error("Logout error:", err);
     }
     setUserData(null);
     navigate("/login");

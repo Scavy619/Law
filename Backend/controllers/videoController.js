@@ -57,7 +57,7 @@ export const getVideoToken = async (req, res) => {
         appointment.videoCall.roomId = callId;
         await appointment.save();
       } catch (createError) {
-        console.error('Call creation error:', createError);
+        // console.error('Call creation error:', createError);
         // If call creation fails, we can still proceed - 
         // Stream allows calls to be created on join with proper settings
         appointment.videoCall.callId = callId;
@@ -75,7 +75,7 @@ export const getVideoToken = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get video token error:', error);
+    // console.error('Get video token error:', error);
     res.json({ success: false, message: error.message });
   }
 };
@@ -152,7 +152,7 @@ export const updateCallStatus = async (req, res) => {
     res.json({ success: true, message: 'Call status updated' });
 
   } catch (error) {
-    console.error('Update call status error:', error);
+    // console.error('Update call status error:', error);
     res.json({ success: false, message: error.message });
   }
 };
@@ -187,7 +187,7 @@ export const getCallDetails = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get call details error:', error);
+    // console.error('Get call details error:', error);
     res.json({ success: false, message: error.message });
   }
 };

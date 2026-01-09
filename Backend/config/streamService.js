@@ -33,7 +33,7 @@ export const generateStreamToken = async (userId, userName) => {
 
     return token;
   } catch (error) {
-    console.error('Stream token generation error:', error);
+    // console.error('Stream token generation error:', error);
     throw error;
   }
 };
@@ -61,7 +61,7 @@ export const createVideoCall = async (callId, userId, lawyerId) => {
 
     return { callId, success: true };
   } catch (error) {
-    console.error('Stream call creation error:', error);
+    // console.error('Stream call creation error:', error);
     throw error;
   }
 };
@@ -76,7 +76,7 @@ export const endVideoCall = async (callId) => {
     await call.end();
     return { success: true };
   } catch (error) {
-    console.error('Stream call end error:', error);
+    // console.error('Stream call end error:', error);
     throw error;
   }
 };

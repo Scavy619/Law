@@ -34,7 +34,7 @@ const AppContextProvider = ({ children }) => {
       } catch (error) {
         // Only log non-401 errors (401 means no refresh token, which is normal)
         if (error.response?.status !== 401) {
-          console.error("Auth initialization error:", error);
+          // console.error("Auth initialization error:", error);
         }
         setUserData(null);
       } finally {

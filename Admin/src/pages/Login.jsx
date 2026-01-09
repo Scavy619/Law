@@ -1,9 +1,12 @@
-import axios from "axios";
 import React, { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LawyerContext } from "../context/LawyerContext";
-import { AdminContext } from "../context/AdminContext";
+import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
+import api from "../api/axiosClient";
+import {
+  setAdminAccessToken,
+  setLawyerAccessToken,
+} from "../context/auth.tokens";
 
 const Login = () => {
   const [state, setState] = useState("Admin");
@@ -13,31 +16,37 @@ const Login = () => {
 
   const navigate = useNavigate();
 
-  const { lToken, setLToken } = useContext(LawyerContext);
-  const { aToken, setAToken, backendUrl } = useContext(AdminContext);
+  const { adminData, setAdminData, lawyerData, setLawyerData, authLoading } =
+    useContext(AppContext);
 
   // Redirect if already logged in
   useEffect(() => {
-    if (aToken) {
-      navigate("/admin-dashboard");
-    } else if (lToken) {
-      navigate("/lawyer-dashboard");
+    if (!authLoading) {
+      if (adminData) {
+        navigate("/admin-dashboard");
+      } else if (lawyerData) {
+        navigate("/lawyer-dashboard");
+      }
     }
-  }, [aToken, lToken, navigate]);
+  }, [adminData, lawyerData, authLoading, navigate]);
 
   const onSubmitHandler = async (event) => {
     event.preventDefault();
 
     if (state === "Admin") {
       try {
-        const { data } = await axios.post(`${backendUrl}/api/admin/login`, {
+        const { data } = await api.post("/api/admin/login", {
           email,
           password,
         });
 
         if (data.success) {
-          setAToken(data.token);
-          localStorage.setItem("aToken", data.token);
+          // Store access token in memory
+          setAdminAccessToken(data.accessToken);
+
+          // Store admin data in context
+          setAdminData(data.admin);
+
           toast.success("Login successful!");
           navigate("/admin-dashboard");
         } else {
@@ -65,14 +74,18 @@ const Login = () => {
     } else {
       // Lawyer Login Logic
       try {
-        const { data } = await axios.post(`${backendUrl}/api/lawyer/login`, {
+        const { data } = await api.post("/api/lawyer/login", {
           email,
           password,
         });
 
         if (data.success) {
-          setLToken(data.token);
-          localStorage.setItem("lToken", data.token);
+          // Store access token in memory
+          setLawyerAccessToken(data.accessToken);
+
+          // Store lawyer data in context
+          setLawyerData(data.lawyer);
+
           toast.success("Lawyer login successful!");
           navigate("/lawyer-dashboard");
         } else {
@@ -94,10 +107,19 @@ const Login = () => {
           // Something else went wrong
           toast.error(`Login failed: ${error.message}`);
         }
-        console.error("Lawyer login error:", error);
+        // console.error("Lawyer login error:", error);
       }
     }
   };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={onSubmitHandler} className="min-h-[80vh] flex items-center">

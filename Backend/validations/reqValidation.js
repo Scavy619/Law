@@ -10,7 +10,7 @@ export const signupPostRequestBodySchema = z.object({
     .min(6, "Password must be at least 6 characters long")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/,
-      "Password must contain uppercase, lowercase, number and special character"
+      "Password must contain uppercase, lowercase, number and special character",
     ),
 });
 
@@ -25,19 +25,26 @@ export const updatePatchRequestBodySchemaforUser = z.object({
 
   phone: z
     .string()
-    .refine((val) => val === '' || /^[0-9]{10}$/.test(val), {
-      message: "Phone must be a valid 10-digit number or empty"
+    .refine((val) => val === "" || /^[0-9]{10}$/.test(val), {
+      message: "Phone must be a valid 10-digit number or empty",
     })
     .optional(),
 
   dob: z
     .string()
-    .refine((val) => val === '' || val === 'Not Selected' || /^\d{4}-\d{2}-\d{2}$/.test(val), {
-      message: "Date of Birth must be in YYYY-MM-DD format, 'Not Selected', or empty"
-    })
+    .refine(
+      (val) =>
+        val === "" || val === "Not Selected" || /^\d{4}-\d{2}-\d{2}$/.test(val),
+      {
+        message:
+          "Date of Birth must be in YYYY-MM-DD format, 'Not Selected', or empty",
+      },
+    )
     .optional(),
 
-  gender: z.enum(["Male", "Female", "Others", "Not Selected", "Rather Not Say"]).optional(),
+  gender: z
+    .enum(["Male", "Female", "Others", "Not Selected", "Rather Not Say"])
+    .optional(),
 
   address: z
     .union([
@@ -52,10 +59,6 @@ export const updatePatchRequestBodySchemaforUser = z.object({
 });
 
 export const updatePatchRequestBodySchemaForLawyer = z.object({
-  lawyerId: z
-    .string({ required_error: "Lawyer ID is required" })
-    .min(1, "Lawyer ID cannot be empty"),
-
   fees: z
     .union([z.string(), z.number()])
     .transform((val) => Number(val))
@@ -84,15 +87,9 @@ export const updatePatchRequestBodySchemaForLawyer = z.object({
 
 // schema for adding lawyer by admin
 export const addLawyerByAdminSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Name cannot be empty")
-    .describe("Name is required"),
+  name: z.string().min(1, "Name cannot be empty").describe("Name is required"),
 
-  email: z
-    .string()
-    .email("Invalid email format")
-    .describe("Email is required"),
+  email: z.string().email("Invalid email format").describe("Email is required"),
 
   password: z
     .string()
@@ -133,14 +130,12 @@ export const addLawyerByAdminSchema = z.object({
     .describe("Address object is required"),
 });
 
-
 export const resetPasswordPostRequestBodySchema = z.object({
   password: z
     .string()
     .min(8, "Password must be at least 8 characters long")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/,
-      "Password must contain uppercase, lowercase, number and special character"
+      "Password must contain uppercase, lowercase, number and special character",
     ),
 });
-

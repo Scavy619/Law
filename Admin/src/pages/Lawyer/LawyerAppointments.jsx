@@ -9,13 +9,13 @@ import Loading from "../../components/Loading";
 
 const LawyerAppointments = () => {
   const {
-    lToken,
     appointments,
     getAppointments,
     cancelAppointment,
     completeAppointment,
   } = useContext(LawyerContext);
-  const { slotDateFormat, calculateAge, currency } = useContext(AppContext);
+  const { slotDateFormat, calculateAge, currency, lawyerData } =
+    useContext(AppContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
@@ -32,24 +32,24 @@ const LawyerAppointments = () => {
       !appointment.isCompleted;
 
     // Debug logging
-    console.log("Lawyer video call check:", {
-      appointmentId: appointment._id,
-      payment: appointment.payment,
-      cancelled: appointment.cancelled,
-      isCompleted: appointment.isCompleted,
-      canJoin,
-    });
+    // console.log("Lawyer video call check:", {
+    //   appointmentId: appointment._id,
+    //   payment: appointment.payment,
+    //   cancelled: appointment.cancelled,
+    //   isCompleted: appointment.isCompleted,
+    //   canJoin,
+    // });
 
     return canJoin;
   };
 
   useEffect(() => {
-    if (lToken) {
+    if (lawyerData) {
       getAppointments().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
-  }, [lToken]);
+  }, [lawyerData]);
 
   if (loading) {
     return <Loading />;

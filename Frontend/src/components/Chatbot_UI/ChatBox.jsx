@@ -87,7 +87,7 @@ const ChatBox = () => {
       }
     } catch (error) {
       toast.error("Error sending message");
-      console.log(error);
+      // console.log(error);
       setPrompt(promptCopy);
     } finally {
       setLoadingResponse(false);

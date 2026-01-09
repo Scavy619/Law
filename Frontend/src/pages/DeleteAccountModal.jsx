@@ -48,7 +48,7 @@ const DeleteAccountModal = ({ onClose }) => {
         try {
           await api.post("/api/auth/logout");
         } catch (err) {
-          console.error("Logout error:", err);
+          // console.error("Logout error:", err);
         }
 
         // clear user data

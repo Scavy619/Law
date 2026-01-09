@@ -16,7 +16,7 @@ export const appActions = ({
       if (data.success) setLawyers(data.lawyers);
       else toast.error(data.message);
     } catch (err) {
-      console.error(err);
+      // console.error(err);
     }
   },
 
@@ -27,7 +27,7 @@ export const appActions = ({
       if (data.success) setUserData(data.user);
       else toast.error(data.message);
     } catch (err) {
-      console.error(err);
+      // console.error(err);
     }
   },
 
@@ -56,7 +56,7 @@ export const appActions = ({
       return session;
     } catch (err) {
       toast.error("Error creating chat");
-      console.error(err);
+      // console.error(err);
       return null;
     }
   },
@@ -74,7 +74,7 @@ export const appActions = ({
         toast.error(data.message);
       }
     } catch (err) {
-      console.error(err);
+      // console.error(err);
     }
   },
 });

@@ -8,8 +8,13 @@ import {
   addLawyerByAdminSchema,
   loginPostRequestBodySchema,
 } from "../validations/reqValidation.js";
-import { createToken, generateAccessToken } from "../utils/token.js";
-
+import {
+  createToken,
+  generateAccessToken,
+  generateRefreshToken,
+} from "../utils/token.js";
+import { refreshCookieOptions } from "../utils/cookies.js";
+import jwt from "jsonwebtoken";
 
 export const addlawyer = async (req, res) => {
   try {
@@ -104,7 +109,7 @@ export const addlawyer = async (req, res) => {
       .status(201)
       .json({ success: true, message: "Lawyer added successfully" });
   } catch (error) {
-    console.error("Error adding lawyer:", error);
+    // console.error("Error adding lawyer:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -139,15 +144,31 @@ export const adminLogin = async (req, res) => {
       role: "admin",
     };
 
+    // access token (short lived)
     const accessToken = generateAccessToken(adminPayload);
+
+    // refresh token (long lived)
+    const refreshToken = generateRefreshToken(adminPayload);
+
+    // set refresh token cookie
+    res.cookie("adminRefreshToken", refreshToken, refreshCookieOptions);
+
+    // admin profile data
+    const adminProfile = {
+      id: email,
+      email: email,
+      role: "admin",
+      name: "Admin",
+    };
 
     return res.status(200).json({
       success: true,
       message: "Admin logged in successfully",
       accessToken,
+      admin: adminProfile,
     });
   } catch (error) {
-    console.error("Error during admin login:", error);
+    // console.error("Error during admin login:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -160,7 +181,41 @@ export const getAllLawyers = async (req, res) => {
     const lawyers = await lawyerModel.find().select("-password");
     res.status(200).json({ success: true, lawyers });
   } catch (error) {
-    console.error("Error fetching lawyers:", error);
+    // console.error("Error fetching lawyers:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// Admin function to change lawyer availability
+export const changeAvailability = async (req, res) => {
+  try {
+    const { lawyerId } = req.body;
+
+    if (!lawyerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Lawyer ID is required",
+      });
+    }
+
+    const lawyer = await lawyerModel.findById(lawyerId);
+
+    if (!lawyer) {
+      return res.status(404).json({
+        success: false,
+        message: "Lawyer not found",
+      });
+    }
+
+    lawyer.available = !lawyer.available;
+    await lawyer.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Lawyer is now ${lawyer.available ? "available" : "unavailable"}`,
+    });
+  } catch (error) {
+    // console.error("Error changing availability:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -171,7 +226,7 @@ export const getAllAppointments = async (req, res) => {
 
     res.status(200).json({ success: true, appointments });
   } catch (error) {
-    console.error("Error fetching appointments:", error);
+    // console.error("Error fetching appointments:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -219,7 +274,7 @@ export const cancelAppointmentByAdmin = async (req, res) => {
       appointment: updatedAppointment,
     });
   } catch (error) {
-    console.error("Error cancelling appointment:", error);
+    // console.error("Error cancelling appointment:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -229,24 +284,25 @@ export const adminDashboard = async (req, res) => {
     const [dashboard] = await appointmentModel.aggregate([
       {
         $facet: {
-          totalAppointments: [
-            { $count: "count" }
-          ],
+          totalAppointments: [{ $count: "count" }],
           latestAppointments: [
-            { $sort: { createdAt: -1 } },
-            { $limit: 5 }
-          ]
-        }
-      }
+            {
+              $addFields: {
+                sortDate: {
+                  $ifNull: ["$createdAt", { $toDate: "$date" }],
+                },
+              },
+            },
+            { $sort: { sortDate: -1 } },
+            { $limit: 5 },
+          ],
+        },
+      },
     ]);
 
-    const [lawyersCount] = await lawyerModel.aggregate([
-      { $count: "count" }
-    ]);
+    const [lawyersCount] = await lawyerModel.aggregate([{ $count: "count" }]);
 
-    const [usersCount] = await UserModel.aggregate([
-      { $count: "count" }
-    ]);
+    const [usersCount] = await UserModel.aggregate([{ $count: "count" }]);
 
     res.status(200).json({
       success: true,
@@ -254,14 +310,93 @@ export const adminDashboard = async (req, res) => {
         lawyers: lawyersCount?.count || 0,
         appointments: dashboard.totalAppointments[0]?.count || 0,
         patients: usersCount?.count || 0,
-        latestAppointments: dashboard.latestAppointments
-      }
+        latestAppointments: dashboard.latestAppointments,
+      },
     });
   } catch (error) {
-    console.error("Dashboard error:", error);
+    // console.error("Dashboard error:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
+    });
+  }
+};
+
+// Admin refresh token endpoint
+export const refreshAdminAccessToken = async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.adminRefreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Admin refresh token missing",
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    } catch (err) {
+      return res.status(401).json({
+        success: false,
+        message: "Admin refresh token expired or invalid",
+      });
+    }
+
+    // Verify it's an admin token
+    if (decoded.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Invalid admin token",
+      });
+    }
+
+    // minimal payload
+    const payload = {
+      id: decoded.id,
+      role: "admin",
+    };
+
+    const newAccessToken = generateAccessToken(payload);
+
+    // admin profile data
+    const adminProfile = {
+      id: decoded.id,
+      email: decoded.id,
+      role: "admin",
+      name: "Admin",
+    };
+
+    return res.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+      admin: adminProfile,
+    });
+  } catch (error) {
+    // console.error("Admin refresh token error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Could not refresh admin access token",
+    });
+  }
+};
+
+// Admin logout endpoint
+export const logoutAdmin = async (req, res) => {
+  try {
+    res.clearCookie("adminRefreshToken", {
+      ...refreshCookieOptions,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin logged out successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Logout failed",
     });
   }
 };

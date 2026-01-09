@@ -1,14 +1,21 @@
-import { useContext } from 'react';
-import { Navigate } from 'react-router-dom';
-import { AdminContext } from '../context/AdminContext';
-import { LawyerContext } from '../context/LawyerContext';
+import { useContext } from "react";
+import { Navigate } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
 
 const ProtectedRoute = ({ children }) => {
-  const { aToken } = useContext(AdminContext);
-  const { lToken } = useContext(LawyerContext);
+  const { adminData, lawyerData, authLoading } = useContext(AppContext);
 
-  // If no token exists, redirect to login
-  if (!aToken && !lToken) {
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  // If no admin or lawyer is authenticated, redirect to login
+  if (!adminData && !lawyerData) {
     return <Navigate to="/login" replace />;
   }
 

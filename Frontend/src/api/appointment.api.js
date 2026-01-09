@@ -1,47 +1,26 @@
-import api from './axiosClient';
+import api from "./axiosClient";
 
 // GET user appointments
-export const getUserAppointments = async (backendUrl, token) => {
-  return api.get(`${backendUrl}/api/user/appointments`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
+export const getUserAppointments = async () => {
+  return api.get("/api/user/appointments");
 };
 
 // CANCEL appointment
-export const cancelAppointment = async (
-  backendUrl,
-  token,
-  appointmentId
-) => {
-  return api.post(
-    `${backendUrl}/api/user/cancel-appointment`,
-    { appointmentId },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+export const cancelAppointment = async (appointmentId) => {
+  return api.post("/api/user/cancel-appointment", {
+    appointmentId,
+  });
 };
 
-// BOOK APPOINTMENTS
+// BOOK appointment
 export const bookAppointment = async (
-  backendUrl,
-  token,
   lawyerId,
   slotDate,
   slotTime
 ) => {
-  return api.post(
-    `${backendUrl}/api/user/book-appointment`,
-    { lawyerId, slotDate, slotTime },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  return api.post("/api/user/book-appointment", {
+    lawyerId,
+    slotDate,
+    slotTime,
+  });
 };

@@ -1,53 +1,35 @@
+import { verifyAccessToken } from "../utils/token.js";
 
-import { validateToken } from '../utils/token.js';
+// Access-token authentication middleware
+const authUser = (req, res, next) => {
+  const authHeader = req.headers.authorization;
 
-// user authentication middleware
-const authUser = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ 
-            success: false, 
-            message: 'Authorization required. Please provide a valid Bearer token.' 
-        });
-    }
+  // check bearer token
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({
+      success: false,
+      message: "Authorization required. Please login.",
+    });
+  }
 
-    const token = authHeader.split(' ')[1];
-    
-    if (!token) {
-        return res.status(401).json({ 
-            success: false, 
-            message: 'Not Authorized, Login Again' 
-        });
-    }
+  const token = authHeader.split(" ")[1];
 
-    try {
-        const decoded = validateToken(token);
-        if(!decoded){
-            return res.status(401).json({ 
-                success: false, 
-                message: 'Invalid or expired token! Please login again.'
-            });
-        }
-        // Initialize req.body if it doesn't exist
-        if (!req.body) {
-            req.body = {};
-        }
-        
-        // Set both userId and user for flexibility
-        req.body.userId = decoded.id;
-        req.user = decoded;
-        
-        next();
-    } catch (error) {
-        console.log('Token verification error:', error);
-        // console.log('JWT_SECRET used:', process.env.JWT_SECRET);
-        res.status(401).json({ 
-            success: false, 
-            message: 'Invalid or expired token! Please login again.',
-            error: error.message
-        });
-    }
-}
+  // verify the access token
+  try {
+    const decoded = verifyAccessToken(token);
+
+    // decoded = { id, iat, exp }
+    req.user = {
+      id: decoded.id,
+    };
+
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Access token expired or invalid. Please refresh login.",
+    });
+  }
+};
 
 export default authUser;

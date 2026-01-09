@@ -5,7 +5,13 @@ import { upload } from "../middleware/multer.js";
 import {changeAvailability} from "../controllers/lawyerController.js";
 const AdminRouter = express.Router();
 
-AdminRouter.post("/add-lawyer", upload.single("image"), addlawyer);
+AdminRouter.post(
+  "/add-lawyer",
+  authAdmin,
+  upload.single("image"),
+  addlawyer
+);
+
 AdminRouter.post("/login", adminLogin);
 AdminRouter.get("/all-lawyers", authAdmin, getAllLawyers);
 AdminRouter.get("/all-appointments", authAdmin, getAllAppointments);

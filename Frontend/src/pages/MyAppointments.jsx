@@ -14,7 +14,7 @@ import {
 } from "../api/payment.api";
 
 const MyAppointments = () => {
-  const { backendUrl, token, getLawyersData } = useApp();
+  const { userData, authLoading, getLawyersData } = useApp();
   const navigate = useNavigate();
 
   const [appointments, setAppointments] = useState([]);
@@ -53,16 +53,16 @@ const MyAppointments = () => {
   // Getting User Appointments Data Using API
   const getUserAppointments = async () => {
     try {
-      if (!token) {
+      if (!userData) {
         toast.error("Please login to view appointments");
         navigate("/login");
         return;
       }
 
-      const { data } = await userAppointments(backendUrl, token);
+      const { data } = await userAppointments();
 
       if (data.success) {
-        setAppointments(data.appointments); // No need to reverse, we're sorting on backend
+        setAppointments(data.appointments);
       } else {
         toast.error(data.message || "Failed to fetch appointments");
       }
@@ -80,11 +80,7 @@ const MyAppointments = () => {
   // Function to cancel appointment Using API
   const cancelAppointment = async (appointmentId) => {
     try {
-      const { data } = await cancelTheAppointment(
-        backendUrl,
-        token,
-        appointmentId,
-      );
+      const { data } = await cancelTheAppointment(appointmentId);
 
       if (data.success) {
         toast.success(data.message);
@@ -109,14 +105,8 @@ const MyAppointments = () => {
       order_id: order.id,
       receipt: order.receipt,
       handler: async (response) => {
-        // console.log(response)
-
         try {
-          const { data } = await verifyRazorpayPayment(
-            backendUrl,
-            token,
-            response,
-          );
+          const { data } = await verifyRazorpayPayment(response);
           if (data.success) {
             navigate("/my-appointments");
             getUserAppointments();
@@ -134,11 +124,7 @@ const MyAppointments = () => {
   // Function to make payment using razorpay
   const appointmentRazorpay = async (appointmentId) => {
     try {
-      const { data } = await createRazorpayPayment(
-        backendUrl,
-        token,
-        appointmentId,
-      );
+      const { data } = await createRazorpayPayment(appointmentId);
 
       if (data.success) {
         initPay(data.order);
@@ -150,22 +136,6 @@ const MyAppointments = () => {
       toast.error(error.message);
     }
   };
-
-  // // Function to make payment using stripe
-  // const appointmentStripe = async (appointmentId) => {
-  //     try {
-  //         const { data } = await api.post(backendUrl + '/api/user/payment-stripe', { appointmentId }, { headers: { token } })
-  //         if (data.success) {
-  //             const { session_url } = data
-  //             window.location.replace(session_url)
-  //         }else{
-  //             toast.error(data.message)
-  //         }
-  //     } catch (error) {
-  //         console.log(error)
-  //         toast.error(error.message)
-  //     }
-  // }
 
   // video calling
   const handleJoinVideoCall = (appointmentId) => {
@@ -179,23 +149,27 @@ const MyAppointments = () => {
       (appointment.cancelled === "Not Cancelled" || !appointment.cancelled) &&
       !appointment.isCompleted;
 
-    // Debug logging
-    // console.log('Video call check:', {
-    //   appointmentId: appointment._id,
-    //   payment: appointment.payment,
-    //   cancelled: appointment.cancelled,
-    //   isCompleted: appointment.isCompleted,
-    //   canJoin
-    // });
-
     return canJoin;
   };
-  // whenever my appointment page load hote hai aur token available hai tab user appointments leke aao
+
+  // Load appointments when userData is available
   useEffect(() => {
-    if (token) {
+    if (userData) {
       getUserAppointments();
     }
-  }, [token]);
+  }, [userData]);
+
+  // Show loading state
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">

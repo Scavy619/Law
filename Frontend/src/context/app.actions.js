@@ -4,8 +4,6 @@ import { getUserProfileData } from "../api/user.api";
 import { createChat, getChatBySession } from "../api/chat.api";
 
 export const appActions = ({
-  backendUrl,
-  token,
   setLawyers,
   setUserData,
   setSessionId,
@@ -14,7 +12,7 @@ export const appActions = ({
   // ================= LAWYERS =================
   getLawyersData: async () => {
     try {
-      const { data } = await fetchLawyersAPI(backendUrl);
+      const { data } = await fetchLawyersAPI();
       if (data.success) setLawyers(data.lawyers);
       else toast.error(data.message);
     } catch (err) {
@@ -24,9 +22,8 @@ export const appActions = ({
 
   // ================= USER =================
   loadUserProfileData: async () => {
-    if (!token) return;
     try {
-      const { data } = await getUserProfileData(backendUrl, token);
+      const { data } = await getUserProfileData();
       if (data.success) setUserData(data.user);
       else toast.error(data.message);
     } catch (err) {
@@ -36,11 +33,6 @@ export const appActions = ({
 
   // ================= CHAT =================
   createNewChat: async () => {
-    if (!token) {
-      toast.error("Please login to create a chat");
-      return null;
-    }
-
     const session = `session-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}`;
@@ -48,7 +40,7 @@ export const appActions = ({
     setSessionId(session);
 
     try {
-      const { data } = await createChat(backendUrl, token, session);
+      const { data } = await createChat(session);
 
       if (!data.success) {
         toast.error(data.message);
@@ -70,14 +62,10 @@ export const appActions = ({
   },
 
   fetchUserChats: async (targetSessionId) => {
-    if (!token || !targetSessionId) return;
+    if (!targetSessionId) return;
 
     try {
-      const { data } = await getChatBySession(
-        backendUrl,
-        token,
-        targetSessionId
-      );
+      const { data } = await getChatBySession(targetSessionId);
 
       if (data.success) {
         setCurrentSession(data.chats);

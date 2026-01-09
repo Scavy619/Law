@@ -3,9 +3,10 @@ import useApp from "../context/useApp";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { requestDeleteAccount, verifyDeleteAccount } from "../api/user.api";
+import api from "../api/axiosClient";
 
 const DeleteAccountModal = ({ onClose }) => {
-  const { backendUrl, token, setToken } = useApp();
+  const { setUserData } = useApp();
   const navigate = useNavigate();
 
   const [step, setStep] = useState("warning"); // warning | otp
@@ -16,7 +17,7 @@ const DeleteAccountModal = ({ onClose }) => {
   const handleSendOtp = async () => {
     setLoading(true);
     try {
-      const { data } = await requestDeleteAccount(backendUrl, token);
+      const { data } = await requestDeleteAccount();
 
       if (data.success) {
         toast.success("OTP sent to your email");
@@ -38,14 +39,20 @@ const DeleteAccountModal = ({ onClose }) => {
 
     setLoading(true);
     try {
-      const { data } = await verifyDeleteAccount(backendUrl, token, otp);
+      const { data } = await verifyDeleteAccount(otp);
 
       if (data.success) {
         toast.success("Account deleted successfully");
 
-        // logout
-        localStorage.removeItem("token");
-        setToken(null);
+        // logout via API
+        try {
+          await api.post("/api/auth/logout");
+        } catch (err) {
+          console.error("Logout error:", err);
+        }
+
+        // clear user data
+        setUserData(null);
         navigate("/login");
       }
     } catch (error) {

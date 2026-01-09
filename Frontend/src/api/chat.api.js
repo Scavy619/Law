@@ -1,21 +1,13 @@
-import api from './axiosClient';
+import api from "./axiosClient";
 
-export const createChat = async (backendUrl, token, sessionId) => {
-  return api.post(
-    `${backendUrl}/api/chat/create`,
-    { sessionId },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+// CREATE chat
+export const createChat = async (sessionId) => {
+  return api.post("/api/chat/create", {
+    sessionId,
+  });
 };
 
-export const getChatBySession = async (backendUrl, token, sessionId) => {
-  return api.get(`${backendUrl}/api/chat/get/${sessionId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+// GET chat by session
+export const getChatBySession = async (sessionId) => {
+  return api.get(`/api/chat/get/${sessionId}`);
 };

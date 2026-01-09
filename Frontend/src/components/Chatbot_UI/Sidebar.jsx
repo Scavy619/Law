@@ -9,10 +9,7 @@ import { Edit3, Home } from "lucide-react";
 
 const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
   const {
-    token,
-    setToken,
     userData,
-    backendUrl,
     sessionId,
     setSessionId,
     currentSession,
@@ -20,7 +17,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
     createNewChat,
     fetchUserChats,
   } = useContext(AppContext);
-  
+
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [chatSessions, setChatSessions] = useState([]);
@@ -30,13 +27,11 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
 
   // Load user's chat sessions from backend
   const loadChatSessions = async () => {
-    if (!token || !userData) return;
-    
+    if (!userData) return;
+
     setLoading(true);
     try {
-      const { data } = await api.get(`${backendUrl}/api/chat/sessions`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const { data } = await api.get("/api/chat/sessions");
 
       if (data.success) {
         setChatSessions(data.sessions || []);
@@ -70,20 +65,19 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
     try {
       e.stopPropagation();
       const confirm = window.confirm(
-        "Are you sure you want to delete this chat?"
+        "Are you sure you want to delete this chat?",
       );
 
       if (!confirm) return;
 
-      const { data } = await api.delete(`${backendUrl}/api/chat/delete`, {
+      const { data } = await api.delete("/api/chat/delete", {
         data: { sessionId: sessionIdToDelete },
-        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (data.success) {
         // Reload sessions from backend after successful deletion
         await loadChatSessions();
-        
+
         // If deleting current active session, redirect
         if (sessionId === sessionIdToDelete) {
           setSessionId(null);
@@ -114,21 +108,23 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
   const updateChatTitle = async (sessionIdToUpdate, newTitle) => {
     try {
       // Update chat title in backend
-      const { data } = await api.put(`${backendUrl}/api/chat/update-title`, {
+      const { data } = await api.put("/api/chat/update-title", {
         sessionId: sessionIdToUpdate,
-        title: newTitle
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+        title: newTitle,
       });
 
       if (data.success) {
         // Update local state
-        setChatSessions(prevSessions => 
-          prevSessions.map(chat => 
-            chat.sessionId === sessionIdToUpdate 
-              ? { ...chat, title: newTitle, updatedAt: new Date().toISOString() }
-              : chat
-          )
+        setChatSessions((prevSessions) =>
+          prevSessions.map((chat) =>
+            chat.sessionId === sessionIdToUpdate
+              ? {
+                  ...chat,
+                  title: newTitle,
+                  updatedAt: new Date().toISOString(),
+                }
+              : chat,
+          ),
         );
         toast.success("Chat title updated successfully");
       } else {
@@ -142,7 +138,9 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
 
   const startEditingTitle = (chat) => {
     setEditingTitleId(chat.sessionId);
-    setTempTitle(chat.title || chat.lastMessage || `Chat ${chat.sessionId.split('-')[1]}`);
+    setTempTitle(
+      chat.title || chat.lastMessage || `Chat ${chat.sessionId.split("-")[1]}`,
+    );
   };
 
   const saveTitle = async (sessionIdToUpdate) => {
@@ -161,20 +159,18 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
   // Load sessions on component mount
   useEffect(() => {
     loadChatSessions();
-  }, [userData, token]);
+  }, [userData]);
 
   return (
     <div
       className={`flex flex-col h-screen min-w-80 p-5 dark:bg-gradient-to-b from-[#242124]/30 to-[#000000]/30 border-r border-[#80609F]/30 backdrop-blur-3xl transition-all duration-500 ${
-        isMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        isMenuOpen ? "translate-x-0" : "-translate-x-full"
       }`}
     >
-      
-
       {/* Go to Homepage Button */}
       <button
         onClick={() => {
-          navigate('/');
+          navigate("/");
           setIsMenuOpen(false);
         }}
         className="flex justify-center items-center w-full py-3 mt-15 text-gray-700 dark:text-white bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm rounded-md cursor-pointer transition-colors"
@@ -224,7 +220,8 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
               const searchTerm = search.toLowerCase();
               return (
                 (chat.title && chat.title.toLowerCase().includes(searchTerm)) ||
-                (chat.lastMessage && chat.lastMessage.toLowerCase().includes(searchTerm)) ||
+                (chat.lastMessage &&
+                  chat.lastMessage.toLowerCase().includes(searchTerm)) ||
                 chat.sessionId.toLowerCase().includes(searchTerm)
               );
             })
@@ -232,36 +229,46 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
               <div
                 key={chat.sessionId}
                 className={`p-2 px-4 border border-gray-300 dark:border-[#80609F]/15 rounded-md flex justify-between group ${
-                  sessionId === chat.sessionId 
-                    ? 'bg-[#A456F7] text-white' 
-                    : 'dark:bg-[#57317C]/10 hover:bg-gray-50 dark:hover:bg-[#57317C]/20'
+                  sessionId === chat.sessionId
+                    ? "bg-[#A456F7] text-white"
+                    : "dark:bg-[#57317C]/10 hover:bg-gray-50 dark:hover:bg-[#57317C]/20"
                 }`}
               >
-                <div className="flex-1 min-w-0" onClick={() => !editingTitleId && handleChatClick(chat)}>
+                <div
+                  className="flex-1 min-w-0"
+                  onClick={() => !editingTitleId && handleChatClick(chat)}
+                >
                   {editingTitleId === chat.sessionId ? (
                     <input
                       type="text"
                       value={tempTitle}
                       onChange={(e) => setTempTitle(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') saveTitle(chat.sessionId);
-                        if (e.key === 'Escape') cancelEdit();
+                        if (e.key === "Enter") saveTitle(chat.sessionId);
+                        if (e.key === "Escape") cancelEdit();
                       }}
                       onBlur={() => saveTitle(chat.sessionId)}
                       className="w-full text-sm bg-transparent border-b border-primary outline-none"
                       autoFocus
                     />
                   ) : (
-                    <p className="truncate cursor-pointer" onDoubleClick={() => startEditingTitle(chat)}>
-                      {chat.title || chat.lastMessage || `Legal Chat ${chat.sessionId.split('-')[1]}`}
+                    <p
+                      className="truncate cursor-pointer"
+                      onDoubleClick={() => startEditingTitle(chat)}
+                    >
+                      {chat.title ||
+                        chat.lastMessage ||
+                        `Legal Chat ${chat.sessionId.split("-")[1]}`}
                     </p>
                   )}
-                  <p className={`text-sm font-medium mt-1 ${
-                    sessionId === chat.sessionId 
-                      ? 'text-white/90' 
-                      : 'text-[#A456F7] dark:text-gray-300'
-                  }`}>
-                    {moment(chat.updatedAt).format('MMM DD, YYYY h:mm A')}
+                  <p
+                    className={`text-sm font-medium mt-1 ${
+                      sessionId === chat.sessionId
+                        ? "text-white/90"
+                        : "text-[#A456F7] dark:text-gray-300"
+                    }`}
+                  >
+                    {moment(chat.updatedAt).format("MMM DD, YYYY h:mm A")}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -288,13 +295,19 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
 
       {/* User Info */}
       {userData && (
-        <div className="mt-auto p-3 border border-gray-300 dark:border-white/15 rounded-md hover:bg-gray-50 dark:hover:bg-[#57317C]/20 transition-colors cursor-pointer"
-             onClick={() => {
-               navigate('/my-profile');
-               setIsMenuOpen(false);
-             }}>
+        <div
+          className="mt-auto p-3 border border-gray-300 dark:border-white/15 rounded-md hover:bg-gray-50 dark:hover:bg-[#57317C]/20 transition-colors cursor-pointer"
+          onClick={() => {
+            navigate("/my-profile");
+            setIsMenuOpen(false);
+          }}
+        >
           <div className="flex items-center gap-3">
-            <img src={assets.user_icon} alt="user" className="w-7 rounded-full" />
+            <img
+              src={assets.user_icon}
+              alt="user"
+              className="w-7 rounded-full"
+            />
             <p className="text-sm dark:text-primary truncate">
               {userData.name}
             </p>

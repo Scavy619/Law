@@ -26,7 +26,12 @@ const userSchema = new mongoose.Schema({
 
   // deletion OTP things
   deleteOtp: {type: String },
-  deleteOtpExpiresAt: {type: Date },
+  deleteOtpExpiresAt: { type: Date },
+  
+  refreshToken: {
+    type: String,
+  },
+
 });
 
 // checking if model already exists (to avoid recompilation error in dev env)

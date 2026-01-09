@@ -9,18 +9,16 @@ import api from "../../api/axiosClient";
 const ChatBox = () => {
   const containerRef = useRef(null);
   const { sessionId } = useParams();
-  
-  const { 
-    token, 
-    userData, 
-    backendUrl,
+
+  const {
+    userData,
     sessionId: contextSessionId,
     setSessionId,
     currentSession,
     setCurrentSession,
     fetchUserChats,
     loadingResponse,
-    setLoadingResponse
+    setLoadingResponse,
   } = useContext(AppContext);
 
   // Local state for prompt input and messages
@@ -34,7 +32,7 @@ const ChatBox = () => {
       toast.error("Login to send message");
       return;
     }
-    
+
     if (!contextSessionId) {
       toast.error("No active chat session");
       return;
@@ -45,7 +43,6 @@ const ChatBox = () => {
     setLoadingResponse(true);
 
     try {
-      
       // Add user message to local state with timestamp
       const userMessage = {
         role: "user",
@@ -55,18 +52,10 @@ const ChatBox = () => {
       setMessages((prev) => [...prev, userMessage]);
 
       // Send to backend API
-      const { data } = await api.post(
-        `${backendUrl}/api/message/get-message`,
-        { 
-          message: promptCopy,
-          sessionId: contextSessionId
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      const { data } = await api.post("/api/message/get-message", {
+        message: promptCopy,
+        sessionId: contextSessionId,
+      });
 
       if (data) {
         const botMessage = {
@@ -75,14 +64,24 @@ const ChatBox = () => {
           createdAt: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, botMessage]);
-        
+
         // Update current session with new messages (with timestamps)
         if (currentSession) {
-          const userMessageWithTimestamp = { ...userMessage, createdAt: userMessage.createdAt };
-          const botMessageWithTimestamp = { ...botMessage, createdAt: botMessage.createdAt };
+          const userMessageWithTimestamp = {
+            ...userMessage,
+            createdAt: userMessage.createdAt,
+          };
+          const botMessageWithTimestamp = {
+            ...botMessage,
+            createdAt: botMessage.createdAt,
+          };
           setCurrentSession({
             ...currentSession,
-            messages: [...(currentSession.messages || []), userMessageWithTimestamp, botMessageWithTimestamp]
+            messages: [
+              ...(currentSession.messages || []),
+              userMessageWithTimestamp,
+              botMessageWithTimestamp,
+            ],
           });
         }
       }
@@ -124,7 +123,10 @@ const ChatBox = () => {
       {/* Chat Messages - Properly constrained container */}
       <div className="flex-1 overflow-hidden flex justify-center px-4">
         <div className="w-full max-w-4xl flex flex-col h-full">
-          <div ref={containerRef} className="flex-1 overflow-y-auto py-6 space-y-4">
+          <div
+            ref={containerRef}
+            className="flex-1 overflow-y-auto py-6 space-y-4"
+          >
             {messages.length === 0 && (
               <div className="h-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-gray-50">
                 {/* Welcome card with fade-in animation */}
@@ -139,7 +141,7 @@ const ChatBox = () => {
                       />
                     </div>
                   </div>
-                  
+
                   {/* Typography with improved hierarchy */}
                   <div className="text-center space-y-3">
                     <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
@@ -149,13 +151,19 @@ const ChatBox = () => {
                       Ask your legal question and get expert assistance
                     </p>
                   </div>
-                  
+
                   {/* Subtle decorative element */}
                   <div className="flex justify-center mt-8">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-purple-200 rounded-full animate-pulse"></div>
-                      <div className="w-2 h-2 bg-purple-300 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                      <div
+                        className="w-2 h-2 bg-purple-300 rounded-full animate-pulse"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"
+                        style={{ animationDelay: "0.4s" }}
+                      ></div>
                     </div>
                   </div>
                 </div>
@@ -171,17 +179,24 @@ const ChatBox = () => {
               <div className="flex items-center gap-2 py-4">
                 <div className="flex items-center gap-1.5 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
                   <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
-                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                  <span className="text-sm text-gray-500 ml-2">Thinking...</span>
+                  <div
+                    className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                    style={{ animationDelay: "0.1s" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                    style={{ animationDelay: "0.2s" }}
+                  ></div>
+                  <span className="text-sm text-gray-500 ml-2">
+                    Thinking...
+                  </span>
                 </div>
               </div>
             )}
           </div>
-
         </div>
       </div>
-      
+
       {/* Sticky Input Footer - Responsive */}
       <div className="flex-shrink-0 bg-white border-t border-gray-100 p-3 sm:p-4">
         <div className="max-w-4xl mx-auto">
@@ -198,19 +213,20 @@ const ChatBox = () => {
               disabled={loadingResponse}
               rows={1}
               onInput={(e) => {
-                e.target.style.height = 'auto';
+                e.target.style.height = "auto";
                 const maxHeight = window.innerWidth < 640 ? 96 : 128; // 24 for mobile, 32 for desktop
-                e.target.style.height = Math.min(e.target.scrollHeight, maxHeight) + 'px';
+                e.target.style.height =
+                  Math.min(e.target.scrollHeight, maxHeight) + "px";
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   onSubmit(e);
                 }
               }}
             />
-            <button 
-              disabled={loadingResponse} 
+            <button
+              disabled={loadingResponse}
               type="submit"
               className="flex-shrink-0 p-2.5 sm:p-3 bg-[#A456F7] hover:bg-[#9146E6] disabled:bg-gray-300 rounded-xl transition-colors duration-200 group min-w-[40px] sm:min-w-[44px]"
             >

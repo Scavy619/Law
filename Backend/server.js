@@ -7,10 +7,11 @@ import LawyerRouter from "./routes/lawyerRoute.js";
 import videoRouter from "./routes/videoRoutes.js";
 import chatRouter from "./routes/chatRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
+import AuthRouter from "./routes/authRoute.js";
 import { connectMongoDB } from "./config/mongodb.js";
 import { connectCloudinary } from "./config/cloudinary.js";
 import rateLimit from "express-rate-limit";
-
+import cookieParser from "cookie-parser";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +24,10 @@ app.use(cors({
 
 // json middleware
 app.use(express.json());
+
+// cookie parser
+app.use(cookieParser());
+
 
 // Rate limiting middleware
 const limiter = rateLimit({
@@ -57,6 +62,7 @@ connectCloudinary().then(()=> console.log("Cloudinary Connected!!"));
 
 
 // api endpoints
+app.use("/api/auth", AuthRouter);
 app.use("/api/user", userRouter); 
 app.use("/api/admin", adminRouter);
 app.use("/api/lawyer", LawyerRouter);

@@ -3,15 +3,11 @@ import { createContext } from "react";
 export const AppContext = createContext({
   // globals
   currencySymbol: "₹",
-  backendUrl: "",
 
-  // auth
-  token: null,
-  setToken: () => {},
-
-  // user
+  // auth / user
   userData: null,
   setUserData: () => {},
+  authLoading: true,
 
   // lawyers
   lawyers: [],

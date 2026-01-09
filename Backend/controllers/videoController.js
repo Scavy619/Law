@@ -11,7 +11,7 @@ import { generateStreamToken, createVideoCall, endVideoCall } from '../config/st
 export const getVideoToken = async (req, res) => {
   try {
     const { appointmentId } = req.body;
-    const userId = req.body.userId || req.body.lawyerId; // Works for both user and lawyer
+    const userId = req.user?.id || req.lawyer?.id;
   
     // Find appointment
     const appointment = await appointmentModel.findById(appointmentId);
@@ -21,8 +21,9 @@ export const getVideoToken = async (req, res) => {
     }
 
     // Verify user is part of appointment
-    const isUser = appointment.userId === userId;
-    const isLawyer = appointment.lawyerId === userId;
+    const isUser = appointment.userId.toString() === userId;
+    const isLawyer = appointment.lawyerId.toString() === userId;
+
     
     if (!isUser && !isLawyer) {
       return res.json({ success: false, message: 'Unauthorized access' });
@@ -87,6 +88,8 @@ export const updateCallStatus = async (req, res) => {
   try {
     const { appointmentId, action } = req.body; // action: 'join' | 'leave' | 'end'
     const userId = req.body.userId || req.body.lawyerId;
+
+
     
     const appointment = await appointmentModel.findById(appointmentId);
     
@@ -162,6 +165,7 @@ export const getCallDetails = async (req, res) => {
   try {
     const { appointmentId } = req.params;
     const userId = req.body.userId || req.body.lawyerId;
+
     
     const appointment = await appointmentModel.findById(appointmentId);
     

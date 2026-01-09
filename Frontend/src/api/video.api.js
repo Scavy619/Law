@@ -1,40 +1,22 @@
-import api from './axiosClient';
+import api from "./axiosClient";
 
-// GET VIDEO TOKEN
-export const getVideoToken = async (backendUrl, token, appointmentId) => {
-  return api.post(
-    `${backendUrl}/api/video/get-token`,
-    { appointmentId },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+// get video token
+export const getVideoToken = async (appointmentId) => {
+  return api.post("/api/video/get-token", { appointmentId });
 };
 
-// JOIN VIDEO CALL
-export const joinVideoCall = async (backendUrl, token, appointmentId) => {
-  return api.post(
-    `${backendUrl}/api/video/update-status`,
-    { appointmentId, action: 'join' },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+// join video call
+export const joinVideoCall = async (appointmentId) => {
+  return api.post("/api/video/update-status", {
+    appointmentId,
+    action: "join",
+  });
 };
 
-// LEAVE VIDEO CALL
-export const leaveVideoCall = async (backendUrl, token, appointmentId) => {
-  return api.post(
-    `${backendUrl}/api/video/update-status`,
-    { appointmentId, action: 'leave' },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+// leave video call
+export const leaveVideoCall = async (appointmentId) => {
+  return api.post("/api/video/update-status", {
+    appointmentId,
+    action: "leave",
+  });
 };

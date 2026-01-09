@@ -8,8 +8,8 @@ import {
   addLawyerByAdminSchema,
   loginPostRequestBodySchema,
 } from "../validations/reqValidation.js";
-import { createToken } from "../utils/token.js";
-import { create } from "domain";
+import { createToken, generateAccessToken } from "../utils/token.js";
+
 
 export const addlawyer = async (req, res) => {
   try {
@@ -122,29 +122,33 @@ export const adminLogin = async (req, res) => {
 
     const { email, password } = validationResult.data;
 
+    // check against env credentials
     if (
-      email === process.env.ADMIN_EMAIL &&
-      password === process.env.ADMIN_PASSWORD
+      email !== process.env.ADMIN_EMAIL ||
+      password !== process.env.ADMIN_PASSWORD
     ) {
-      const adminPayload = {
-        id: email.toString(), // token payload with email as id
-      };
-
-      const aToken = await createToken(adminPayload);
-      return res.status(200).json({
-        success: true,
-        message: "Admin logged in successfully",
-        token: aToken,
+      return res.status(401).json({
+        success: false,
+        message: "Invalid admin credentials",
       });
     }
 
-    return res.status(401).json({
-      success: false,
-      message: "Invalid admin credentials",
+    // admin JWT payload
+    const adminPayload = {
+      id: email,
+      role: "admin",
+    };
+
+    const accessToken = generateAccessToken(adminPayload);
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin logged in successfully",
+      accessToken,
     });
   } catch (error) {
     console.error("Error during admin login:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
     });

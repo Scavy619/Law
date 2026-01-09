@@ -27,3 +27,12 @@ export async function verifyPassword(password, hashedPassword) {
 }
 
 
+export async function hashToken(token) {
+  const salt = await bcrypt.genSalt(SALT_ROUNDS);
+  return bcrypt.hash(token, salt);
+}
+
+export async function verifyHashedToken(token, hashedToken) {
+  return bcrypt.compare(token, hashedToken);
+}
+

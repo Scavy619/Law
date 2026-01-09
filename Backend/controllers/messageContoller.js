@@ -8,7 +8,7 @@ import dotenv from "dotenv/config";
 export const getMessage = async (req, res) => {
 
     try {
-        const userId = req.user?.id || req.body.userId;
+       const userId = req.user?.id || req.body.userId;
 
         const {sessionId, message} = req.body;
         const userMessage = message;

@@ -20,6 +20,9 @@ const lawyerSchema = new mongoose.Schema(
       State: { type: String, default: "" },
     },
     date: { type: Number, required: true },
+    refreshToken: {
+      type: String,
+    },
   },
   { minimize: false }
 );

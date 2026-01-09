@@ -1,57 +1,65 @@
 import { useEffect, useState } from "react";
 import { AppProvider } from "./AppContext";
 import { appActions } from "./app.actions";
+import api from "../api/axiosClient";
+import { setAccessToken } from "./auth.tokens";
 
 const AppContextProvider = ({ children }) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const currencySymbol = "₹";
 
   // global state
   const [lawyers, setLawyers] = useState([]);
-  const [token, setToken] = useState(localStorage.getItem("token"));
   const [userData, setUserData] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   // chat state
   const [sessionId, setSessionId] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
   const [loadingResponse, setLoadingResponse] = useState(false);
 
-  // persist token
-  useEffect(() => {
-    if (token) localStorage.setItem("token", token);
-    else localStorage.removeItem("token");
-  }, [token]);
-
   const actions = appActions({
-    backendUrl,
-    token,
     setLawyers,
     setUserData,
     setSessionId,
     setCurrentSession,
   });
 
+  // 🔐 INIT AUTH (refresh token flow)
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const { data } = await api.post("/api/auth/refresh");
+        setAccessToken(data.accessToken);
+        setUserData(data.user);
+      } catch (error) {
+        // Only log non-401 errors (401 means no refresh token, which is normal)
+        if (error.response?.status !== 401) {
+          console.error("Auth initialization error:", error);
+        }
+        setUserData(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    initAuth();
+  }, []);
+
   // initial data
   useEffect(() => {
     actions.getLawyersData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    token ? actions.loadUserProfileData() : setUserData(null);
-  }, [token]);
 
   return (
     <AppProvider
       value={{
         currencySymbol,
-        backendUrl,
 
         lawyers,
-        token,
-        setToken,
-
         userData,
         setUserData,
+        authLoading,
 
         sessionId,
         setSessionId,

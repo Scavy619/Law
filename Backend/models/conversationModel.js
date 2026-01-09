@@ -22,7 +22,7 @@ const conversationSchema = new mongoose.Schema(
     sessionId: {
       type: String,
       required: true,
-      unique: true,
+      // unique: true,
     },
     title: {
       type: String,
@@ -32,6 +32,12 @@ const conversationSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+conversationSchema.index({ userId: 1, sessionId: 1 }, { unique: true });
+conversationSchema.index({ userId: 1 });
+conversationSchema.index({ updatedAt: -1 });
+
+
 
 const conversationModel = mongoose.models.Conversation || mongoose.model("Conversation", conversationSchema);
 export default conversationModel;

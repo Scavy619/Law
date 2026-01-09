@@ -10,8 +10,7 @@ const MAX_SIZE_MB = 2;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 const MyProfile = () => {
-  const { token, backendUrl, userData, setUserData, loadUserProfileData } =
-    useApp();
+  const { userData, setUserData, loadUserProfileData } = useApp();
 
   const [isEdit, setIsEdit] = useState(false);
   const [image, setImage] = useState(null);
@@ -56,7 +55,7 @@ const MyProfile = () => {
       formData.append("dob", userData.dob);
       image && formData.append("image", image);
 
-      const { data } = await updateUserProfile(backendUrl, token, formData);
+      const { data } = await updateUserProfile(formData);
 
       if (data.success) {
         toast.success(data.message);
@@ -75,7 +74,7 @@ const MyProfile = () => {
   const handlePasswordReset = async () => {
     setResetLoading(true);
     try {
-      const { data } = await forgotPassword(backendUrl, userData.email);
+      const { data } = await forgotPassword(userData.email);
       toast.success(data.message || "Password reset email sent!");
     } catch {
       toast.error("Could not send reset email");

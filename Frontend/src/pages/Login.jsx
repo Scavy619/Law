@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import useApp from "../context/useApp.jsx";
-import api from "../api/axiosClient";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import {
@@ -9,6 +8,8 @@ import {
   loginUser,
   forgotPassword,
 } from "../api/user.api.js";
+import { setAccessToken } from "../context/auth.tokens.js";
+
 const Login = () => {
   const [state, setState] = useState("Sign Up");
 
@@ -23,7 +24,7 @@ const Login = () => {
   const [forgotLoading, setForgotLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { backendUrl, setToken } = useApp();
+  const { setUserData } = useApp();
 
   // ===================== PASSWORD VALIDATION ==========================
   const hasUpper = /[A-Z]/.test(password);
@@ -50,7 +51,7 @@ const Login = () => {
       }
 
       try {
-        const { data } = await signupUser(backendUrl, name, email, password);
+        const { data } = await signupUser(name, email, password);
 
         if (data.success) {
           toast.success("Signup successful! Please verify your email.");
@@ -77,15 +78,23 @@ const Login = () => {
 
     // ---------- LOGIN ----------
     try {
-      const { data } = await loginUser(backendUrl, email, password);
+      const response = await loginUser(email, password);
+      console.log("Login response:", response);
+
+      const { data } = response;
 
       if (data.success) {
-        localStorage.setItem("token", data.token);
-        setToken(data.token);
+        console.log("Login successful, setting tokens and user data");
+        setAccessToken(data.accessToken);
+        setUserData(data.user);
         toast.success("Login successful!");
         navigate("/");
+      } else {
+        console.error("Login failed:", data);
+        toast.error(data.message || "Login failed");
       }
     } catch (error) {
+      console.error("Login error:", error);
       const status = error.response?.status;
       const msg = error.response?.data?.message;
 
@@ -93,7 +102,9 @@ const Login = () => {
         toast.error(msg);
         setShowResend(true);
       } else {
-        toast.error(msg || "Login failed");
+        toast.error(
+          msg || "Login failed - " + (error.message || "Unknown error"),
+        );
       }
     } finally {
       setLoading(false);
@@ -110,7 +121,7 @@ const Login = () => {
     }
 
     try {
-      const { data } = await resendVerification(backendUrl, email);
+      const { data } = await resendVerification(email);
 
       if (data.success) {
         toast.success("Verification email sent again!");
@@ -134,7 +145,7 @@ const Login = () => {
     setForgotLoading(true);
 
     try {
-      const { data } = await forgotPassword(backendUrl, email);
+      const { data } = await forgotPassword(email);
 
       toast.success(data.message || "Password reset email sent!");
       setShowForgot(false);
@@ -234,7 +245,7 @@ const Login = () => {
         {state === "Login" && showForgot && (
           <div className="w-full text-sm">
             <p className="text-red-500">
-              We’ll send a password reset link to your email.
+              We'll send a password reset link to your email.
             </p>
             <button
               type="button"

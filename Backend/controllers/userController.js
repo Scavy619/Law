@@ -2,6 +2,7 @@ import {
   signupPostRequestBodySchema,
   loginPostRequestBodySchema,
   updatePatchRequestBodySchemaforUser,
+  resetPasswordPostRequestBodySchema,
 } from "../validations/reqValidation.js";
 import userModel from "../models/userModel.js";
 import lawyerModel from "../models/lawyerModel.js";
@@ -14,11 +15,18 @@ import {
   resetPasswordTemplate,
   deleteAccountOtpTemplate,
 } from "../services/emailTemplates.js";
-import { hashPasswordWithSalt, verifyPassword } from "../utils/hash.js";
+import {
+  hashPasswordWithSalt,
+  verifyPassword,
+  hashToken,
+} from "../utils/hash.js";
 import { createToken } from "../utils/token.js";
 import { v2 as cloudinary } from "cloudinary";
 import razorpay from "razorpay";
 import conversationModel from "../models/conversationModel.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
+import { refreshCookieOptions } from "../utils/cookies.js";
+import jwt from "jsonwebtoken";
 
 // creating user controller for signup
 
@@ -97,38 +105,42 @@ export const signupUser = async (req, res) => {
 // api to login user
 export const loginUser = async (req, res) => {
   try {
+    console.log("Login request received:", { email: req.body.email });
+
+    // validation of request
     const validationResult = await loginPostRequestBodySchema.safeParseAsync(
       req.body,
     );
 
     if (validationResult.error) {
+      console.error("Login validation error:", validationResult.error);
       return res.status(400).json({
-        error: validationResult.error.format(),
         success: false,
+        error: validationResult.error.format(),
       });
     }
 
     const { email, password } = validationResult.data;
 
-    // check if user exists with the email
+    // checking if user exists
     const existingUser = await userModel.findOne({ email });
     if (!existingUser) {
       return res.status(404).json({
-        message: "User does not exist with the given email",
         success: false,
+        message: "User does not exist with the given email",
       });
     }
 
-    // check if email is verified for login
+    // email verified pe ae kaam chlega
     if (!existingUser.emailVerified) {
       return res.status(403).json({
+        success: false,
         message: "Please verify your email before logging in",
-        // we will show resend email button in frontend if user has not verified email
         action: "RESEND VERIFICATION EMAIL",
       });
     }
 
-    // now verify the password
+    // verifying password
     const isPasswordValid = await verifyPassword(
       password,
       existingUser.password,
@@ -136,23 +148,50 @@ export const loginUser = async (req, res) => {
 
     if (!isPasswordValid) {
       return res.status(401).json({
-        error: "Invalid password",
         success: false,
+        message: "Invalid password",
       });
     }
 
-    // ab token create karna hai for that user
-    const token = await createToken({ id: existingUser._id.toString() });
-    return res.status(200).json({
-      message: "User logged in successfully",
-      success: true,
-      token,
+    // generating the access token and refresh token
+    const accessToken = generateAccessToken({
+      id: existingUser._id,
     });
+
+    const refreshToken = generateRefreshToken({
+      id: existingUser._id,
+    });
+
+    // store the hashed refresh token in DB
+    existingUser.refreshToken = await hashToken(refreshToken);
+    await existingUser.save({ validateBeforeSave: false });
+
+    console.log("Login successful, sending response with cookie");
+
+    // sending refresh token as cookie
+    return res
+      .cookie("refreshToken", refreshToken, refreshCookieOptions)
+      .status(200)
+      .json({
+        success: true,
+        message: "User logged in successfully",
+        accessToken,
+        user: {
+          _id: existingUser._id,
+          name: existingUser.name,
+          email: existingUser.email,
+          image: existingUser.image,
+          phone: existingUser.phone,
+          address: existingUser.address,
+          gender: existingUser.gender,
+          dob: existingUser.dob,
+        },
+      });
   } catch (error) {
     console.error("Error in loginUser:", error);
     return res.status(500).json({
-      error: "Internal Server Error",
       success: false,
+      message: "Internal Server Error",
     });
   }
 };
@@ -209,6 +248,18 @@ export const resendVerificationEmail = async (req, res) => {
       });
     }
 
+    // prevent spamming of resend of verification mail by checking this
+    if (
+      user.emailVerificationExpiry &&
+      user.emailVerificationExpiry > Date.now()
+    ) {
+      return res.status(429).json({
+        success: false,
+        message:
+          "Verification email already sent. Please check your inbox or try again later.",
+      });
+    }
+
     const { rawToken, hashedToken } = generateCryptoToken();
 
     user.emailVerificationToken = hashedToken;
@@ -239,8 +290,7 @@ export const resendVerificationEmail = async (req, res) => {
 // get user data for profile page
 export const getUserProfile = async (req, res) => {
   try {
-    // Get userId from either req.user or req.body
-    const userId = req.user?.id || req.body.userId;
+    const userId = req.user.id;
 
     if (!userId) {
       return res.status(401).json({
@@ -277,10 +327,22 @@ export const forgotPassword = async (req, res) => {
     const { email } = req.body;
 
     const user = await userModel.findOne({ email });
+    // Prevent email enumeration ie hacker baar baar mail behj k pata laga skta hai konsa acc hai ya nahi
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: "No user with the email exists!!" });
+      return res.status(200).json({
+        success: true,
+        message:
+          "If an account with this email exists, a reset link has been sent.",
+      });
+    }
+
+    // Prevent spamming reset emails
+    if (user.resetPasswordExpiry && user.resetPasswordExpiry > Date.now()) {
+      return res.status(429).json({
+        success: false,
+        message:
+          "A password reset email has already been sent. Please check your inbox.",
+      });
     }
 
     const { rawToken, hashedToken } = generateCryptoToken();
@@ -308,56 +370,81 @@ export const forgotPassword = async (req, res) => {
 
 // now we will have to reset the password from the link sent by forgot password
 export const resetPassword = async (req, res) => {
-  const { token } = req.params;
-  const { password } = req.body;
+  try {
+    const { token } = req.params;
 
-  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    // validate the request
+    const validationResult =
+      await resetPasswordPostRequestBodySchema.safeParseAsync(req.body);
 
-  // find the user jiska resetpasswordToken hash token se mil jaaye and expire na hua ho
-  const user = await userModel.findOne({
-    resetPasswordToken: hashedToken,
-    // this checks ki vo user nikalo jinki resetPasswordExpiry is greater than current time ie time limit mein hai na vo abhi
-    resetPasswordExpiry: { $gt: Date.now() },
-  });
+    if (!validationResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: validationResult.error.format(),
+      });
+    }
 
-  if (!user) {
-    return res.status(400).json({ message: "Invalid or expired reset token" });
+    const { password } = validationResult.data;
+
+    // hash the token
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    // find if request is valid
+    const user = await userModel.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpiry: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired reset token",
+      });
+    }
+
+    // hash the new password
+    const { password: hashedPassword } = await hashPasswordWithSalt(password);
+
+    user.password = hashedPassword;
+
+    // clear the reset password thangs
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiry = undefined;
+
+    // invalidate all existing sessions
+    user.refreshToken = undefined;
+
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successful. Please login again.",
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
-
-  const { password: hashedPassword } = await hashPasswordWithSalt(password);
-
-  user.password = hashedPassword;
-  user.resetPasswordToken = undefined;
-  user.resetPasswordExpiry = undefined;
-
-  await user.save();
-
-  res.status(201).json({ message: "Password reset successful" });
 };
 
 export const updateUserProfile = async (req, res) => {
   try {
-    // Ensure userId is in the body for validation (added by authUser middleware)
-    const bodyToValidate = {
-      ...req.body,
-      userId: req.body.userId || req.user?.id,
-    };
+    const userId = req.user.id;
 
-    // console.log('Update profile request body:', bodyToValidate);
+    const validationResult =
+      await updatePatchRequestBodySchemaforUser.safeParseAsync(req.body);
 
-    const { success, data, error } =
-      await updatePatchRequestBodySchemaforUser.safeParseAsync(bodyToValidate);
-
-    if (!success) {
-      // console.log('Validation error:', error.format()); // Debug log
+    if (!validationResult.success) {
       return res.status(400).json({
-        error: error.format(),
         success: false,
+        error: validationResult.error.format(),
         message: "Validation failed",
       });
     }
 
-    const { userId, name, phone, address, dob, gender } = data;
+    const { name, phone, address, dob, gender } = validationResult.data;
 
     const updates = {};
 
@@ -367,12 +454,12 @@ export const updateUserProfile = async (req, res) => {
       updates.dob = dob;
     if (gender !== undefined) updates.gender = gender;
 
-    // Handle address parsing if it's a string
+    // handling address
     if (address !== undefined) {
       if (typeof address === "string") {
         try {
           updates.address = JSON.parse(address);
-        } catch (error) {
+        } catch {
           return res.status(400).json({
             success: false,
             message:
@@ -384,35 +471,33 @@ export const updateUserProfile = async (req, res) => {
       }
     }
 
-    // Handle image upload if present
+    // img upload handling
     if (req.file) {
-      // Upload image to Cloudinary using buffer and upload_stream
       const imageUrl = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            resource_type: "image",
-          },
+          { resource_type: "image" },
           (error, result) => {
-            if (error) {
-              reject(error);
-            } else {
-              resolve(result.secure_url);
-            }
+            if (error) reject(error);
+            else resolve(result.secure_url);
           },
         );
         uploadStream.end(req.file.buffer);
       });
+
       updates.image = imageUrl;
     }
 
-    await userModel.findByIdAndUpdate(userId, updates, { new: true });
+    await userModel.findByIdAndUpdate(userId, updates, {
+      new: true,
+      runValidators: true,
+    });
 
     return res.status(200).json({
       success: true,
       message: "Profile updated successfully",
     });
-  } catch (err) {
-    // console.log("Error in updateUserProfile:", err);
+  } catch (error) {
+    console.error("Update user profile error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -422,7 +507,8 @@ export const updateUserProfile = async (req, res) => {
 
 export const bookAppointment = async (req, res) => {
   try {
-    const { userId, lawyerId, slotDate, slotTime } = req.body;
+    const userId = req.user.id;
+    const { lawyerId, slotDate, slotTime } = req.body;
 
     if (!slotTime) {
       return res.status(400).json({
@@ -500,7 +586,8 @@ export const bookAppointment = async (req, res) => {
 // api to get user appointments for frontend my-appointments page
 export const listAppointment = async (req, res) => {
   try {
-    const userId = req.body.userId; // This is set by authUser middleware
+    const userId = req.user.id;
+
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -528,37 +615,71 @@ export const listAppointment = async (req, res) => {
 // api to cancel appointment from my-appointments page
 export const cancelAppointment = async (req, res) => {
   try {
-    const { userId, appointmentId } = req.body;
-    const appointmentData = await appointmentModel.findById(appointmentId);
+    const userId = req.user.id;
+    const { appointmentId } = req.body;
 
-    // verify appointment user id matches request user id
-    if (appointmentData.userId !== userId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Unauthorized action" });
+    if (!appointmentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Appointment ID is required",
+      });
     }
 
+    const appointmentData = await appointmentModel.findById(appointmentId);
+
+    if (!appointmentData) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    // Authorization check
+    if (appointmentData.userId.toString() !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized action",
+      });
+    }
+
+    // 🛑 If already cancelled
+    if (appointmentData.cancelled === "Cancelled by User") {
+      return res.status(400).json({
+        success: false,
+        message: "Appointment already cancelled",
+      });
+    }
+
+    // cancel Appointment
     await appointmentModel.findByIdAndUpdate(appointmentId, {
       cancelled: "Cancelled by User",
     });
 
-    // releasing lawyer slot coz appointment cancelled
+    // release lawyer slots
     const { lawyerId, slotDate, slotTime } = appointmentData;
 
     const lawyerData = await lawyerModel.findById(lawyerId);
 
-    let slots_booked = lawyerData.slots_booked;
+    if (lawyerData && lawyerData.slots_booked?.[slotDate]) {
+      lawyerData.slots_booked[slotDate] = lawyerData.slots_booked[
+        slotDate
+      ].filter((time) => time !== slotTime);
 
-    slots_booked[slotDate] = slots_booked[slotDate].filter(
-      (e) => e !== slotTime,
-    );
+      await lawyerModel.findByIdAndUpdate(lawyerId, {
+        slots_booked: lawyerData.slots_booked,
+      });
+    }
 
-    await lawyerModel.findByIdAndUpdate(lawyerId, { slots_booked });
-
-    res.status(200).json({ success: true, message: "Appointment Cancelled" });
+    return res.status(200).json({
+      success: true,
+      message: "Appointment cancelled successfully",
+    });
   } catch (error) {
-    // console.log(error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Cancel appointment error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };
 
@@ -626,24 +747,37 @@ export const verifyRazorpay = async (req, res) => {
 
 export const requestDeleteAccountOtp = async (req, res) => {
   try {
-    const userId = req.body.userId;
+    // user identity ONLY from auth middleware
+    const userId = req.user.id;
 
     const user = await userModel.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
     }
 
-    // generate the OTP
+    // Prevent OTP spamming
+    if (user.deleteOtpExpiresAt && user.deleteOtpExpiresAt > Date.now()) {
+      return res.status(429).json({
+        success: false,
+        message:
+          "An OTP has already been sent. Please check your email or try again later.",
+      });
+    }
+
+    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Hash OTP
+    // Hash OTP before storing
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
     user.deleteOtp = hashedOtp;
-    user.deleteOtpExpiresAt = Date.now() + 10 * 60 * 1000; // 10 mins
+    user.deleteOtpExpiresAt = Date.now() + 10 * 60 * 1000;
 
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     await sendEmail({
       to: user.email,
@@ -651,56 +785,157 @@ export const requestDeleteAccountOtp = async (req, res) => {
       html: deleteAccountOtpTemplate(otp),
     });
 
-    res.status(201).json({
+    return res.status(200).json({
       success: true,
       message: "OTP sent to your email",
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Request delete account OTP error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };
 
 //now we need to verify that OTP
 export const verifyDeleteAccountOtp = async (req, res) => {
   try {
-    const userId = req.body.userId || req.user?.id;
+    // user identity ONLY from auth middleware
+    const userId = req.user.id;
     const { otp } = req.body;
 
     if (!otp) {
-      return res.status(400).json({ message: "OTP is required" });
+      return res.status(400).json({
+        success: false,
+        message: "OTP is required",
+      });
     }
 
     const user = await userModel.findById(userId);
 
     if (!user || !user.deleteOtp) {
-      return res.status(400).json({ message: "No delete request found" });
+      return res.status(400).json({
+        success: false,
+        message: "No account deletion request found",
+      });
     }
 
-    // check if otp is still valid or not
     if (user.deleteOtpExpiresAt < Date.now()) {
-      return res.status(400).json({ message: "OTP expired" });
+      return res.status(400).json({
+        success: false,
+        message: "OTP expired",
+      });
     }
 
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
     if (hashedOtp !== user.deleteOtp) {
-      return res.status(400).json({ message: "Invalid OTP" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP",
+      });
     }
 
-    // delete the user's all appointments
-    await appointmentModel.deleteMany({ user: userId });
-
-    // deleting chats
+    // delete user-related data first
+    await appointmentModel.deleteMany({ userId });
     await conversationModel.deleteMany({ userId });
-    res.json({
+
+    // delete user account
+    await userModel.findByIdAndDelete(userId);
+
+    return res.status(200).json({
       success: true,
       message: "Account deleted successfully",
     });
-
-    // DELETE USER finally
-    await userModel.findByIdAndDelete(userId);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Account deletion failed" });
+    console.error("Verify delete account OTP error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Account deletion failed",
+    });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    res.clearCookie("refreshToken", {
+      ...refreshCookieOptions,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Logout failed",
+    });
+  }
+};
+
+export const refreshAccessToken = async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token missing",
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    } catch (err) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token expired or invalid",
+      });
+    }
+
+    // minimal payload only
+    const payload = {
+      id: decoded.id,
+      // role: decoded.role,
+    };
+
+    const newAccessToken = generateAccessToken(payload);
+
+    // Fetch user data to send with the response
+    const user = await userModel
+      .findById(decoded.id)
+      .select(
+        "-password -refreshToken -verificationToken -verificationTokenExpiry -resetPasswordToken -resetPasswordTokenExpiry -deleteAccountOtp -deleteAccountOtpExpiry",
+      );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+        phone: user.phone,
+        address: user.address,
+        gender: user.gender,
+        dob: user.dob,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Could not refresh access token",
+    });
   }
 };

@@ -8,7 +8,7 @@ import { bookAppointment as bookTheAppointment } from "../api/appointment.api";
 
 const Appointment = () => {
   const { lawyerId } = useParams();
-  const { lawyers, currencySymbol, backendUrl, token, getLawyersData } =
+  const { lawyers, currencySymbol, userData, authLoading, getLawyersData } =
     useApp();
   const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
@@ -93,7 +93,7 @@ const Appointment = () => {
 
   const bookAppointment = async () => {
     // checking if user is logged in or not
-    if (!token) {
+    if (!userData) {
       toast.warning("Login to book appointment");
       return navigate("/login");
     }
@@ -107,13 +107,7 @@ const Appointment = () => {
     const slotDate = day + "_" + month + "_" + year;
 
     try {
-      const { data } = await bookTheAppointment(
-        backendUrl,
-        token,
-        lawyerId,
-        slotDate,
-        slotTime,
-      );
+      const { data } = await bookTheAppointment(lawyerId, slotDate, slotTime);
       if (data.success) {
         toast.success(data.message);
         getLawyersData();
@@ -140,6 +134,18 @@ const Appointment = () => {
       getAvailableSlots();
     }
   }, [lawyerInfo]);
+
+  // Show loading state
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return lawyerInfo ? (
     <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">

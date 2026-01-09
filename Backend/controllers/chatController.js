@@ -3,7 +3,8 @@ import conversationModel from "../models/conversationModel.js";
 // Create a new chat session
 export const createChat = async (req, res) => {
   try {
-        const userId = req.user?.id || req.body.userId;
+    const userId = req.user.id;
+
     const { sessionId } = req.body;
 
     // Create empty chat for this user
@@ -28,7 +29,7 @@ export const createChat = async (req, res) => {
 // Get chat by sessionId
 export const getChat = async (req, res) => {
   try {
-    const userId = req.user?.id || req.body.userId;
+    const userId = req.user.id;
     const { sessionId } = req.params;
 
     const chat = await conversationModel.findOne({ sessionId, userId });
@@ -47,7 +48,7 @@ export const getChat = async (req, res) => {
 // Get all user chat sessions
 export const getUserChats = async (req, res) => {
   try {
-    const userId = req.user?.id || req.body.userId;
+    const userId = req.user.id;
 
     // Get all user chats with basic info (sessionId, title, first message, timestamps)
     const chats = await conversationModel.find({ userId })
@@ -78,7 +79,7 @@ export const getUserChats = async (req, res) => {
 // Update chat title
 export const updateChatTitle = async (req, res) => {
   try {
-    const userId = req.user?.id || req.body.userId;
+    const userId = req.user.id;
     const { sessionId, title } = req.body;
 
     const updatedChat = await conversationModel.findOneAndUpdate(
@@ -107,12 +108,12 @@ export const updateChatTitle = async (req, res) => {
 // Delete chat by sessionId (only user's own chat)
 export const deleteChat = async (req, res) => {
   try {
-    const userId = req.user?.id || req.body.userId;
+    const userId = req.user.id;
     const { sessionId } = req.body;
 
     await conversationModel.deleteOne({ sessionId, userId });
 
-    console.log(`Chat with sessionId ${sessionId} deleted`);
+    // console.log(`Chat with sessionId ${sessionId} deleted`);
     res.status(200).json({
       success: true,
       message: "Chat deleted",

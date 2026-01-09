@@ -11,8 +11,8 @@ const Chatbot = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const {
-    token,
     userData,
+    authLoading,
     sessionId,
     setSessionId,
     currentSession,
@@ -25,24 +25,23 @@ const Chatbot = () => {
     if (urlSessionId && urlSessionId !== sessionId) {
       setSessionId(urlSessionId);
       // Load the specific chat session
-      if (token && userData) {
+      if (userData) {
         fetchUserChats(urlSessionId);
       }
     }
-  }, [urlSessionId, token, userData, sessionId, setSessionId, fetchUserChats]);
+  }, [urlSessionId, userData, sessionId, setSessionId, fetchUserChats]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!token) {
+    if (!authLoading && !userData) {
       toast.error("Please login to access chatbot");
-      // You can redirect to login page here if needed
-      return;
+      navigate("/login");
     }
-  }, [token]);
+  }, [authLoading, userData, navigate]);
 
   // Create initial chat if no session exists and navigate to it
   useEffect(() => {
-    if (token && userData && !sessionId && !urlSessionId) {
+    if (userData && !sessionId && !urlSessionId) {
       const handleInitialChat = async () => {
         const newSessionId = await createNewChat();
         if (newSessionId) {
@@ -51,9 +50,22 @@ const Chatbot = () => {
       };
       handleInitialChat();
     }
-  }, [token, userData, sessionId, urlSessionId, createNewChat]);
+  }, [userData, sessionId, urlSessionId, createNewChat, navigate]);
 
-  if (!token || !userData) {
+  // Show loading state
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth required if not logged in
+  if (!userData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

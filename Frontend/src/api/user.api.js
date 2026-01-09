@@ -1,111 +1,55 @@
-import api from './axiosClient';
+import api from "./axiosClient";
 
-export const getUserProfileData = async (backendUrl, token) => {
-  return api.get(`${backendUrl}/api/user/get-profile`, {
+// get user profile
+export const getUserProfileData = async () => {
+  return api.get("/api/user/get-profile");
+};
+
+// delete account (request OTP)
+export const requestDeleteAccount = async () => {
+  return api.post("/api/user/delete-account/request");
+};
+
+// delete account (verify OTP)
+export const verifyDeleteAccount = async (otp) => {
+  return api.post("/api/user/delete-account/verify", { otp });
+};
+
+// signup
+export const signupUser = async (name, email, password) => {
+  return api.post("/api/user/signup", { name, email, password });
+};
+
+// login
+export const loginUser = async (email, password) => {
+  return api.post("/api/user/login", { email, password });
+};
+
+// resend verification email
+export const resendVerification = async (email) => {
+  return api.post("/api/user/resend-verification", { email });
+};
+
+// forgot password
+export const forgotPassword = async (email) => {
+  return api.post("/api/user/forgot-password", { email });
+};
+
+// update profile
+export const updateUserProfile = async (formData) => {
+  return api.patch("/api/user/update-profile", formData, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      "Content-Type": "multipart/form-data",
     },
   });
 };
 
-
-
-// STEP 1: request delete account (OTP send)
-export const requestDeleteAccount = async (backendUrl, token) => {
-  return api.post(
-    `${backendUrl}/api/user/delete-account/request`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-};
-
-// STEP 2: verify OTP & delete account
-export const verifyDeleteAccount = async (backendUrl, token, otp) => {
-  return api.post(
-    `${backendUrl}/api/user/delete-account/verify`,
-    { otp },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-};
-
-
-
-// SIGNUP
-export const signupUser = async (backendUrl, name, email, password) => {
-  return api.post(
-    `${backendUrl}/api/user/signup`,
-    { name, email, password }
-  );
-};
-
-// LOGIN
-export const loginUser = async (backendUrl, email, password) => {
-  return api.post(
-    `${backendUrl}/api/user/login`,
-    { email, password }
-  );
-};
-
-// RESEND EMAIL VERIFICATION
-export const resendVerification = async (backendUrl, email) => {
-  return api.post(
-    `${backendUrl}/api/user/resend-verification`,
-    { email }
-  );
-};
-
-// FORGOT PASSWORD
-export const forgotPassword = async (backendUrl, email) => {
-  return api.post(
-    `${backendUrl}/api/user/forgot-password`,
-    { email }
-  );
-};
-
-
-
-// UPDATE USER PROFILE (multipart/form-data)
-export const updateUserProfile = async (
-  backendUrl,
-  token,
-  formData
-) => {
-  return api.patch(
-    `${backendUrl}/api/user/update-profile`,
-    formData,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
-      },
-    }
-  );
-}
-
-
-
-// RESET PASSWORD
+// reset password
 export const resetPassword = async (resetToken, password) => {
-  return api.post(
-    `/api/user/reset-password/${resetToken}`,
-    { password }
-  );
+  return api.post(`/api/user/reset-password/${resetToken}`, { password });
 };
 
-
-
-// VERIFY EMAIL
+// verify email
 export const verifyUserEmail = async (verificationToken) => {
-  return api.get(
-    `/api/user/verify-email/${verificationToken}`
-  );
+  return api.get(`/api/user/verify-email/${verificationToken}`);
 };
-

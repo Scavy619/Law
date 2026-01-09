@@ -21,10 +21,6 @@ export const loginPostRequestBodySchema = z.object({
 
 // other request body schemas will be added later
 export const updatePatchRequestBodySchemaforUser = z.object({
-  userId: z
-    .string({ required_error: "User ID is required" })
-    .min(1, "User ID cannot be empty"),
-
   name: z.string().min(1, "Name cannot be empty").optional(),
 
   phone: z
@@ -135,5 +131,16 @@ export const addLawyerByAdminSchema = z.object({
       State: z.string().min(1, "State is required"),
     })
     .describe("Address object is required"),
+});
+
+
+export const resetPasswordPostRequestBodySchema = z.object({
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters long")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/,
+      "Password must contain uppercase, lowercase, number and special character"
+    ),
 });
 

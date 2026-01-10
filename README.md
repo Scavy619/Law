@@ -9,25 +9,6 @@ LawBridge is a full‑stack legal services platform that connects users with ver
 
 ---
 
-## Table of Contents
-
-* Features
-* Tech Stack
-* Architecture Overview
-* Project Structure
-* Prerequisites
-* Installation
-* Environment Setup
-* Authentication & Security Model
-* API Improvements & Standards
-* Running the Application
-* API Documentation
-* Deployment
-* Contributing
-* License
-
----
-
 ## Schema – ER Diagram
 
 LawBridge Database Schema:
@@ -46,7 +27,7 @@ LawBridge Database Schema:
 * Razorpay payment integration
 * Real‑time video consultations using Stream.io
 * AI legal assistant using RAG over Indian Constitutional Law
-  ly responsive UI (mobile‑first)
+* Responsive UI
 
 ### Lawyer Features
 
@@ -54,6 +35,7 @@ LawBridge Database Schema:
 * Availability and schedule control
 * Appointment dashboard
 * Earnings and completed consultation tracking
+* Join meetings with Users
 
 ### Admin Features
 
@@ -181,50 +163,8 @@ pip install -r req.txt
 
 ## Environment Setup
 
-### Backend (.env)
+See the .env.example in the Frontend, Backend, Chatbot and Admin folders.
 
-```
-JWT_SECRET=your_secret
-PORT=4000
-NODE_ENV=development
-
-MONGODB_URI=your_mongo_uri
-
-CLOUDINARY_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_SECRET_KEY=
-
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-
-STREAM_API_KEY=
-STREAM_API_SECRET=
-
-ADMIN_EMAIL=
-ADMIN_PASSWORD=
-
-RAG_SECRET_KEY=shared_secret
-```
-
-### Frontend (.env)
-
-```
-VITE_BACKEND_URL=http://localhost:4000
-VITE_CHATBOT_URL=http://localhost:8000
-VITE_STREAM_API_KEY=
-VITE_RAZORPAY_KEY_ID=
-```
-
-### Chatbot (.env)
-
-```
-GOOGLE_API_KEY=
-PINECONE_API_KEY=
-PINECONE_INDEX=
-RAG_SECRET_KEY=shared_secret
-HOST=0.0.0.0
-PORT=8000
-```
 
 ---
 

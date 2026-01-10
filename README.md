@@ -1,486 +1,329 @@
-# 🏛️ LawBridge - Complete Legal Services Platform
+# LawBridge – Complete Legal Services Platform
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-19.1.1-blue.svg)](https://reactjs.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-Express-green.svg)](https://nodejs.org/)
 [![Python](https://img.shields.io/badge/Python-FastAPI-blue.svg)](https://www.python.org/)
 
-LawBridge is a comprehensive full-stack legal services platform that connects users with legal professionals and provides AI-powered legal assistance. The platform features lawyer consultations, appointment booking, video consultations, document analysis, and an intelligent RAG-based chatbot for legal queries.
+LawBridge is a full‑stack legal services platform that connects users with verified legal professionals and provides AI‑powered legal assistance. The system supports secure authentication, lawyer consultations, appointment booking, video calls, payments, document analysis, and a production‑grade RAG‑based legal chatbot.
 
-## 📋 Table of Contents
+---
 
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Prerequisites](#-prerequisites)
-- [Installation](#-installation)
-- [Environment Setup](#-environment-setup)
-- [Running the Application](#-running-the-application)
-- [API Documentation](#-api-documentation)
-- [Contributing](#-contributing)
-- [License](#-license)
+## Table of Contents
 
+* Features
+* Tech Stack
+* Architecture Overview
+* Project Structure
+* Prerequisites
+* Installation
+* Environment Setup
+* Authentication & Security Model
+* API Improvements & Standards
+* Running the Application
+* API Documentation
+* Deployment
+* Contributing
+* License
 
-## Schema'S ER Diagram : 
-[LawBridge Schema Diagram](https://dbdocs.io/officialdslc1552005/LawBridgeSchema?view=relationships)
+---
 
-## ✨ Features
+## Schema – ER Diagram
+
+LawBridge Database Schema:
+[https://dbdocs.io/officialdslc1552005/LawBridgeSchema?view=relationships](https://dbdocs.io/officialdslc1552005/LawBridgeSchema?view=relationships)
+
+---
+
+## Features
 
 ### User Features
-- 🔐 **User Authentication** - Secure JWT-based authentication system
-- 👨‍⚖️ **Lawyer Directory** - Browse and search for lawyers by specialization
-- 📅 **Appointment Booking** - Schedule consultations with lawyers
-- 💳 **Payment Integration** - Razorpay payment gateway for secure transactions
-- 🎥 **Video Consultations** - Real-time video calls using Stream.io
-- 🤖 **AI Legal Assistant** - RAG-based chatbot powered by Indian Constitutional Law documents
-- 📄 **Document Analysis** - AI-powered legal document analyzer
-- 💬 **Chat History** - Save and manage conversation history
-- 📱 **Responsive Design** - Mobile-first, fully responsive UI
 
-### Admin Features
-- 📊 **Dashboard** - Analytics and overview of platform activity
-- 👥 **User Management** - Manage users and lawyers
-- 📈 **Appointment Management** - Track and manage all appointments
-- 💰 **Revenue Tracking** - Monitor payments and transactions
+* Secure authentication with access‑token + refresh‑token architecture
+* Email verification and optional Two‑Factor Authentication (TOTP)
+* Browse lawyers by specialization and availability
+* Appointment booking and management
+* Razorpay payment integration
+* Real‑time video consultations using Stream.io
+* AI legal assistant using RAG over Indian Constitutional Law
+  ly responsive UI (mobile‑first)
 
 ### Lawyer Features
-- 📋 **Profile Management** - Create and manage professional profiles
-- 📅 **Availability Management** - Set working hours and availability
-- 💼 **Appointment Dashboard** - View and manage bookings
-- 💵 **Earnings Tracking** - Monitor consultation fees and earnings
 
-## 🛠️ Tech Stack
+* Professional profile management
+* Availability and schedule control
+* Appointment dashboard
+* Earnings and completed consultation tracking
+
+### Admin Features
+
+* Centralized admin dashboard
+* User and lawyer management
+* Appointment moderation
+* Revenue and platform analytics
+
+---
+
+## Tech Stack
 
 ### Frontend
-- **Framework**: React 19.1.1
-- **Build Tool**: Vite
-- **Styling**: Tailwind CSS 4.x with Typography plugin
-- **Routing**: React Router DOM 7.x
-- **State Management**: React Context API
-- **HTTP Client**: Axios
-- **UI Components**: 
-  - Lucide React (Icons)
-  - React Toastify (Notifications)
-  - React Markdown (Markdown rendering)
-  - Prism.js (Code syntax highlighting)
-- **Video**: Stream.io Video React SDK
-- **Date Handling**: Moment.js
+
+* React 19.1.1
+* Vite
+* Tailwind CSS 4.x
+* React Router DOM 7.x
+* Axios
+* React Context API
+* Stream.io Video SDK
+* Moment.js
 
 ### Backend
-- **Runtime**: Node.js
-- **Framework**: Express.js 5.x
-- **Database**: MongoDB with Mongoose ODM
-- **Authentication**: JWT (JSON Web Tokens)
-- **Password Hashing**: Bcrypt
-- **File Upload**: Multer
-- **Cloud Storage**: Cloudinary
-- **Payment Gateway**: Razorpay
-- **Video Service**: Stream.io Node SDK
-- **Validation**: Zod
 
-### AI Chatbot
-- **Framework**: FastAPI (Python)
-- **Vector Database**: Pinecone
-- **Embeddings**: Google Embedding Model 004
-- **LLM**: Google Gemini 2.5 Flash API
-- **Document Processing**: LangChain
-- **RAG Implementation**: Custom implementation with Indian Constitutional Law corpus
+* Node.js
+* Express.js 5.x
+* MongoDB with Mongoose
+* JWT (Access + Refresh tokens)
+* Bcrypt
+* Zod validation
+* Multer + Cloudinary
+* Razorpay SDK
+* Stream.io Node SDK
 
-### Admin Panel
-- **Framework**: React with Vite
-- **Styling**: Tailwind CSS
-- **Build**: Vite
+### AI / Chatbot
 
-## 📁 Project Structure
+* FastAPI (Python)
+* LangChain
+* Pinecone Vector Database
+* Google Embedding Model 004
+* Google Gemini 2.5 Flash
+* Custom RAG pipeline with session memory
+
+---
+
+## Architecture Overview
+
+* Frontend communicates with Backend using REST APIs
+* Backend issues short‑lived access tokens and long‑lived refresh tokens
+* Refresh tokens are stored in HttpOnly cookies
+* Chatbot runs as an isolated FastAPI service
+* Backend and chatbot communicate using a shared RAG_SECRET_KEY
+* All sensitive credentials are environment‑based
+
+---
+
+## Project Structure
 
 ```
 Law_Bridge_FullStack/
-├── Frontend/                 # React user-facing application
-│   ├── src/
-│   │   ├── components/      # Reusable React components
-│   │   ├── pages/           # Page components
-│   │   ├── context/         # React Context for state management
-│   │   ├── assets/          # Static assets (images, icons)
-│   │   └── main.jsx         # Application entry point
-│   ├── public/              # Public static files
-│   └── package.json
-│
-├── Backend/                  # Express.js API server
-│   ├── config/              # Configuration files (DB, Cloudinary)
-│   ├── controllers/         # Route controllers
-│   ├── models/              # Mongoose schemas
-│   ├── routes/              # API routes
-│   ├── middleware/          # Auth & validation middleware
-│   ├── utils/               # Utility functions
-│   ├── validations/         # Zod validation schemas
-│   └── server.js            # Server entry point
-│
-├── Admin/                    # React admin dashboard
-│   ├── src/
-│   │   ├── components/      # Admin components
-│   │   ├── pages/           # Admin pages
-│   │   └── context/         # Admin context
-│   └── package.json
-│
-├── chatbot/                  # Python FastAPI RAG chatbot
-│   ├── src/
-│   │   ├── api/             # FastAPI endpoints
-│   │   ├── embeddings/      # Vector embeddings creation
-│   │   ├── rag/             # RAG implementation
-│   │   └── prompts/         # LLM prompts
-│   ├── data/                # Legal document corpus
-│   ├── rag/                 # Virtual environment
-│   ├── main.py              # FastAPI app entry point
-│   └── req.txt              # Python dependencies
-│
-├── doc_analyser/             # Document analysis service
-│   └── ...
-│
-├── LICENSE                   # MIT License
-└── README.md                 # This file
+├── Frontend/
+├── Backend/
+├── Admin/
+├── chatbot/
+├── doc_analyser/
+├── LICENSE
+└── README.md
 ```
 
+---
 
-## 📦 Prerequisites
+## Prerequisites
 
-Before you begin, ensure you have the following installed:
+* Node.js v18+
+* pnpm v10+
+* Python 3.10+
+* MongoDB Atlas or local MongoDB
+* Git
 
-- **Node.js** (v18.x or higher)
-- **pnpm** (v10.x or higher) - `npm install -g pnpm`
-- **Python** (v3.10 or higher)
-- **MongoDB** (MongoDB Atlas)
-- **Git**
+---
 
-## 🚀 Installation
+## Installation
 
-### 1. Clone the Repository
+Clone the repository:
 
-```bash
+```
 git clone https://github.com/Divyansh1552005/Law_Bridge_Application.git
 cd Law_Bridge_FullStack
 ```
 
-### 2. Install Frontend Dependencies
+Install dependencies:
 
-```bash
+Frontend:
+
+```
 cd Frontend
 pnpm install
 ```
 
-### 3. Install Backend Dependencies
+Backend:
 
-```bash
-cd ../Backend
+```
+cd Backend
 pnpm install
 ```
 
-### 4. Install Admin Dependencies
+Admin:
 
-```bash
-cd ../Admin
+```
+cd Admin
 pnpm install
 ```
 
-### 5. Setup Python Chatbot
+Chatbot:
 
-```bash
-cd ../chatbot
+```
+cd chatbot
 python3 -m venv rag
-source rag/bin/activate  # On Windows: rag\Scripts\activate
+source rag/bin/activate
 pip install -r req.txt
 ```
 
-## 🔧 Environment Setup
+---
 
-### Backend Environment Variables
+## Environment Setup
 
-Create a `.env` file in the `Backend/` directory:
+### Backend (.env)
 
-```env
-for MongoDB Atlas:
-# MONGODB_URI=your_mongoDB_string
-
-# JWT Secret
-JWT_SECRET=your_super_secret_jwt_key_here_change_this
-
-# Cloudinary Configuration
-CLOUDINARY_NAME=your_cloudinary_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_SECRET_KEY=your_cloudinary_secret_key
-
-# Razorpay Configuration
-RAZORPAY_KEY_ID=your_razorpay_key_id
-RAZORPAY_KEY_SECRET=your_razorpay_key_secret
-
-# Stream.io Configuration
-STREAM_API_KEY=your_stream_api_key
-STREAM_API_SECRET=your_stream_api_secret
-
-# Server Configuration
+```
+JWT_SECRET=your_secret
 PORT=4000
 NODE_ENV=development
 
-# Admin Configuration
-ADMIN_EMAIL=your_email
-ADMIN_PASSWORD=your_password
+MONGODB_URI=your_mongo_uri
 
-# Secret key for RAG chatbot communication
-RAG_SECRET_KEY=your_super_secret_key_here_change_this
+CLOUDINARY_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_SECRET_KEY=
+
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+
+STREAM_API_KEY=
+STREAM_API_SECRET=
+
+ADMIN_EMAIL=
+ADMIN_PASSWORD=
+
+RAG_SECRET_KEY=shared_secret
 ```
 
-### Frontend Environment Variables
+### Frontend (.env)
 
-Create a `.env` file in the `Frontend/` directory:
-
-```env
-VITE_BACKEND_URL=http://localhost:3000
-VITE_CHATBOT_URL=http://localhost:4000
-VITE_STREAM_API_KEY=your_stream_api_key
-VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
 ```
-
-### Admin Environment Variables
-
-Create a `.env` file in the `Admin/` directory:
-
-```env
 VITE_BACKEND_URL=http://localhost:4000
+VITE_CHATBOT_URL=http://localhost:8000
+VITE_STREAM_API_KEY=
+VITE_RAZORPAY_KEY_ID=
 ```
 
-### Chatbot Environment Variables
+### Chatbot (.env)
 
-Create a `.env` file in the `chatbot/` directory:
-
-```env
-# GEMINI API Configuration
-GOOGLE_API_KEY=your_gemini_api_key_here
-
-# Pinecone Configuration
-PINECONE_API_KEY=your_...
-PINECONE_INDEX=name
-
-# Server Configuration
+```
+GOOGLE_API_KEY=
+PINECONE_API_KEY=
+PINECONE_INDEX=
+RAG_SECRET_KEY=shared_secret
 HOST=0.0.0.0
-PORT=4000
-
-# Secret key
-RAG_SECRET_KEY=your_super_secret_key_here_change_this
+PORT=8000
 ```
 
-## 🏃 Running the Application
+---
 
-### Start MongoDB
+## Authentication & Security Model
 
-Ensure MongoDB is running on your system:
+* Stateless JWT‑based authentication
+* Short‑lived access tokens sent via Authorization header
+* Refresh tokens stored in HttpOnly cookies
+* Centralized refresh and logout endpoints
+* Email verification before full access
+* Optional TOTP‑based Two‑Factor Authentication
+* Password hashing with bcrypt
+* Zod‑based request validation
+* Role‑based access control (User, Lawyer, Admin)
 
-```bash
-# macOS/Linux
-sudo systemctl start mongodb
-# or
-mongod
+---
 
-# Windows
-net start MongoDB
+## API Improvements & Standards
+
+* Unified API response format
+* Centralized error handling
+* Async handler abstraction
+* Separate routers for auth, user, lawyer, admin
+* Token refresh handled automatically by frontend Axios interceptor
+* Shared logout and refresh routes across roles
+* Secure cookie configuration (httpOnly, sameSite, secure)
+
+---
+
+## Running the Application
+
+Backend:
+
 ```
-
-### Start Backend Server
-
-```bash
 cd Backend
 pnpm start
 ```
 
-The backend will start on `http://localhost:4000`
+Frontend:
 
-### Start Frontend Development Server
-
-```bash
+```
 cd Frontend
 pnpm run dev
 ```
 
-The frontend will start on `http://localhost:5173`
+Admin:
 
-### Start Admin Panel
-
-```bash
+```
 cd Admin
 pnpm run dev
 ```
 
-The admin panel will start on `http://localhost:5174`
+Chatbot:
 
-### Start Chatbot Service
-
-```bash
+```
 cd chatbot
-source rag/bin/activate  # Activate virtual environment
+source rag/bin/activate
 python main.py
 ```
 
-The chatbot API will start on `http://localhost:8000`
+---
 
-## 🌐 Application URLs
+<!--## API Documentation
 
-- **User Frontend**: http://localhost:5173
-- **Admin Panel**: http://localhost:5174
-- **Backend API**: http://localhost:4000
-- **Chatbot API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs (FastAPI Swagger UI)
+Chatbot Swagger UI:
+ht- Backend: Railway / Render / DigitalOcean
 
-## 📚 API Documentation
+* Chatbot: Railway / Render
+* MongoDB: Atlas
 
-### Backend API Endpoints
-
-#### Authentication
-- `POST /api/user/register` - Register new user
-- `POST /api/user/login` - User login
-- `GET /api/user/get-profile` - Get user profile (protected)
-
-#### Lawyers
-- `GET /api/user/lawyers` - Get all lawyers
-- `GET /api/user/lawyers/:id` - Get lawyer by ID
-- `POST /api/user/book-appointment` - Book appointment (protected)
-
-#### Appointments
-- `GET /api/user/appointments` - Get user appointments (protected)
-- `POST /api/user/cancel-appointment` - Cancel appointment (protected)
-
-#### Payments
-- `POST /api/user/payment-razorpay` - Process Razorpay payment (protected)
-
-#### Admin Routes
-- `POST /api/admin/login` - Admin login
-- `GET /api/admin/appointments` - Get all appointments
-- `POST /api/admin/add-lawyer` - Add new lawyer
-- `GET /api/admin/dashboard` - Admin dashboard stats
-
-#### Lawyer Routes
-- `POST /api/lawyer/login` - Lawyer login
-- `GET /api/lawyer/appointments` - Get lawyer appointments
-- `POST /api/lawyer/complete-appointment` - Mark appointment complete
-- `GET /api/lawyer/profile` - Get lawyer profile
-- `PUT /api/lawyer/profile` - Update lawyer profile
-
-### Chatbot API Endpoints
-
-- `POST /chat` - Send message to chatbot
-- `POST /chat/session` - Create new chat session
-- `GET /chat/history` - Get chat history
-- `DELETE /chat/session/{session_id}` - Delete chat session
-
-## 🔐 Security Features
-
-- JWT-based authentication
-- Password hashing with bcrypt
-- Protected routes with middleware
-- CORS configuration
-- Input validation with Zod
-- Rate limiting (recommended to add)
-- Environment variable protection
-
-## 📱 Mobile Responsiveness
-
-The application is fully responsive and optimized for:
-- Desktop (1920px and above)
-- Laptop (1024px - 1919px)
-- Tablet (768px - 1023px)
-- Mobile (320px - 767px)
-
-## 🧪 Testing
-
-```bash
-# Backend tests
-cd Backend
-npm test
-
-# Frontend tests
-cd Frontend
-npm test
-
-# Chatbot tests
-cd chatbot
-pytest
-```
-
-## 🚀 Deployment
-
-### Frontend Deployment (Vercel/Netlify)
-
-1. Build the frontend:
-```bash
-cd Frontend
-pnpm run build
-```
-
-2. Deploy the `dist/` folder to your hosting service
-
-### Backend Deployment (Railway/Heroku/DigitalOcean)
-
-1. Set environment variables on your hosting platform
-2. Deploy the Backend directory
-3. Ensure MongoDB connection string points to production database
-
-### Chatbot Deployment (Railway/Render)
-
-1. Build Docker image or deploy directly
-2. Set environment variables
-3. Ensure ChromaDB persistence volume is configured
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Code Style Guidelines
-
-- Follow ESLint configuration for JavaScript/React
-- Use PEP 8 style guide for Python
-- Write meaningful commit messages
-- Add comments for complex logic
-- Update documentation for new features
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👥 Authors
-
-- **Divyansh** - [@Divyansh1552005](https://github.com/Divyansh1552005)
-
-## 🙏 Acknowledgments
-
-- Indian Constitutional Law corpus for chatbot training
-- Stream.io for video consultation infrastructure
-- Razorpay for payment processing
-- Cloudinary for media management
-- Groq for LLM API access
-- Open source community for various libraries and tools
-
-## 📞 Support
-
-For support, email support@lawbridge.com or open an issue in the GitHub repository.
-
-## 🗺️ Roadmap
-
-- [ ] Add email notifications for appointments
-- [ ] Implement SMS reminders
-- [ ] Add more payment gateway options
-- [ ] Enhance AI chatbot with more legal domains
-- [ ] Mobile app development (React Native)
-- [ ] Advanced analytics dashboard
-- [ ] Multi-language support
-- [ ] Integration with legal case management systems
-
-## ⚠️ Disclaimer
-
-This platform is for informational purposes only and does not constitute legal advice. Users should consult with qualified legal professionals for specific legal matters.
+Ensure production cookies, HTTPS, and environment secrets are configured.-->
 
 ---
 
-Made with ❤️ by the LawBridge Team
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit changes
+4. Open a pull request
+
+---
+
+## License
+
+This project is licensed under the MIT License.
+
+---
+
+## Support
+
+For support, contact: [lawbridgeorg@gmail.com](mailto:lawbridgeorg@gmail.com)
+
+---
+
+## Disclaimer
+
+LawBridge is an informational platform and does not provide legal advice. AI‑generated responses are for educational purposes only. Users must consult qualified legal professionals before making legal decisions.
+
+---
+
+Built by the LawBridge Team

@@ -332,7 +332,8 @@ const MyProfile = () => {
           Account Security
         </h2>
 
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gray-50 rounded-xl p-6">
+        {/* Password Reset */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gray-50 rounded-xl p-6 mb-6">
           <div>
             <p className="text-lg font-medium">Password Reset</p>
             <p className="text-sm text-gray-500">
@@ -347,32 +348,32 @@ const MyProfile = () => {
             {resetLoading ? "Sending..." : "Reset Password"}
           </button>
         </div>
-      </div>
 
-      {/* ================= TWO FACTOR AUTH ================= */}
-      <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gray-50 rounded-xl p-6">
-        <div>
-          <p className="text-lg font-medium">Two-Factor Authentication</p>
-          <p className="text-sm text-gray-500">
-            Add an extra layer of security to your account
-          </p>
+        {/* Two-Factor Authentication */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gray-50 rounded-xl p-6">
+          <div>
+            <p className="text-lg font-medium">Two-Factor Authentication</p>
+            <p className="text-sm text-gray-500">
+              Add an extra layer of security to your account
+            </p>
+          </div>
+
+          {!userData.twoFactorEnabled ? (
+            <button
+              onClick={handleEnable2FA}
+              className="px-8 py-3 rounded-lg border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white transition-colors"
+            >
+              Enable 2FA
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowDisable2FA(true)}
+              className="px-8 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
+            >
+              Disable 2FA
+            </button>
+          )}
         </div>
-
-        {!userData.twoFactorEnabled ? (
-          <button
-            onClick={handleEnable2FA}
-            className="px-8 py-3 rounded-lg border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white"
-          >
-            Enable 2FA
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowDisable2FA(true)}
-            className="px-8 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700"
-          >
-            Disable 2FA
-          </button>
-        )}
       </div>
 
       {/* ================= DANGER ZONE ================= */}

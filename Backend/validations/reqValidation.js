@@ -17,6 +17,7 @@ export const signupPostRequestBodySchema = z.object({
 export const loginPostRequestBodySchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6),
+  twoFactorCode: z.string().optional(),
 });
 
 // other request body schemas will be added later

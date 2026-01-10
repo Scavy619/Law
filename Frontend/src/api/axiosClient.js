@@ -11,6 +11,7 @@ const api = axios.create({
   withCredentials: true, // send refresh token cookie
 });
 
+//so process queue ka kaam ye hai ki multiple api calls ho jaaye ek saath and access token is expired, toh ye baar baar hit nahi karta refresh endpoint ko, baaki requests ko queue kar leta hai and new token k baad resolve kar deta hai sbko
 // Token refresh state to prevent multiple simultaneous refresh requests
 let isRefreshing = false;
 let failedQueue = [];
@@ -70,10 +71,12 @@ api.interceptors.response.use(
 
     // refreshing expired access token
     // IMPORTANT: Don't retry the refresh endpoint itself to avoid infinite loops
+    // Also exclude login endpoint to prevent masking authentication errors
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes("/api/auth/refresh")
+      !originalRequest.url?.includes("/api/auth/refresh") &&
+      !originalRequest.url?.includes("/api/user/login")
     ) {
       if (isRefreshing) {
         // If already refreshing, queue this request
@@ -113,16 +116,6 @@ api.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
-    }
-
-    // Don't log 401 errors from login or refresh endpoints (they're normal)
-    if (
-      error.response?.status === 401 &&
-      (originalRequest.url?.includes("/api/user/login") ||
-        originalRequest.url?.includes("/api/auth/refresh"))
-    ) {
-      // Silently reject without logging
-      return Promise.reject(error);
     }
 
     return Promise.reject(error);

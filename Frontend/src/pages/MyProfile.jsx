@@ -1,8 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import useApp from "../context/useApp";
 import DeleteAccountModal from "./DeleteAccountModal";
 import { updateUserProfile, forgotPassword } from "../api/user.api";
 import { toast } from "react-toastify";
+import { setup2FA, verify2FA, disable2FA } from "../api/user.api";
+
+import Setup2FAModal from "../components/two_fa/Setup2FAModal";
+import Verify2FAModal from "../components/two_fa/Verify2FAModal";
+import Disable2FAModal from "../components/two_fa/Disable2FAModal";
 
 /* ================= IMAGE VALIDATION CONFIG ================= */
 const ALLOWED_TYPES = ["image/jpeg", "image/png"];
@@ -16,6 +21,14 @@ const MyProfile = () => {
   const [image, setImage] = useState(null);
   const [resetLoading, setResetLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [setup2FAData, setSetup2FAData] = useState(null);
+  const [showVerify2FA, setShowVerify2FA] = useState(false);
+  const [showDisable2FA, setShowDisable2FA] = useState(false);
+
+  /* ================= LOAD FRESH USER DATA ON MOUNT ================= */
+  useEffect(() => {
+    loadUserProfileData();
+  }, []);
 
   /* ================= IMAGE CHANGE HANDLER ================= */
   const handleImageChange = (e) => {
@@ -80,6 +93,47 @@ const MyProfile = () => {
       toast.error("Could not send reset email");
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  /* ================= 2FA HANDLERS ================= */
+
+  const handleEnable2FA = async () => {
+    try {
+      const { data } = await setup2FA();
+      setSetup2FAData(data);
+    } catch (error) {
+      const message =
+        error.response?.data?.message || "Could not start 2FA setup";
+      toast.error(message);
+      console.error("2FA Setup Error:", error.response?.data);
+    }
+  };
+
+  const handleVerify2FA = async (code) => {
+    try {
+      const { data } = await verify2FA(code);
+      toast.success(data.message || "2FA enabled successfully");
+      setSetup2FAData(null);
+      setShowVerify2FA(false);
+      await loadUserProfileData();
+    } catch (error) {
+      const message = error.response?.data?.message || "Invalid 2FA code";
+      toast.error(message);
+      console.error("2FA Verification Error:", error.response?.data);
+    }
+  };
+
+  const handleDisable2FA = async (payload) => {
+    try {
+      const { data } = await disable2FA(payload);
+      toast.success(data.message || "2FA disabled successfully");
+      setShowDisable2FA(false);
+      await loadUserProfileData();
+    } catch (error) {
+      const message = error.response?.data?.message || "Could not disable 2FA";
+      toast.error(message);
+      console.error("2FA Disable Error:", error.response?.data);
     }
   };
 
@@ -295,6 +349,32 @@ const MyProfile = () => {
         </div>
       </div>
 
+      {/* ================= TWO FACTOR AUTH ================= */}
+      <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gray-50 rounded-xl p-6">
+        <div>
+          <p className="text-lg font-medium">Two-Factor Authentication</p>
+          <p className="text-sm text-gray-500">
+            Add an extra layer of security to your account
+          </p>
+        </div>
+
+        {!userData.twoFactorEnabled ? (
+          <button
+            onClick={handleEnable2FA}
+            className="px-8 py-3 rounded-lg border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white"
+          >
+            Enable 2FA
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowDisable2FA(true)}
+            className="px-8 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700"
+          >
+            Disable 2FA
+          </button>
+        )}
+      </div>
+
       {/* ================= DANGER ZONE ================= */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-10">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Danger Zone</h2>
@@ -317,6 +397,30 @@ const MyProfile = () => {
 
       {showDeleteModal && (
         <DeleteAccountModal onClose={() => setShowDeleteModal(false)} />
+      )}
+
+      {/* ================= 2FA MODALS ================= */}
+      {setup2FAData && (
+        <Setup2FAModal
+          qrCode={setup2FAData.qrCode}
+          manualKey={setup2FAData.manualKey}
+          onNext={() => setShowVerify2FA(true)}
+          onClose={() => setSetup2FAData(null)}
+        />
+      )}
+
+      {showVerify2FA && (
+        <Verify2FAModal
+          onVerify={handleVerify2FA}
+          onClose={() => setShowVerify2FA(false)}
+        />
+      )}
+
+      {showDisable2FA && (
+        <Disable2FAModal
+          onDisable={handleDisable2FA}
+          onClose={() => setShowDisable2FA(false)}
+        />
       )}
     </div>
   );

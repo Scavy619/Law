@@ -27,6 +27,8 @@ import conversationModel from "../models/conversationModel.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import { refreshCookieOptions } from "../utils/cookies.js";
 import jwt from "jsonwebtoken";
+import QRCode from "qrcode";
+import { TOTP, Secret } from "otpauth";
 
 // creating user controller for signup
 
@@ -103,6 +105,84 @@ export const signupUser = async (req, res) => {
 };
 
 // api to login user
+
+const createTOTP = (secret) => {
+  return new TOTP({
+    issuer: "LawBridge",
+    algorithm: "SHA1",
+    digits: 6,
+    period: 30,
+    secret: secret, // base32 string directly
+  });
+};
+
+export const setup2FA = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const user = await userModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (user.twoFactorEnabled) {
+      return res.status(400).json({
+        success: false,
+        message: "2FA already enabled",
+      });
+    }
+
+    // Generate secret (base32)
+    const secret = new Secret({ size: 20 }); // 160-bit
+    const base32Secret = secret.base32;
+
+    // Create TOTP instance
+    const totp = new TOTP({
+      issuer: "LawBridge",
+      label: user.email,
+      algorithm: "SHA1",
+      digits: 6,
+      period: 30,
+      secret: base32Secret,
+    });
+
+    // Generate otpauth URI
+    const otpauthUrl = totp.toString();
+
+    // Save secret in DB
+    user.twoFactorSecret = base32Secret;
+    await user.save();
+
+    // Generate QR
+    const qrCode = await QRCode.toDataURL(otpauthUrl);
+
+    return res.status(200).json({
+      success: true,
+      qrCode,
+      manualKey: base32Secret, // fallback manual entry
+    });
+  } catch (error) {
+    console.error("Error in setup2FA:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Could not setup 2FA",
+    });
+  }
+};
+
+
 export const loginUser = async (req, res) => {
   try {
     // console.log("Login request received:", { email: req.body.email });
@@ -120,7 +200,7 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    const { email, password } = validationResult.data;
+    const { email, password, twoFactorCode } = validationResult.data;
 
     // checking if user exists
     const existingUser = await userModel.findOne({ email });
@@ -151,6 +231,28 @@ export const loginUser = async (req, res) => {
         success: false,
         message: "Invalid password",
       });
+    }
+
+    // 2FA check: if enabled, require and verify TOTP code
+    if (existingUser.twoFactorEnabled) {
+      if (!twoFactorCode) {
+        return res.status(200).json({
+          success: true,
+          requires2FA: true,
+          message: "2FA code required",
+        });
+      }
+
+      // Verify 2FA code using otpauth
+      const totp = createTOTP(existingUser.twoFactorSecret);
+      const delta = totp.validate({ token: twoFactorCode, window: 1 });
+
+      if (delta === null) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid or expired 2FA code",
+        });
+      }
     }
 
     // generating the access token and refresh token
@@ -862,9 +964,9 @@ export const logout = async (req, res) => {
     res.clearCookie("refreshToken", {
       ...refreshCookieOptions,
     });
-    
+
     // console.log("Cleared refresh Token!");
-    
+
     return res.status(200).json({
       success: true,
       message: "Logged out successfully",
@@ -938,6 +1040,147 @@ export const refreshAccessToken = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Could not refresh access token",
+    });
+  }
+};
+
+// 2FA
+
+
+export const verify2FA = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { code } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const user = await userModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (!user.twoFactorSecret) {
+      return res.status(400).json({
+        success: false,
+        message: "2FA setup not initiated",
+      });
+    }
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: "2FA code is required",
+      });
+    }
+
+    const totp = createTOTP(user.twoFactorSecret);
+
+    // otpauth returns delta (0 = valid, null = invalid)
+    const delta = totp.validate({ token: code, window: 1 });
+
+    if (delta === null) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired 2FA code",
+      });
+    }
+
+    // Enable 2FA
+    user.twoFactorEnabled = true;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "2FA enabled successfully",
+    });
+  } catch (error) {
+    console.error("Error in verify2FA:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Could not verify 2FA",
+    });
+  }
+};
+
+export const disable2FA = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { password, twoFactorCode } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const user = await userModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (!user.twoFactorEnabled) {
+      return res.status(400).json({
+        success: false,
+        message: "2FA is not enabled",
+      });
+    }
+
+    if (!password || !twoFactorCode) {
+      return res.status(400).json({
+        success: false,
+        message: "Password and 2FA code are required",
+      });
+    }
+
+    const isPasswordValid = await verifyPassword(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid password",
+      });
+    }
+
+    const totp = createTOTP(user.twoFactorSecret);
+    const delta = totp.validate({ token: twoFactorCode, window: 1 });
+
+    if (delta === null) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired 2FA code",
+      });
+    }
+
+    // disable 2FA
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = null;
+
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json({
+      success: true,
+      message: "2FA disabled successfully",
+    });
+  } catch (error) {
+    console.error("Error in disable2FA:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Could not disable 2FA",
     });
   }
 };

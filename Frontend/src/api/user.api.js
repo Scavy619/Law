@@ -21,8 +21,8 @@ export const signupUser = async (name, email, password) => {
 };
 
 // login
-export const loginUser = async (email, password) => {
-  return api.post("/api/user/login", { email, password });
+export const loginUser = async (payload) => {
+  return api.post("/api/user/login", payload);
 };
 
 // resend verification email
@@ -52,4 +52,18 @@ export const resetPassword = async (resetToken, password) => {
 // verify email
 export const verifyUserEmail = async (verificationToken) => {
   return api.get(`/api/user/verify-email/${verificationToken}`);
+};
+
+// for 2fa
+
+export const setup2FA = () => {
+  return api.post("/api/user/2fa/setup");
+};
+
+export const verify2FA = (code) => {
+  return api.post("/api/user/2fa/verify", { code });
+};
+
+export const disable2FA = (payload) => {
+  return api.post("/api/user/2fa/disable", payload);
 };

@@ -31,7 +31,18 @@ const userSchema = new mongoose.Schema({
   refreshToken: {
     type: String,
   },
-
+  
+  
+  // 2FA
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  
+  twoFactorSecret: {
+    type: String, // base32 secret
+    default: null,
+  },
 });
 
 // checking if model already exists (to avoid recompilation error in dev env)

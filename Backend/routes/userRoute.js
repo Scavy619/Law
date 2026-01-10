@@ -16,7 +16,10 @@ import {
   resetPassword,
   resendVerificationEmail,
   requestDeleteAccountOtp,
-  verifyDeleteAccountOtp
+  verifyDeleteAccountOtp,
+  verify2FA,
+  setup2FA,
+  disable2FA
 } from "../controllers/userController.js";
 const userRouter = express.Router();
 
@@ -51,5 +54,15 @@ userRouter.get("/appointments", authUser, listAppointment);
 userRouter.post("/cancel-appointment", authUser, cancelAppointment);
 userRouter.post("/payment-razorpay", authUser, paymentRazorpay);
 userRouter.post("/verify-razorpay", authUser, verifyRazorpay);
+
+// 2FA based
+// initiate 2FA setup (generate secret + QR)
+userRouter.post("/2fa/setup", authUser, setup2FA);
+
+// verify OTP and enable 2FA
+userRouter.post("/2fa/verify", authUser, verify2FA);
+
+// disable 2fa
+userRouter.post("/2fa/disable", authUser, disable2FA)
 
 export default userRouter;

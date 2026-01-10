@@ -16,6 +16,10 @@ const Login = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [pendingLogin, setPendingLogin] = useState(null);
 
   const [showResend, setShowResend] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
@@ -78,23 +82,34 @@ const Login = () => {
 
     // ---------- LOGIN ----------
     try {
-      const response = await loginUser(email, password);
-      // console.log("Login response:", response);
+      // first login attempt (email + password)
+      const payload = requires2FA
+        ? {
+            ...pendingLogin,
+            twoFactorCode,
+          }
+        : { email, password };
 
-      const { data } = response;
+      const { data } = await loginUser(payload);
 
+      // 2FA required
+      if (data.requires2FA) {
+        setRequires2FA(true);
+        setPendingLogin({ email, password });
+        setLoading(false);
+        return;
+      }
+
+      // login success
       if (data.success) {
-        // console.log("Login successful, setting tokens and user data");
         setAccessToken(data.accessToken);
         setUserData(data.user);
         toast.success("Login successful!");
         navigate("/");
       } else {
-        // console.error("Login failed:", data);
         toast.error(data.message || "Login failed");
       }
     } catch (error) {
-      // console.error("Login error:", error);
       const status = error.response?.status;
       const msg = error.response?.data?.message;
 
@@ -162,15 +177,21 @@ const Login = () => {
     <form onSubmit={onSubmitHandler} className="min-h-[80vh] flex items-center">
       <div className="flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-[#5E5E5E] text-sm shadow-lg">
         <p className="text-2xl font-semibold">
-          {state === "Sign Up" ? "Create Account" : "Login"}
+          {state === "Sign Up"
+            ? "Create Account"
+            : requires2FA
+              ? "Two-Factor Authentication"
+              : "Login"}
         </p>
 
         <p>
-          Please {state === "Sign Up" ? "sign up" : "log in"} to book
-          appointment
+          {requires2FA
+            ? "Enter the 6-digit code from your authenticator app"
+            : `Please ${state === "Sign Up" ? "sign up" : "log in"} to book appointment`}
         </p>
 
-        {state === "Sign Up" && (
+        {/* SIGN UP NAME */}
+        {state === "Sign Up" && !requires2FA && (
           <div className="w-full">
             <p>Full Name</p>
             <input
@@ -183,57 +204,86 @@ const Login = () => {
           </div>
         )}
 
-        <div className="w-full">
-          <p>Email</p>
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="border border-[#DADADA] rounded w-full p-2 mt-1"
-            type="email"
-            required
-          />
-        </div>
+        {/* EMAIL */}
+        {!requires2FA && (
+          <div className="w-full">
+            <p>Email</p>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="border border-[#DADADA] rounded w-full p-2 mt-1"
+              type="email"
+              required
+            />
+          </div>
+        )}
 
-        <div className="w-full">
-          <p>Password</p>
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="border border-[#DADADA] rounded w-full p-2 mt-1"
-            type="password"
-            required
-          />
+        {/* PASSWORD */}
+        {!requires2FA && (
+          <div className="w-full">
+            <p>Password</p>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="border border-[#DADADA] rounded w-full p-2 mt-1"
+              type="password"
+              required
+            />
+          </div>
+        )}
 
-          {state === "Sign Up" && (
-            <ul className="mt-2 text-xs">
-              <li className={hasLength ? "text-green-600" : "text-red-500"}>
-                {hasLength ? "✔" : "✖"} At least 8 characters
-              </li>
-              <li className={hasUpper ? "text-green-600" : "text-red-500"}>
-                {hasUpper ? "✔" : "✖"} One uppercase letter
-              </li>
-              <li className={hasLower ? "text-green-600" : "text-red-500"}>
-                {hasLower ? "✔" : "✖"} One lowercase letter
-              </li>
-              <li className={hasSpecial ? "text-green-600" : "text-red-500"}>
-                {hasSpecial ? "✔" : "✖"} One special character
-              </li>
-            </ul>
-          )}
-        </div>
+        {/* PASSWORD RULES */}
+        {state === "Sign Up" && !requires2FA && (
+          <ul className="mt-2 text-xs">
+            <li className={hasLength ? "text-green-600" : "text-red-500"}>
+              {hasLength ? "✔" : "✖"} At least 8 characters
+            </li>
+            <li className={hasUpper ? "text-green-600" : "text-red-500"}>
+              {hasUpper ? "✔" : "✖"} One uppercase letter
+            </li>
+            <li className={hasLower ? "text-green-600" : "text-red-500"}>
+              {hasLower ? "✔" : "✖"} One lowercase letter
+            </li>
+            <li className={hasSpecial ? "text-green-600" : "text-red-500"}>
+              {hasSpecial ? "✔" : "✖"} One special character
+            </li>
+          </ul>
+        )}
+
+        {/* 2FA OTP INPUT */}
+        {requires2FA && (
+          <div className="w-full">
+            <p>2FA Code</p>
+            <input
+              value={twoFactorCode}
+              onChange={(e) => setTwoFactorCode(e.target.value)}
+              className="border border-[#DADADA] rounded w-full p-2 mt-1"
+              type="text"
+              placeholder="Enter 6-digit code"
+              required
+            />
+          </div>
+        )}
 
         <button
-          disabled={loading || (state === "Sign Up" && !passwordValid)}
+          disabled={
+            loading ||
+            (state === "Sign Up" && !passwordValid) ||
+            (requires2FA && !twoFactorCode)
+          }
           className="bg-primary text-white w-full py-2 my-2 rounded-md text-base disabled:opacity-60"
         >
           {loading
             ? "Please wait..."
-            : state === "Sign Up"
-              ? "Create account"
-              : "Login"}
+            : requires2FA
+              ? "Verify & Login"
+              : state === "Sign Up"
+                ? "Create account"
+                : "Login"}
         </button>
 
-        {state === "Login" && (
+        {/* FORGOT PASSWORD */}
+        {state === "Login" && !requires2FA && (
           <p
             onClick={() => setShowForgot(!showForgot)}
             className="text-sm text-primary underline cursor-pointer"
@@ -242,7 +292,7 @@ const Login = () => {
           </p>
         )}
 
-        {state === "Login" && showForgot && (
+        {state === "Login" && showForgot && !requires2FA && (
           <div className="w-full text-sm">
             <p className="text-red-500">
               We'll send a password reset link to your email.
@@ -258,7 +308,8 @@ const Login = () => {
           </div>
         )}
 
-        {state === "Login" && showResend && (
+        {/* RESEND VERIFICATION */}
+        {state === "Login" && showResend && !requires2FA && (
           <p className="text-sm text-red-500">
             Email not verified.&nbsp;
             <span
@@ -270,26 +321,31 @@ const Login = () => {
           </p>
         )}
 
-        {state === "Sign Up" ? (
-          <p>
-            Already have an account?{" "}
-            <span
-              onClick={() => setState("Login")}
-              className="text-primary underline cursor-pointer"
-            >
-              Login here
-            </span>
-          </p>
-        ) : (
-          <p>
-            Create a new account?{" "}
-            <span
-              onClick={() => setState("Sign Up")}
-              className="text-primary underline cursor-pointer"
-            >
-              Click here
-            </span>
-          </p>
+        {/* SWITCH MODE */}
+        {!requires2FA && (
+          <>
+            {state === "Sign Up" ? (
+              <p>
+                Already have an account?{" "}
+                <span
+                  onClick={() => setState("Login")}
+                  className="text-primary underline cursor-pointer"
+                >
+                  Login here
+                </span>
+              </p>
+            ) : (
+              <p>
+                Create a new account?{" "}
+                <span
+                  onClick={() => setState("Sign Up")}
+                  className="text-primary underline cursor-pointer"
+                >
+                  Click here
+                </span>
+              </p>
+            )}
+          </>
         )}
       </div>
     </form>

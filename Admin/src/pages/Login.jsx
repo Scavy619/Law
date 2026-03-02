@@ -14,6 +14,9 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [cooldownSecs, setCooldownSecs] = useState(0);
 
   const navigate = useNavigate();
 
@@ -31,8 +34,28 @@ const Login = () => {
     }
   }, [adminData, lawyerData, authLoading, navigate]);
 
+  const startCooldown = (ms = 10000) => {
+    setRateLimited(true);
+    let remaining = Math.ceil(ms / 1000);
+    setCooldownSecs(remaining);
+
+    const interval = setInterval(() => {
+      remaining -= 1;
+      setCooldownSecs(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        setRateLimited(false);
+        setCooldownSecs(0);
+      }
+    }, 1000);
+  };
+
   const onSubmitHandler = async (event) => {
     event.preventDefault();
+
+    if (rateLimited) return;
+
+    setLoading(true);
 
     if (state === "Admin") {
       try {
@@ -54,23 +77,25 @@ const Login = () => {
           toast.error(data.message || "Invalid credentials, please try again.");
         }
       } catch (error) {
-        // Backend se response aaya ho tab
-        if (error.response) {
-          const msg =
-            error.response.data?.message ||
-            "Invalid credentials, please try again.";
-          toast.error(msg);
+        if (error.response?.status === 429) {
+          startCooldown(10000);
+          // toast already shown by axios interceptor
+        } else if (!error.handled) {
+          if (error.response) {
+            const msg =
+              error.response.data?.message ||
+              "Invalid credentials, please try again.";
+            toast.error(msg);
+          } else if (error.request) {
+            toast.error(
+              "No response from server. Please check your internet or backend connection.",
+            );
+          } else {
+            toast.error(`Login failed: ${error.message}`);
+          }
         }
-        // Agar network ya server down ho
-        else if (error.request) {
-          toast.error(
-            "No response from server. Please check your internet or backend connection.",
-          );
-        }
-        // Other unexpected errors
-        else {
-          toast.error(`Login failed: ${error.message}`);
-        }
+      } finally {
+        setLoading(false);
       }
     } else {
       // Lawyer Login Logic
@@ -93,22 +118,25 @@ const Login = () => {
           toast.error(data.message || "Login failed");
         }
       } catch (error) {
-        if (error.response) {
-          // The server responded with an error
-          const msg =
-            error.response.data?.message ||
-            "Invalid credentials, please try again.";
-          toast.error(msg);
-        } else if (error.request) {
-          // No response received from server
-          toast.error(
-            "No response from server. Please check your internet or backend connection.",
-          );
-        } else {
-          // Something else went wrong
-          toast.error(`Login failed: ${error.message}`);
+        if (error.response?.status === 429) {
+          startCooldown(10000);
+          // toast already shown by axios interceptor
+        } else if (!error.handled) {
+          if (error.response) {
+            const msg =
+              error.response.data?.message ||
+              "Invalid credentials, please try again.";
+            toast.error(msg);
+          } else if (error.request) {
+            toast.error(
+              "No response from server. Please check your internet or backend connection.",
+            );
+          } else {
+            toast.error(`Login failed: ${error.message}`);
+          }
         }
-        // console.error("Lawyer login error:", error);
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -191,8 +219,15 @@ const Login = () => {
             </button>
           </div>
         </div>
-        <button className="bg-primary text-white w-full py-2 rounded-md text-base">
-          Login
+        <button
+          disabled={loading || rateLimited}
+          className="bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-60"
+        >
+          {rateLimited
+            ? `Too many requests — wait ${cooldownSecs}s`
+            : loading
+              ? "Please wait..."
+              : "Login"}
         </button>
         {state === "Admin" ? (
           <p>

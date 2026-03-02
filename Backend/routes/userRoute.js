@@ -21,11 +21,14 @@ import {
   setup2FA,
   disable2FA
 } from "../controllers/userController.js";
+import { rateLimiter } from "../middleware/rateLimiter.js";
+
+
 const userRouter = express.Router();
 
 // signup and login routes
-userRouter.post("/signup", signupUser);
-userRouter.post("/login", loginUser);
+userRouter.post("/signup", rateLimiter(3,60), signupUser);
+userRouter.post("/login", rateLimiter(5, 60),  loginUser);
 userRouter.get("/verify-email/:token", verifyEmail);
 
 // forgot password routes

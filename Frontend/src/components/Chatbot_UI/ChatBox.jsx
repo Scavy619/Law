@@ -19,14 +19,27 @@ const ChatBox = () => {
     fetchUserChats,
     loadingResponse,
     setLoadingResponse,
+    rateLimitCooldown,
+    creditsExhausted,
+    creditsRemaining,
+    setCreditsRemaining,
   } = useContext(AppContext);
 
-  // Local state for prompt input and messages
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState([]);
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
+  // Track the last failed prompt so we can offer a retry
+  const [failedPrompt, setFailedPrompt] = useState(null);
+
+  // ── helpers ────────────────────────────────────────────────────────────────
+
+  const isInputDisabled =
+    loadingResponse || rateLimitCooldown || creditsExhausted;
+
+  // ── send logic ─────────────────────────────────────────────────────────────
+
+  const sendMessage = async (text) => {
+    if (!text.trim()) return;
 
     if (!userData) {
       toast.error("Login to send message");
@@ -38,22 +51,19 @@ const ChatBox = () => {
       return;
     }
 
-    const promptCopy = prompt;
-    setPrompt("");
+    setFailedPrompt(null);
     setLoadingResponse(true);
 
-    try {
-      // Add user message to local state with timestamp
-      const userMessage = {
-        role: "user",
-        content: promptCopy,
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, userMessage]);
+    const userMessage = {
+      role: "user",
+      content: text,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
 
-      // Send to backend API
+    try {
       const { data } = await api.post("/api/message/get-message", {
-        message: promptCopy,
+        message: text,
         sessionId: contextSessionId,
       });
 
@@ -63,38 +73,65 @@ const ChatBox = () => {
           content: data.response.content,
           createdAt: new Date().toISOString(),
         };
+
         setMessages((prev) => [...prev, botMessage]);
 
-        // Update current session with new messages (with timestamps)
+        // Update remaining credits from response
+        if (typeof data.creditsRemaining === "number") {
+          setCreditsRemaining(data.creditsRemaining);
+        }
+
         if (currentSession) {
-          const userMessageWithTimestamp = {
-            ...userMessage,
-            createdAt: userMessage.createdAt,
-          };
-          const botMessageWithTimestamp = {
-            ...botMessage,
-            createdAt: botMessage.createdAt,
-          };
           setCurrentSession({
             ...currentSession,
             messages: [
               ...(currentSession.messages || []),
-              userMessageWithTimestamp,
-              botMessageWithTimestamp,
+              userMessage,
+              botMessage,
             ],
           });
         }
       }
     } catch (error) {
-      toast.error("Error sending message");
-      // console.log(error);
-      setPrompt(promptCopy);
+      // Remove the optimistic user message on failure
+      setMessages((prev) => prev.filter((m) => m !== userMessage));
+
+      // If error was already handled by the interceptor (429 / 403), don't
+      // double-toast. Just expose retry for 429.
+      if (error.handled) {
+        if (error.response?.status === 429) {
+          setFailedPrompt(text);
+        }
+        // 403 credit exhaustion: input is already disabled via context, nothing else needed
+      } else {
+        toast.error("Error sending message. Please try again.");
+        setFailedPrompt(text);
+      }
     } finally {
       setLoadingResponse(false);
     }
   };
 
-  // Load chat when sessionId from URL changes
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (isInputDisabled) return;
+
+    const text = prompt.trim();
+    if (!text) return;
+
+    setPrompt("");
+    await sendMessage(text);
+  };
+
+  const onRetry = async () => {
+    if (!failedPrompt || isInputDisabled) return;
+    const text = failedPrompt;
+    setFailedPrompt(null);
+    await sendMessage(text);
+  };
+
+  // ── side effects ───────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (sessionId && sessionId !== contextSessionId) {
       setSessionId(sessionId);
@@ -102,9 +139,8 @@ const ChatBox = () => {
     }
   }, [sessionId]);
 
-  // Update messages when currentSession changes
   useEffect(() => {
-    if (currentSession && currentSession.messages) {
+    if (currentSession?.messages) {
       setMessages(currentSession.messages);
     }
   }, [currentSession]);
@@ -118,20 +154,21 @@ const ChatBox = () => {
     }
   }, [messages]);
 
+  // ── render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="h-full flex flex-col">
-      {/* Chat Messages - Properly constrained container */}
+      {/* ── Messages ── */}
       <div className="flex-1 overflow-hidden flex justify-center px-4">
         <div className="w-full max-w-4xl flex flex-col h-full">
           <div
             ref={containerRef}
             className="flex-1 overflow-y-auto py-6 space-y-4"
           >
+            {/* Welcome card */}
             {messages.length === 0 && (
               <div className="h-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-gray-50">
-                {/* Welcome card with fade-in animation */}
                 <div className="animate-fade-in bg-white/80 backdrop-blur-sm rounded-2xl p-8 sm:p-10 md:p-12 shadow-lg border border-white/50 max-w-sm sm:max-w-md md:max-w-lg mx-auto">
-                  {/* Logo container with subtle hover effect */}
                   <div className="flex justify-center mb-6">
                     <div className="relative p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
                       <img
@@ -141,8 +178,6 @@ const ChatBox = () => {
                       />
                     </div>
                   </div>
-
-                  {/* Typography with improved hierarchy */}
                   <div className="text-center space-y-3">
                     <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                       Legal Assistant
@@ -151,92 +186,172 @@ const ChatBox = () => {
                       Ask your legal question and get expert assistance
                     </p>
                   </div>
-
-                  {/* Subtle decorative element */}
                   <div className="flex justify-center mt-8">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-purple-200 rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-purple-200 rounded-full animate-pulse" />
                       <div
                         className="w-2 h-2 bg-purple-300 rounded-full animate-pulse"
                         style={{ animationDelay: "0.2s" }}
-                      ></div>
+                      />
                       <div
                         className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"
                         style={{ animationDelay: "0.4s" }}
-                      ></div>
+                      />
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
+            {/* Message list */}
             {messages.map((message, index) => (
               <Message key={index} message={message} />
             ))}
 
-            {/* Loading indicator with better styling */}
+            {/* Thinking indicator */}
             {loadingResponse && (
               <div className="flex items-center gap-2 py-4">
                 <div className="flex items-center gap-1.5 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
-                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
+                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" />
                   <div
                     className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
                     style={{ animationDelay: "0.1s" }}
-                  ></div>
+                  />
                   <div
                     className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
                     style={{ animationDelay: "0.2s" }}
-                  ></div>
+                  />
                   <span className="text-sm text-gray-500 ml-2">
                     Thinking...
                   </span>
                 </div>
               </div>
             )}
+
+            {/* Retry banner — shown after a 429 once cooldown lifts */}
+            {failedPrompt && !rateLimitCooldown && !loadingResponse && (
+              <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+                <span className="flex-1">
+                  Message not sent due to rate limit.
+                </span>
+                <button
+                  onClick={onRetry}
+                  className="font-semibold text-amber-700 hover:text-amber-900 underline underline-offset-2 transition-colors"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={() => setFailedPrompt(null)}
+                  className="text-amber-400 hover:text-amber-600 transition-colors text-lg leading-none"
+                  aria-label="Dismiss"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {/* Credits exhausted banner */}
+            {creditsExhausted && (
+              <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+                <span>
+                  🚫 You have used all your daily credits. Chat will be
+                  available again tomorrow.
+                </span>
+              </div>
+            )}
+
+            {/* Rate limit cooldown banner */}
+            {rateLimitCooldown && !creditsExhausted && (
+              <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-700">
+                <span>
+                  ⏳ Rate limited. Input will unlock in a few seconds...
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Sticky Input Footer - Responsive */}
+      {/* ── Input footer ── */}
       <div className="flex-shrink-0 bg-white border-t border-gray-100 p-3 sm:p-4">
         <div className="max-w-4xl mx-auto">
-          <form
-            onSubmit={onSubmit}
-            className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 p-3 sm:p-4 flex gap-2 sm:gap-3 items-center"
-          >
-            <textarea
-              onChange={(e) => setPrompt(e.target.value)}
-              value={prompt}
-              placeholder="Ask your legal question..."
-              className="flex-1 text-sm sm:text-base text-gray-700 placeholder-gray-400 outline-none bg-transparent resize-none overflow-y-auto min-h-[40px] max-h-24 sm:max-h-32 leading-6"
-              required
-              disabled={loadingResponse}
-              rows={1}
-              onInput={(e) => {
-                e.target.style.height = "auto";
-                const maxHeight = window.innerWidth < 640 ? 96 : 128; // 24 for mobile, 32 for desktop
-                e.target.style.height =
-                  Math.min(e.target.scrollHeight, maxHeight) + "px";
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  onSubmit(e);
-                }
-              }}
-            />
-            <button
-              disabled={loadingResponse}
-              type="submit"
-              className="flex-shrink-0 p-2.5 sm:p-3 bg-[#A456F7] hover:bg-[#9146E6] disabled:bg-gray-300 rounded-xl transition-colors duration-200 group min-w-[40px] sm:min-w-[44px]"
+          {/* Credits counter */}
+          {creditsRemaining !== null && !creditsExhausted && (
+            <div className="flex justify-end mb-1.5">
+              <span
+                className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
+                  creditsRemaining <= 3
+                    ? "bg-red-50 text-red-500 border border-red-200"
+                    : creditsRemaining <= 5
+                      ? "bg-amber-50 text-amber-600 border border-amber-200"
+                      : "bg-purple-50 text-purple-500 border border-purple-200"
+                }`}
+              >
+                {creditsRemaining} message{creditsRemaining !== 1 ? "s" : ""}{" "}
+                remaining today
+              </span>
+            </div>
+          )}
+
+          {/* Credits exhausted — static disabled bar */}
+          {creditsExhausted ? (
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-3 sm:p-4 flex items-center gap-3 opacity-60 cursor-not-allowed select-none">
+              <span className="flex-1 text-sm text-gray-400">
+                Daily credit limit reached. Come back tomorrow.
+              </span>
+            </div>
+          ) : (
+            <form
+              onSubmit={onSubmit}
+              className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 p-3 sm:p-4 flex gap-2 sm:gap-3 items-center"
             >
-              <img
-                src={loadingResponse ? assets.stop_icon : assets.send_icon}
-                alt={loadingResponse ? "loading" : "send"}
-                className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-105 transition-transform duration-200 mx-auto"
+              <textarea
+                onChange={(e) => setPrompt(e.target.value)}
+                value={prompt}
+                placeholder={
+                  rateLimitCooldown
+                    ? "Rate limited — please wait..."
+                    : "Ask your legal question..."
+                }
+                className="flex-1 text-sm sm:text-base text-gray-700 placeholder-gray-400 outline-none bg-transparent resize-none overflow-y-auto min-h-[40px] max-h-24 sm:max-h-32 leading-6 disabled:cursor-not-allowed"
+                required
+                disabled={isInputDisabled}
+                rows={1}
+                onInput={(e) => {
+                  e.target.style.height = "auto";
+                  const maxHeight = window.innerWidth < 640 ? 96 : 128;
+                  e.target.style.height =
+                    Math.min(e.target.scrollHeight, maxHeight) + "px";
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    onSubmit(e);
+                  }
+                }}
               />
-            </button>
-          </form>
+              <button
+                disabled={isInputDisabled || !prompt.trim()}
+                type="submit"
+                className="flex-shrink-0 p-2.5 sm:p-3 bg-[#A456F7] hover:bg-[#9146E6] disabled:bg-gray-300 rounded-xl transition-colors duration-200 group min-w-[40px] sm:min-w-[44px]"
+                title={
+                  rateLimitCooldown
+                    ? "Rate limited — wait a moment"
+                    : creditsExhausted
+                      ? "Daily credits exhausted"
+                      : loadingResponse
+                        ? "Waiting for response..."
+                        : "Send message"
+                }
+              >
+                <img
+                  src={loadingResponse ? assets.stop_icon : assets.send_icon}
+                  alt={loadingResponse ? "loading" : "send"}
+                  className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-105 transition-transform duration-200 mx-auto"
+                />
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>

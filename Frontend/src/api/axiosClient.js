@@ -11,8 +11,27 @@ const api = axios.create({
   withCredentials: true, // send refresh token cookie
 });
 
-//so process queue ka kaam ye hai ki multiple api calls ho jaaye ek saath and access token is expired, toh ye baar baar hit nahi karta refresh endpoint ko, baaki requests ko queue kar leta hai and new token k baad resolve kar deta hai sbko
-// Token refresh state to prevent multiple simultaneous refresh requests
+// Global event emitter for rate limit events — components can listen to this
+// to disable their inputs without needing prop drilling or context
+export const rateLimitEmitter = {
+  _listeners: {},
+
+  on(event, fn) {
+    if (!this._listeners[event]) this._listeners[event] = [];
+    this._listeners[event].push(fn);
+  },
+
+  off(event, fn) {
+    if (!this._listeners[event]) return;
+    this._listeners[event] = this._listeners[event].filter((l) => l !== fn);
+  },
+
+  emit(event, payload) {
+    (this._listeners[event] || []).forEach((fn) => fn(payload));
+  },
+};
+
+// Token refresh state — prevents multiple simultaneous refresh requests
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -24,11 +43,10 @@ const processQueue = (error, token = null) => {
       prom.resolve(token);
     }
   });
-
   failedQueue = [];
 };
 
-// request interceptor for access token bearer thang
+// ── Request interceptor — attach access token ─────────────────────────────────
 api.interceptors.request.use(
   (config) => {
     const token = getAccessToken();
@@ -40,17 +58,18 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// response interceptor for rate limiting, refresh access token
+// ── Response interceptor — handle 429, 403 credits, 401 refresh ──────────────
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
+    const responseMessage = error.response?.data?.message || "";
 
-    // rate limiting
-    if (error.response?.status === 429) {
+    // ── 429 Too Many Requests ─────────────────────────────────────────────────
+    if (status === 429) {
       const message =
-        error.response.data?.message ||
-        "Too many requests! Try again after 10-15 minutes.";
+        responseMessage || "Too many requests. Please wait and try again.";
 
       toast.error(message, {
         position: "top-center",
@@ -66,20 +85,46 @@ api.interceptors.response.use(
         },
       });
 
-      return Promise.reject({ ...error, message });
+      // Notify all listening components to enter a 10s cooldown
+      rateLimitEmitter.emit("rate-limited", { cooldownMs: 10000 });
+
+      return Promise.reject({ ...error, handled: true, message });
     }
 
-    // refreshing expired access token
-    // IMPORTANT: Don't retry the refresh endpoint itself to avoid infinite loops
-    // Also exclude login endpoint to prevent masking authentication errors
+    // ── 403 Daily credit limit ────────────────────────────────────────────────
     if (
-      error.response?.status === 401 &&
+      status === 403 &&
+      responseMessage.toLowerCase().includes("daily credit limit")
+    ) {
+      toast.error("You have used all your daily credits. Try again tomorrow.", {
+        position: "top-center",
+        autoClose: false, // stays until manually dismissed
+        closeOnClick: true,
+        style: {
+          fontSize: "15px",
+          fontWeight: "500",
+        },
+      });
+
+      // Notify chat component to permanently disable input for this session
+      rateLimitEmitter.emit("credits-exhausted", {});
+
+      return Promise.reject({
+        ...error,
+        handled: true,
+        message: responseMessage,
+      });
+    }
+
+    // ── 401 — try to refresh access token ────────────────────────────────────
+    if (
+      status === 401 &&
       !originalRequest._retry &&
       !originalRequest.url?.includes("/api/auth/refresh") &&
       !originalRequest.url?.includes("/api/user/login")
     ) {
       if (isRefreshing) {
-        // If already refreshing, queue this request
+        // Queue this request until refresh completes
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -87,9 +132,7 @@ api.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return api(originalRequest);
           })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
@@ -102,13 +145,11 @@ api.interceptors.response.use(
         processQueue(null, data.accessToken);
 
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
-
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
         clearAuth();
 
-        // Only redirect if we're not already on login page
         if (window.location.pathname !== "/login") {
           window.location.href = "/login";
         }

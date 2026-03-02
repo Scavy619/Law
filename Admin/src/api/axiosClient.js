@@ -97,7 +97,7 @@ api.interceptors.response.use(
     if (error.response?.status === 429) {
       const message =
         error.response.data?.message ||
-        "Too many requests! Try again after 10-15 minutes.";
+        "Too many requests. Please wait and try again.";
 
       toast.error(message, {
         position: "top-center",
@@ -113,7 +113,7 @@ api.interceptors.response.use(
         },
       });
 
-      return Promise.reject({ ...error, message });
+      return Promise.reject({ ...error, handled: true, message });
     }
 
     // Refreshing expired access token

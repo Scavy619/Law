@@ -27,6 +27,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [cooldownSecs, setCooldownSecs] = useState(0);
 
   const navigate = useNavigate();
   const { setUserData } = useApp();
@@ -40,8 +42,27 @@ const Login = () => {
   const passwordValid = hasUpper && hasLower && hasSpecial && hasLength;
 
   // ===================== SUBMIT HANDLER =====================
+  // ── 10s cooldown timer on 429 ──────────────────────────────────────────────
+  const startCooldown = (ms = 10000) => {
+    setRateLimited(true);
+    let remaining = Math.ceil(ms / 1000);
+    setCooldownSecs(remaining);
+
+    const interval = setInterval(() => {
+      remaining -= 1;
+      setCooldownSecs(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        setRateLimited(false);
+        setCooldownSecs(0);
+      }
+    }, 1000);
+  };
+
   const onSubmitHandler = async (event) => {
     event.preventDefault();
+
+    if (rateLimited) return;
 
     setLoading(true);
     setShowResend(false);
@@ -63,12 +84,16 @@ const Login = () => {
           navigate("/verify-email");
         }
       } catch (error) {
+        const status = error.response?.status;
         const msg =
           error.response?.data?.error ||
           error.response?.data?.message ||
           "Registration failed";
 
-        if (error.response?.status === 409) {
+        if (status === 429) {
+          startCooldown(10000);
+          // toast already shown by axios interceptor
+        } else if (status === 409) {
           toast.error("Account already exists. Please login.");
           setState("Login");
         } else {
@@ -114,10 +139,13 @@ const Login = () => {
       const status = error.response?.status;
       const msg = error.response?.data?.message;
 
-      if (status === 403 && msg?.toLowerCase().includes("verify")) {
+      if (status === 429) {
+        startCooldown(10000);
+        // toast already shown by axios interceptor
+      } else if (status === 403 && msg?.toLowerCase().includes("verify")) {
         toast.error(msg);
         setShowResend(true);
-      } else {
+      } else if (!error.handled) {
         toast.error(
           msg || "Login failed - " + (error.message || "Unknown error"),
         );
@@ -143,9 +171,15 @@ const Login = () => {
         toast.success("Verification email sent again!");
       }
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Could not resend verification email",
-      );
+      if (error.response?.status === 429) {
+        startCooldown(10000);
+        // toast already shown by axios interceptor
+      } else if (!error.handled) {
+        toast.error(
+          error.response?.data?.message ||
+            "Could not resend verification email",
+        );
+      }
     }
   };
 
@@ -158,6 +192,8 @@ const Login = () => {
       return;
     }
 
+    if (rateLimited) return;
+
     setForgotLoading(true);
 
     try {
@@ -166,9 +202,14 @@ const Login = () => {
       toast.success(data.message || "Password reset email sent!");
       setShowForgot(false);
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Could not send reset email",
-      );
+      if (error.response?.status === 429) {
+        startCooldown(10000);
+        // toast already shown by axios interceptor
+      } else if (!error.handled) {
+        toast.error(
+          error.response?.data?.message || "Could not send reset email",
+        );
+      }
     } finally {
       setForgotLoading(false);
     }
@@ -312,18 +353,21 @@ const Login = () => {
         <button
           disabled={
             loading ||
+            rateLimited ||
             (state === "Sign Up" && !passwordValid) ||
             (requires2FA && !twoFactorCode)
           }
           className="bg-primary text-white w-full py-2 my-2 rounded-md text-base disabled:opacity-60"
         >
-          {loading
-            ? "Please wait..."
-            : requires2FA
-              ? "Verify & Login"
-              : state === "Sign Up"
-                ? "Create account"
-                : "Login"}
+          {rateLimited
+            ? `Too many requests — wait ${cooldownSecs}s`
+            : loading
+              ? "Please wait..."
+              : requires2FA
+                ? "Verify & Login"
+                : state === "Sign Up"
+                  ? "Create account"
+                  : "Login"}
         </button>
 
         {/* FORGOT PASSWORD */}
@@ -344,10 +388,14 @@ const Login = () => {
             <button
               type="button"
               onClick={handleForgotPassword}
-              disabled={forgotLoading}
+              disabled={forgotLoading || rateLimited}
               className="mt-2 bg-primary text-white px-4 py-1 rounded-md disabled:opacity-60"
             >
-              {forgotLoading ? "Sending..." : "Send reset email"}
+              {rateLimited
+                ? `Wait ${cooldownSecs}s`
+                : forgotLoading
+                  ? "Sending..."
+                  : "Send reset email"}
             </button>
           </div>
         )}

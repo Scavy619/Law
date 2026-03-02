@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AppProvider } from "./AppContext";
 import { appActions } from "./app.actions";
 import api from "../api/axiosClient";
+import { rateLimitEmitter } from "../api/axiosClient";
 import { setAccessToken } from "./auth.tokens";
 
 const AppContextProvider = ({ children }) => {
@@ -16,6 +17,11 @@ const AppContextProvider = ({ children }) => {
   const [sessionId, setSessionId] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
   const [loadingResponse, setLoadingResponse] = useState(false);
+
+  // rate limiting state
+  const [rateLimitCooldown, setRateLimitCooldown] = useState(false);
+  const [creditsExhausted, setCreditsExhausted] = useState(false);
+  const [creditsRemaining, setCreditsRemaining] = useState(null);
 
   const actions = appActions({
     setLawyers,
@@ -45,6 +51,27 @@ const AppContextProvider = ({ children }) => {
     initAuth();
   }, []);
 
+  // 🚦 Wire up global rate-limit events from axios interceptor
+  useEffect(() => {
+    const handleRateLimit = ({ cooldownMs }) => {
+      setRateLimitCooldown(true);
+      setTimeout(() => setRateLimitCooldown(false), cooldownMs);
+    };
+
+    const handleCreditsExhausted = () => {
+      setCreditsExhausted(true);
+      setCreditsRemaining(0);
+    };
+
+    rateLimitEmitter.on("rate-limited", handleRateLimit);
+    rateLimitEmitter.on("credits-exhausted", handleCreditsExhausted);
+
+    return () => {
+      rateLimitEmitter.off("rate-limited", handleRateLimit);
+      rateLimitEmitter.off("credits-exhausted", handleCreditsExhausted);
+    };
+  }, []);
+
   // initial data
   useEffect(() => {
     actions.getLawyersData();
@@ -68,6 +95,13 @@ const AppContextProvider = ({ children }) => {
 
         loadingResponse,
         setLoadingResponse,
+
+        rateLimitCooldown,
+        setRateLimitCooldown,
+        creditsExhausted,
+        setCreditsExhausted,
+        creditsRemaining,
+        setCreditsRemaining,
 
         ...actions,
       }}

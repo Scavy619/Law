@@ -43,6 +43,23 @@ const userSchema = new mongoose.Schema({
     type: String, // base32 secret
     default: null,
   },
+  
+  // chatbot credits 
+  credits: {
+    dailyLimit: {
+      type: Number,
+      default: 10,
+    },
+    remaining: {
+      type: Number,
+      default: 10,
+    },
+    lastReset: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  
 });
 
 // checking if model already exists (to avoid recompilation error in dev env)

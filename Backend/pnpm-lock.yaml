@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@getbrevo/brevo':
+        specifier: ^4.0.1
+        version: 4.0.1
       '@stream-io/node-sdk':
         specifier: ^0.7.20
         version: 0.7.20
@@ -74,6 +77,10 @@ importers:
         version: 24.10.0
 
 packages:
+
+  '@getbrevo/brevo@4.0.1':
+    resolution: {integrity: sha512-U1xOsr5e7pfRTdngrt9VWmPV8SQD/LayTOp55/Wnb4aW33IkBWypDJ8jOpQtxn6xL4t8aBw1thRisvQY4+/Edw==}
+    engines: {node: '>=18.0.0'}
 
   '@ioredis/commands@1.5.1':
     resolution: {integrity: sha512-JH8ZL/ywcJyR9MmJ5BNqZllXNZQqQbnVZOqpPQqE1vHiFgAw4NHbvE0FOduNU8IX9babitBT46571OnPTT0Zcw==}
@@ -844,6 +851,8 @@ packages:
     resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
 
 snapshots:
+
+  '@getbrevo/brevo@4.0.1': {}
 
   '@ioredis/commands@1.5.1': {}
 

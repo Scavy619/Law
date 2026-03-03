@@ -13,6 +13,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.16.1",
   "dependencies": {
+    "@getbrevo/brevo": "^4.0.1",
     "@stream-io/node-sdk": "^0.7.20",
     "@types/cors": "^2.8.19",
     "axios": "^1.13.2",

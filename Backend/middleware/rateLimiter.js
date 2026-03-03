@@ -79,7 +79,7 @@ export const rateLimiter = (limit, windowSeconds, keyGenerator) => {
         After windowSeconds, the key automatically expires,
         and the counter resets without manual cleanup.
       */
-      if (currentCount === 1) {
+      if (currentCount === 1){
         await redis.expire(key, windowSeconds);
       }
 

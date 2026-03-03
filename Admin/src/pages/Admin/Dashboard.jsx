@@ -69,18 +69,12 @@ const Dashboard = () => {
                 >
                   <img
                     className="rounded-full w-10"
-                    src={
-                      item.lawyerData?.image ||
-                      item.docData?.image ||
-                      "/default-lawyer.png"
-                    }
+                    src={item.lawyer?.image || "/default-lawyer.png"}
                     alt=""
                   />
                   <div className="flex-1 text-sm">
                     <p className="text-gray-800 font-medium">
-                      {item.lawyerData?.name ||
-                        item.docData?.name ||
-                        "Unknown Lawyer"}
+                      {item.lawyer?.name || "Unknown Lawyer"}
                     </p>
                     <p className="text-gray-600 ">
                       Booking on {slotDateFormat(item.slotDate)}
@@ -96,7 +90,7 @@ const Dashboard = () => {
                     </p>
                   ) : (
                     <img
-                      onClick={() => cancelAppointment(item._id)}
+                      onClick={() => cancelAppointment(item.id)}
                       className="w-10 cursor-pointer"
                       src={assets.cancel_icon}
                       alt=""

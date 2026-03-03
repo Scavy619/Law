@@ -89,12 +89,12 @@ const LawyerDashboard = () => {
             >
               <img
                 className="rounded-full w-10"
-                src={item.userData.image}
+                src={item.user?.image || "/default-user.png"}
                 alt=""
               />
               <div className="flex-1 text-sm">
                 <p className="text-gray-800 font-medium">
-                  {item.userData.name}
+                  {item.user?.name || "Unknown"}
                 </p>
                 <p className="text-gray-600 ">
                   Booking on {slotDateFormat(item.slotDate)}
@@ -107,13 +107,13 @@ const LawyerDashboard = () => {
               ) : (
                 <div className="flex">
                   <img
-                    onClick={() => cancelAppointment(item._id)}
+                    onClick={() => cancelAppointment(item.id)}
                     className="w-10 cursor-pointer"
                     src={assets.cancel_icon}
                     alt=""
                   />
                   <img
-                    onClick={() => completeAppointment(item._id)}
+                    onClick={() => completeAppointment(item.id)}
                     className="w-10 cursor-pointer"
                     src={assets.tick_icon}
                     alt=""

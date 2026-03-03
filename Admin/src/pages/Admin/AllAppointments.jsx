@@ -47,31 +47,23 @@ const AllAppointments = () => {
             <p className="max-sm:hidden">{index + 1}</p>
             <div className="flex items-center gap-2">
               <img
-                src={item.userData.image}
+                src={item.user?.image || "/default-user.png"}
                 className="w-8 rounded-full"
                 alt=""
               />{" "}
-              <p>{item.userData.name}</p>
+              <p>{item.user?.name || "Unknown"}</p>
             </div>
-            <p className="max-sm:hidden">{calculateAge(item.userData.dob)}</p>
+            <p className="max-sm:hidden">{calculateAge(item.user?.dob)}</p>
             <p>
               {slotDateFormat(item.slotDate)}, {item.slotTime}
             </p>
             <div className="flex items-center gap-2">
               <img
-                src={
-                  item.lawyerData?.image ||
-                  item.docData?.image ||
-                  "/default-lawyer.png"
-                }
+                src={item.lawyer?.image || "/default-lawyer.png"}
                 className="w-8 rounded-full bg-gray-200"
                 alt=""
               />{" "}
-              <p>
-                {item.lawyerData?.name ||
-                  item.docData?.name ||
-                  "Unknown Lawyer"}
-              </p>
+              <p>{item.lawyer?.name || "Unknown Lawyer"}</p>
             </div>
             <p>
               {currency}
@@ -83,7 +75,7 @@ const AllAppointments = () => {
               <p className="text-green-500 text-xs font-medium">Completed</p>
             ) : (
               <img
-                onClick={() => cancelAppointment(item._id)}
+                onClick={() => cancelAppointment(item.id)}
                 className="w-10 cursor-pointer"
                 src={assets.cancel_icon}
                 alt=""

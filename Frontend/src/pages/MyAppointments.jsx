@@ -217,8 +217,8 @@ const MyAppointments = () => {
                   <div className="w-full aspect-square rounded-xl overflow-hidden bg-[#EAEFFF]">
                     <img
                       className="w-full h-full object-cover"
-                      src={item.lawyerData.image}
-                      alt={item.lawyerData.name}
+                      src={item.lawyer.image || assets.legallogo}
+                      alt={item.lawyer.name}
                     />
                   </div>
                 </div>
@@ -283,10 +283,10 @@ const MyAppointments = () => {
                     {/* lawyer Info */}
                     <div>
                       <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                        {item.lawyerData.name}
+                        {item.lawyer.name}
                       </h3>
                       <p className="text-primary font-medium">
-                        {item.lawyerData.speciality}
+                        {item.lawyer.speciality}
                       </p>
                     </div>
 
@@ -337,10 +337,7 @@ const MyAppointments = () => {
                               d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                             />
                           </svg>
-                          {item.lawyerData.address?.Location &&
-                          item.lawyerData.address?.City
-                            ? `${item.lawyerData.address.Location}, ${item.lawyerData.address.City}, ${item.lawyerData.address.State}`
-                            : "Virtual Consultation"}
+                          Virtual Consultation
                         </p>
                       </div>
                     </div>
@@ -353,9 +350,9 @@ const MyAppointments = () => {
                     !item.payment &&
                     !item.isCompleted && (
                       <>
-                        {payment !== item._id ? (
+                        {payment !== item.id ? (
                           <button
-                            onClick={() => setPayment(item._id)}
+                            onClick={() => setPayment(item.id)}
                             className="w-full px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                           >
                             <svg
@@ -375,7 +372,7 @@ const MyAppointments = () => {
                           </button>
                         ) : (
                           <button
-                            onClick={() => appointmentRazorpay(item._id)}
+                            onClick={() => appointmentRazorpay(item.id)}
                             className="w-full px-4 py-2 rounded-lg bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-colors flex items-center justify-center"
                           >
                             <img
@@ -391,7 +388,7 @@ const MyAppointments = () => {
                   {/* Join Video Call Button */}
                   {canJoinVideo(item) && (
                     <button
-                      onClick={() => handleJoinVideoCall(item._id)}
+                      onClick={() => handleJoinVideoCall(item.id)}
                       className="w-full px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                     >
                       <Video size={18} />
@@ -401,7 +398,7 @@ const MyAppointments = () => {
 
                   {!isAppointmentCancelled(item) && !item.isCompleted && (
                     <button
-                      onClick={() => cancelAppointment(item._id)}
+                      onClick={() => cancelAppointment(item.id)}
                       className="w-full px-4 py-2 rounded-lg border-2 border-red-500 text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
                     >
                       <svg

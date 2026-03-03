@@ -131,12 +131,60 @@ export const getLawyerAppointments = async (req, res) => {
   try {
     const lawyerId = req.lawyer.id;
 
-    const appointments = await appointmentModel.find({ lawyerId });
+    const raw = await appointmentModel
+      .find({ lawyerId })
+      .select(
+        "slotDate slotTime amount payment isCompleted cancelled createdAt " +
+          "userId lawyerId userData lawyerData videoCall",
+      )
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.status(200).json({ success: true, appointments });
+    // Manually shape — never return raw doc or embedded snapshots directly
+    const appointments = raw.map((appt) => {
+      const ud = appt.userData || {};
+      const ld = appt.lawyerData || {};
+
+      return {
+        id: appt._id,
+        slotDate: appt.slotDate,
+        slotTime: appt.slotTime,
+        amount: appt.amount,
+        payment: appt.payment,
+        isCompleted: appt.isCompleted,
+        cancelled: appt.cancelled,
+        createdAt: appt.createdAt,
+
+        // Always return consistent videoCall structure
+        videoCall: {
+          status: appt.videoCall?.status ?? "not_started",
+          duration: appt.videoCall?.duration ?? 0,
+          startedAt: appt.videoCall?.startedAt ?? null,
+          endedAt: appt.videoCall?.endedAt ?? null,
+        },
+
+        // Safe user snapshot — name + URL image only
+        user: {
+          id: appt.userId,
+          name: ud.name ?? null,
+          image: ud.image && ud.image.startsWith("http") ? ud.image : null,
+        },
+
+        // Safe lawyer snapshot — no password, refreshToken, slots_booked etc.
+        lawyer: {
+          id: appt.lawyerId,
+          name: ld.name ?? null,
+          speciality: ld.speciality ?? null,
+          image: ld.image && ld.image.startsWith("http") ? ld.image : null,
+        },
+      };
+    });
+
+    return res.status(200).json({ success: true, appointments });
   } catch (error) {
-    // console.log(error)
-    res.status(500).json({ success: false, message: error.message });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -363,63 +411,93 @@ export const lawyerDashboard = async (req, res) => {
   try {
     const lawyerId = req.lawyer.id;
 
-    const [result] = await appointmentModel.aggregate([
-      {
-        $match: {
-          lawyerId: lawyerId,
-        },
-      },
-      {
-        $facet: {
-          stats: [
-            {
-              $group: {
-                _id: null,
-                totalAppointments: { $sum: 1 },
-                totalEarnings: {
-                  $sum: {
-                    $cond: [
-                      { $and: ["$isCompleted", "$payment"] },
-                      "$amount",
-                      0,
-                    ],
-                  },
-                },
-                uniquePatients: { $addToSet: "$userId" },
-              },
-            },
-          ],
-          latestAppointments: [
-            {
-              $addFields: {
-                sortDate: {
-                  $ifNull: ["$createdAt", { $toDate: "$date" }],
-                },
-              },
-            },
-            { $sort: { sortDate: -1 } },
-            { $limit: 5 },
-          ],
-        },
-      },
+    // Run all queries in parallel for performance
+    const [allAppointments, latestRaw] = await Promise.all([
+      // Fetch only fields needed for stats — no snapshots needed here
+      appointmentModel
+        .find({ lawyerId })
+        .select("isCompleted payment amount userId")
+        .lean(),
+
+      // Fetch latest 5 with snapshot fields for shaping
+      appointmentModel
+        .find({ lawyerId })
+        .select(
+          "slotDate slotTime amount payment isCompleted cancelled createdAt " +
+            "userId lawyerId userData lawyerData videoCall",
+        )
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
     ]);
 
-    const stats = result.stats[0] || {};
+    // Compute stats from the full set — no aggregate needed
+    let totalEarnings = 0;
+    const uniquePatientIds = new Set();
 
-    res.status(200).json({
+    for (const appt of allAppointments) {
+      if (appt.isCompleted && appt.payment) {
+        totalEarnings += appt.amount || 0;
+      }
+      if (appt.userId) {
+        uniquePatientIds.add(appt.userId.toString());
+      }
+    }
+
+    // Manually shape latest appointments — never return raw docs
+    const latestAppointments = latestRaw.map((appt) => {
+      const ud = appt.userData || {};
+      const ld = appt.lawyerData || {};
+
+      return {
+        id: appt._id,
+        slotDate: appt.slotDate,
+        slotTime: appt.slotTime,
+        amount: appt.amount,
+        payment: appt.payment,
+        isCompleted: appt.isCompleted,
+        cancelled: appt.cancelled,
+        createdAt: appt.createdAt,
+
+        // Always return consistent videoCall structure even if null
+        videoCall: {
+          status: appt.videoCall?.status ?? "not_started",
+          duration: appt.videoCall?.duration ?? 0,
+          startedAt: appt.videoCall?.startedAt ?? null,
+          endedAt: appt.videoCall?.endedAt ?? null,
+        },
+
+        // Safe user snapshot — name + URL image only, no sensitive fields
+        user: {
+          id: appt.userId,
+          name: ud.name ?? null,
+          image: ud.image && ud.image.startsWith("http") ? ud.image : null,
+        },
+
+        // Safe lawyer snapshot — no password, no refreshToken, no slots_booked
+        lawyer: {
+          id: appt.lawyerId,
+          name: ld.name ?? null,
+          speciality: ld.speciality ?? null,
+          image: ld.image && ld.image.startsWith("http") ? ld.image : null,
+        },
+      };
+    });
+
+    return res.status(200).json({
       success: true,
       dashData: {
-        earnings: stats.totalEarnings || 0,
-        appointments: stats.totalAppointments || 0,
-        patients: stats.uniquePatients?.length || 0,
-        latestAppointments: result.latestAppointments || [],
+        earnings: totalEarnings,
+        appointments: allAppointments.length,
+        patients: uniquePatientIds.size,
+        latestAppointments,
       },
     });
   } catch (error) {
     // console.error("Lawyer dashboard error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };

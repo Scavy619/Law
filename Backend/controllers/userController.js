@@ -182,7 +182,6 @@ export const setup2FA = async (req, res) => {
   }
 };
 
-
 export const loginUser = async (req, res) => {
   try {
     // console.log("Login request received:", { email: req.body.email });
@@ -388,20 +387,19 @@ export const resendVerificationEmail = async (req, res) => {
     });
   }
 };
-
 // get user data for profile page
 export const getUserProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: "User ID not found in request",
+        message: "Unauthorized",
       });
     }
 
-    const user = await userModel.findById(userId).select("-password");
+    const user = await userModel.findById(userId);
 
     if (!user) {
       return res.status(404).json({
@@ -410,15 +408,32 @@ export const getUserProfile = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    // Explicit safe response object
+    const safeUser = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      image: user.image,
+      phone: user.phone,
+      address: user.address,
+      gender: user.gender,
+      dob: user.dob,
+      emailVerified: user.emailVerified,
+      twoFactorEnabled: user.twoFactorEnabled,
+      credits: {
+        dailyLimit: user.credits?.dailyLimit,
+        remaining: user.credits?.remaining,
+      },
+    };
+
+    return res.status(200).json({
       success: true,
-      user,
+      user: safeUser,
     });
   } catch (error) {
-    // console.log(error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -690,26 +705,59 @@ export const listAppointment = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "User not authenticated",
-      });
-    }
-
+    // Fetch only the fields we need — no userData, no internal fields
     const appointments = await appointmentModel
       .find({ userId })
-      .sort({ date: -1 }); // Sort by date descending
+      .select(
+        "slotDate slotTime amount payment isCompleted cancelled createdAt lawyerId lawyerData videoCall",
+      )
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.status(200).json({
+    // Shape each appointment — expose only safe, required fields
+    const shaped = appointments.map((appt) => {
+      // lawyerData is an embedded snapshot stored at booking time
+      // Use it directly — avoids an extra DB round-trip per appointment
+      const ld = appt.lawyerData || {};
+
+      return {
+        id: appt._id,
+        slotDate: appt.slotDate,
+        slotTime: appt.slotTime,
+        amount: appt.amount,
+        payment: appt.payment,
+        isCompleted: appt.isCompleted,
+        cancelled: appt.cancelled,
+        createdAt: appt.createdAt,
+
+        videoCall: appt.videoCall
+          ? {
+              status: appt.videoCall.status ?? "not_started",
+              duration: appt.videoCall.duration ?? 0,
+              startedAt: appt.videoCall.startedAt ?? null,
+              endedAt: appt.videoCall.endedAt ?? null,
+            }
+          : null,
+
+        lawyer: {
+          id: appt.lawyerId,
+          name: ld.name ?? null,
+          // Only include image if it is a URL — skip base64 strings
+          image: ld.image && ld.image.startsWith("http") ? ld.image : null,
+          speciality: ld.speciality ?? null,
+          fees: ld.fees ?? null,
+        },
+      };
+    });
+
+    return res.status(200).json({
       success: true,
-      appointments,
+      appointments: shaped,
     });
   } catch (error) {
-    // console.log(error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -1045,7 +1093,6 @@ export const refreshAccessToken = async (req, res) => {
 };
 
 // 2FA
-
 
 export const verify2FA = async (req, res) => {
   try {

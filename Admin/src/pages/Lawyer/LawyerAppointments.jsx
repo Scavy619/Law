@@ -77,18 +77,18 @@ const LawyerAppointments = () => {
             <p className="max-sm:hidden">{index}</p>
             <div className="flex items-center gap-2">
               <img
-                src={item.userData.image}
+                src={item.user?.image || "/default-user.png"}
                 className="w-8 rounded-full"
                 alt=""
               />{" "}
-              <p>{item.userData.name}</p>
+              <p>{item.user?.name || "Unknown"}</p>
             </div>
             <div>
               <p className="text-xs inline border border-primary px-2 rounded-full">
                 {item.payment ? "Online" : "CASH"}
               </p>
             </div>
-            <p className="max-sm:hidden">{calculateAge(item.userData.dob)}</p>
+            <p className="max-sm:hidden">{calculateAge(item.user?.dob)}</p>
             <p>
               {slotDateFormat(item.slotDate)}, {item.slotTime}
             </p>
@@ -105,7 +105,7 @@ const LawyerAppointments = () => {
                 {/* Join Video Call Button */}
                 {canJoinVideo(item) && (
                   <button
-                    onClick={() => handleJoinVideoCall(item._id)}
+                    onClick={() => handleJoinVideoCall(item.id)}
                     className="flex items-center gap-1 px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition"
                     title="Join Video Call"
                   >
@@ -114,13 +114,13 @@ const LawyerAppointments = () => {
                   </button>
                 )}
                 <img
-                  onClick={() => cancelAppointment(item._id)}
+                  onClick={() => cancelAppointment(item.id)}
                   className="w-10 cursor-pointer"
                   src={assets.cancel_icon}
                   alt=""
                 />
                 <img
-                  onClick={() => completeAppointment(item._id)}
+                  onClick={() => completeAppointment(item.id)}
                   className="w-10 cursor-pointer"
                   src={assets.tick_icon}
                   alt=""

@@ -222,12 +222,59 @@ export const changeAvailability = async (req, res) => {
 
 export const getAllAppointments = async (req, res) => {
   try {
-    const appointments = await appointmentModel.find().sort({ createdAt: -1 });
+    const raw = await appointmentModel
+      .find()
+      .select(
+        "slotDate slotTime amount payment isCompleted cancelled createdAt " +
+          "userId lawyerId userData lawyerData videoCall",
+      )
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.status(200).json({ success: true, appointments });
+    const appointments = raw.map((appt) => {
+      const ud = appt.userData || {};
+      const ld = appt.lawyerData || {};
+
+      return {
+        id: appt._id,
+        slotDate: appt.slotDate,
+        slotTime: appt.slotTime,
+        amount: appt.amount,
+        payment: appt.payment,
+        isCompleted: appt.isCompleted,
+        cancelled: appt.cancelled,
+        createdAt: appt.createdAt,
+
+        videoCall: appt.videoCall
+          ? {
+              status: appt.videoCall.status ?? "not_started",
+              duration: appt.videoCall.duration ?? 0,
+              startedAt: appt.videoCall.startedAt ?? null,
+              endedAt: appt.videoCall.endedAt ?? null,
+            }
+          : null,
+
+        user: {
+          id: appt.userId,
+          name: ud.name ?? null,
+          image: ud.image && ud.image.startsWith("http") ? ud.image : null,
+        },
+
+        lawyer: {
+          id: appt.lawyerId,
+          name: ld.name ?? null,
+          speciality: ld.speciality ?? null,
+          image: ld.image && ld.image.startsWith("http") ? ld.image : null,
+        },
+      };
+    });
+
+    return res.status(200).json({ success: true, appointments });
   } catch (error) {
     // console.error("Error fetching appointments:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -281,41 +328,78 @@ export const cancelAppointmentByAdmin = async (req, res) => {
 
 export const adminDashboard = async (req, res) => {
   try {
-    const [dashboard] = await appointmentModel.aggregate([
-      {
-        $facet: {
-          totalAppointments: [{ $count: "count" }],
-          latestAppointments: [
-            {
-              $addFields: {
-                sortDate: {
-                  $ifNull: ["$createdAt", { $toDate: "$date" }],
-                },
-              },
-            },
-            { $sort: { sortDate: -1 } },
-            { $limit: 5 },
-          ],
+    // Run all counts + latest appointments fetch in parallel
+    const [lawyersCount, appointmentsCount, usersCount, latestRaw] =
+      await Promise.all([
+        lawyerModel.countDocuments(),
+        appointmentModel.countDocuments(),
+        UserModel.countDocuments(),
+        appointmentModel
+          .find()
+          // userId and lawyerId are stored as String, not ObjectId refs,
+          // so .populate() is not available — use embedded snapshots safely
+          .select(
+            "slotDate slotTime amount payment isCompleted cancelled createdAt " +
+              "userId lawyerId userData lawyerData videoCall",
+          )
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .lean(),
+      ]);
+
+    // Manually shape each appointment — never return raw docs
+    const latestAppointments = latestRaw.map((appt) => {
+      const ud = appt.userData || {};
+      const ld = appt.lawyerData || {};
+
+      return {
+        id: appt._id,
+        slotDate: appt.slotDate,
+        slotTime: appt.slotTime,
+        amount: appt.amount,
+        payment: appt.payment,
+        isCompleted: appt.isCompleted,
+        cancelled: appt.cancelled,
+        createdAt: appt.createdAt,
+
+        videoCall: appt.videoCall
+          ? {
+              status: appt.videoCall.status ?? "not_started",
+              duration: appt.videoCall.duration ?? 0,
+              startedAt: appt.videoCall.startedAt ?? null,
+              endedAt: appt.videoCall.endedAt ?? null,
+            }
+          : null,
+
+        // Safe user snapshot — name + URL image only, nothing sensitive
+        user: {
+          id: appt.userId,
+          name: ud.name ?? null,
+          image: ud.image && ud.image.startsWith("http") ? ud.image : null,
         },
-      },
-    ]);
 
-    const [lawyersCount] = await lawyerModel.aggregate([{ $count: "count" }]);
+        // Safe lawyer snapshot — no password, no refreshToken, no slots_booked
+        lawyer: {
+          id: appt.lawyerId,
+          name: ld.name ?? null,
+          speciality: ld.speciality ?? null,
+          image: ld.image && ld.image.startsWith("http") ? ld.image : null,
+        },
+      };
+    });
 
-    const [usersCount] = await UserModel.aggregate([{ $count: "count" }]);
-
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       dashData: {
-        lawyers: lawyersCount?.count || 0,
-        appointments: dashboard.totalAppointments[0]?.count || 0,
-        patients: usersCount?.count || 0,
-        latestAppointments: dashboard.latestAppointments,
+        lawyers: lawyersCount,
+        appointments: appointmentsCount,
+        patients: usersCount,
+        latestAppointments,
       },
     });
   } catch (error) {
     // console.error("Dashboard error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal server error",
     });

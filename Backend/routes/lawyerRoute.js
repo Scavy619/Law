@@ -1,5 +1,6 @@
 import express from "express";
 import authLawyer from "../middleware/authLawyer.js";
+import { rateLimiter } from "../middleware/rateLimiter.js";
 import {
   changeAvailability,
   getLawyerList,
@@ -18,7 +19,7 @@ const LawyerRouter = express.Router();
 
 LawyerRouter.post("/change-availability", authLawyer, changeAvailability);
 LawyerRouter.get("/list", getLawyerList);
-LawyerRouter.post("/login", lawyerLogin);
+LawyerRouter.post("/login", rateLimiter(5, 60), lawyerLogin);
 LawyerRouter.post("/refresh", refreshLawyerAccessToken);
 LawyerRouter.post("/logout", logoutLawyer);
 LawyerRouter.post("/cancel-appointment", authLawyer, cancelAppointmentByLawyer);

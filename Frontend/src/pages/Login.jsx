@@ -42,10 +42,17 @@ const Login = () => {
   const passwordValid = hasUpper && hasLower && hasSpecial && hasLength;
 
   // ===================== SUBMIT HANDLER =====================
-  // ── 10s cooldown timer on 429 ──────────────────────────────────────────────
-  const startCooldown = (ms = 10000) => {
+  // ── cooldown timer on 429 ─────────────────────────────────────────────────
+  // accepts seconds directly; parses "Try again in X minutes" from backend msg
+  const startCooldown = (seconds = 10, backendMessage = "") => {
+    // if backend says "Try again in X minutes", use that duration
+    const minuteMatch = backendMessage.match(/try again in (\d+) minute/i);
+    if (minuteMatch) {
+      seconds = parseInt(minuteMatch[1], 10) * 60;
+    }
+
     setRateLimited(true);
-    let remaining = Math.ceil(ms / 1000);
+    let remaining = seconds;
     setCooldownSecs(remaining);
 
     const interval = setInterval(() => {
@@ -91,7 +98,7 @@ const Login = () => {
           "Registration failed";
 
         if (status === 429) {
-          startCooldown(10000);
+          startCooldown(10, error.response?.data?.message);
           // toast already shown by axios interceptor
         } else if (status === 409) {
           toast.error("Account already exists. Please login.");
@@ -140,7 +147,7 @@ const Login = () => {
       const msg = error.response?.data?.message;
 
       if (status === 429) {
-        startCooldown(10000);
+        startCooldown(10, msg);
         // toast already shown by axios interceptor
       } else if (status === 403 && msg?.toLowerCase().includes("verify")) {
         toast.error(msg);
@@ -172,7 +179,7 @@ const Login = () => {
       }
     } catch (error) {
       if (error.response?.status === 429) {
-        startCooldown(10000);
+        startCooldown(10, error.response?.data?.message);
         // toast already shown by axios interceptor
       } else if (!error.handled) {
         toast.error(
@@ -203,7 +210,7 @@ const Login = () => {
       setShowForgot(false);
     } catch (error) {
       if (error.response?.status === 429) {
-        startCooldown(10000);
+        startCooldown(10, error.response?.data?.message);
         // toast already shown by axios interceptor
       } else if (!error.handled) {
         toast.error(
@@ -360,7 +367,7 @@ const Login = () => {
           className="bg-primary text-white w-full py-2 my-2 rounded-md text-base disabled:opacity-60"
         >
           {rateLimited
-            ? `Too many requests — wait ${cooldownSecs}s`
+            ? `Too many requests — wait ${cooldownSecs >= 60 ? `${Math.ceil(cooldownSecs / 60)}m` : `${cooldownSecs}s`}`
             : loading
               ? "Please wait..."
               : requires2FA

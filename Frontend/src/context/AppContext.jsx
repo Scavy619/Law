@@ -22,7 +22,7 @@ export const AppContext = createContext({
   setLoadingResponse: () => {},
 
   // rate limiting
-  rateLimitCooldown: false, // true for 10s when global 429 hits
+  rateLimitCooldown: false, // true during cooldown when a 429 hits
   setRateLimitCooldown: () => {},
   creditsExhausted: false, // true when 403 daily credit limit hits
   setCreditsExhausted: () => {},

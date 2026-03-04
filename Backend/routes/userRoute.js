@@ -19,21 +19,24 @@ import {
   verifyDeleteAccountOtp,
   verify2FA,
   setup2FA,
-  disable2FA
+  disable2FA,
 } from "../controllers/userController.js";
 import { rateLimiter } from "../middleware/rateLimiter.js";
-
 
 const userRouter = express.Router();
 
 // signup and login routes
-userRouter.post("/signup", rateLimiter(3,60), signupUser);
-userRouter.post("/login", rateLimiter(5, 60),  loginUser);
+userRouter.post("/signup", rateLimiter(3, 60), signupUser);
+userRouter.post("/login", rateLimiter(5, 60), loginUser);
 userRouter.get("/verify-email/:token", verifyEmail);
 
 // forgot password routes
-userRouter.post("/forgot-password", forgotPassword);
-userRouter.post("/reset-password/:token", resetPassword);
+userRouter.post("/forgot-password", rateLimiter(3, 60 * 60), forgotPassword);
+userRouter.post(
+  "/reset-password/:token",
+  rateLimiter(5, 60 * 15),
+  resetPassword,
+);
 
 // fetch user profile or  update it
 userRouter.get("/get-profile", authUser, getUserProfile);
@@ -45,7 +48,11 @@ userRouter.patch(
 );
 
 // resending verification email
-userRouter.post("/resend-verification", resendVerificationEmail);
+userRouter.post(
+  "/resend-verification",
+  rateLimiter(3, 60 * 60),
+  resendVerificationEmail,
+);
 
 // Account deletion
 userRouter.post("/delete-account/request", authUser, requestDeleteAccountOtp);
@@ -66,6 +73,6 @@ userRouter.post("/2fa/setup", authUser, setup2FA);
 userRouter.post("/2fa/verify", authUser, verify2FA);
 
 // disable 2fa
-userRouter.post("/2fa/disable", authUser, disable2FA)
+userRouter.post("/2fa/disable", authUser, disable2FA);
 
 export default userRouter;

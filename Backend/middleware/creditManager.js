@@ -15,28 +15,27 @@ export const checkCredit = async (req, res, next) => {
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false });
-    
+
     const today = new Date().toDateString();
     const lastReset = new Date(user.credits.lastReset).toDateString();
-    
-    
+
     // if today's date is different from last reset date, it means naya din has started. So we gotta refresh credits
-    if (today !== lastReset){
+    if (today !== lastReset) {
       user.credits.remaining = user.credits.dailyLimit; // reset daily
       user.credits.lastReset = new Date();
       await user.save();
     }
 
     let credits = await redis.get(redisKey);
-    
-    // if redis does not have the credits, that means its first request of user or redis has expired at midnight, therefore we set the key 
-    if (!credits){
+
+    // if redis does not have the credits, that means its first request of user or redis has expired at midnight, therefore we set the key
+    if (!credits) {
       const ttl = getSecondsUntilMidnight();
       credits = user.credits.remaining;
       await redis.set(redisKey, credits, "EX", ttl); // auto expire at midnight
     }
 
-    if (credits <= 0){
+    if (Number(credits) <= 0) {
       return res.status(403).json({
         success: false,
         message: "Daily credit limit reached",

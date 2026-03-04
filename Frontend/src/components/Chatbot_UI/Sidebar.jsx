@@ -1,5 +1,6 @@
 import { useState, useContext, useEffect } from "react";
 import { AppContext } from "../../context/AppContext";
+import { MessageCircle } from "lucide-react";
 import { assets } from "../../assets/assets";
 import moment from "moment";
 import { toast } from "react-toastify";
@@ -16,6 +17,8 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
     setCurrentSession,
     createNewChat,
     fetchUserChats,
+    creditsRemaining,
+    creditsExhausted,
   } = useContext(AppContext);
 
   const navigate = useNavigate();
@@ -293,29 +296,82 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
         )}
       </div>
 
-      {/* User Info */}
+      {/* Credits + User Info — pinned at bottom */}
       {userData && (
-        <div
-          className="mt-auto p-3 border border-gray-300 dark:border-white/15 rounded-md hover:bg-gray-50 dark:hover:bg-[#57317C]/20 transition-colors cursor-pointer"
-          onClick={() => {
-            navigate("/my-profile");
-            setIsMenuOpen(false);
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <img
-              src={assets.user_icon}
-              alt="user"
-              className="w-7 rounded-full"
-            />
-            <p className="text-sm dark:text-primary truncate">
-              {userData.name}
+        <div className="mt-auto flex flex-col gap-2 pt-3">
+          {/* Daily Credits Info */}
+          <div
+            className={`p-3 rounded-xl border text-xs ${
+              creditsExhausted
+                ? "bg-red-900/40 border-red-500/50"
+                : creditsRemaining !== null && creditsRemaining <= 3
+                  ? "bg-amber-900/40 border-amber-500/50"
+                  : "bg-[#3b1f5e]/60 border-[#80609F]/50"
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <MessageCircle
+                size={13}
+                className={
+                  creditsExhausted
+                    ? "text-red-400"
+                    : creditsRemaining !== null && creditsRemaining <= 3
+                      ? "text-amber-400"
+                      : "text-[#A456F7]"
+                }
+              />
+              <span
+                className={`font-semibold ${
+                  creditsExhausted
+                    ? "text-red-300"
+                    : creditsRemaining !== null && creditsRemaining <= 3
+                      ? "text-amber-300"
+                      : "text-white"
+                }`}
+              >
+                {creditsExhausted
+                  ? "No messages left today"
+                  : creditsRemaining !== null
+                    ? `${creditsRemaining} of 10 messages left`
+                    : "10 messages per day"}
+              </span>
+            </div>
+            <p
+              className={`leading-relaxed ${
+                creditsExhausted
+                  ? "text-red-400/80"
+                  : creditsRemaining !== null && creditsRemaining <= 3
+                    ? "text-amber-400/80"
+                    : "text-gray-400"
+              }`}
+            >
+              {creditsExhausted
+                ? "Daily limit reached. Resets at midnight."
+                : "10 free messages daily. Resets at midnight."}
             </p>
+          </div>
+
+          {/* User Info */}
+          <div
+            className="p-3 border border-gray-300 dark:border-white/15 rounded-md hover:bg-gray-50 dark:hover:bg-[#57317C]/20 transition-colors cursor-pointer"
+            onClick={() => {
+              navigate("/my-profile");
+              setIsMenuOpen(false);
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <img
+                src={assets.user_icon}
+                alt="user"
+                className="w-7 rounded-full"
+              />
+              <p className="text-sm dark:text-primary truncate">
+                {userData.name}
+              </p>
+            </div>
           </div>
         </div>
       )}
-
-      {/* Remove duplicate close button - main toggle handles this */}
     </div>
   );
 };

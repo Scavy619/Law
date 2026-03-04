@@ -34,9 +34,15 @@ const Login = () => {
     }
   }, [adminData, lawyerData, authLoading, navigate]);
 
-  const startCooldown = (ms = 10000) => {
+  const startCooldown = (seconds = 60, backendMessage = "") => {
+    // if backend says "Try again in X minutes", use that duration
+    const minuteMatch = backendMessage.match(/try again in (\d+) minute/i);
+    if (minuteMatch) {
+      seconds = parseInt(minuteMatch[1], 10) * 60;
+    }
+
     setRateLimited(true);
-    let remaining = Math.ceil(ms / 1000);
+    let remaining = seconds;
     setCooldownSecs(remaining);
 
     const interval = setInterval(() => {
@@ -78,7 +84,7 @@ const Login = () => {
         }
       } catch (error) {
         if (error.response?.status === 429) {
-          startCooldown(10000);
+          startCooldown(60, error.response?.data?.message);
           // toast already shown by axios interceptor
         } else if (!error.handled) {
           if (error.response) {
@@ -119,7 +125,7 @@ const Login = () => {
         }
       } catch (error) {
         if (error.response?.status === 429) {
-          startCooldown(10000);
+          startCooldown(60, error.response?.data?.message);
           // toast already shown by axios interceptor
         } else if (!error.handled) {
           if (error.response) {
@@ -224,7 +230,7 @@ const Login = () => {
           className="bg-primary text-white w-full py-2 rounded-md text-base disabled:opacity-60"
         >
           {rateLimited
-            ? `Too many requests — wait ${cooldownSecs}s`
+            ? `Too many requests — wait ${cooldownSecs >= 60 ? `${Math.ceil(cooldownSecs / 60)}m` : `${cooldownSecs}s`}`
             : loading
               ? "Please wait..."
               : "Login"}

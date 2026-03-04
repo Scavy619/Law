@@ -38,23 +38,22 @@ export const rateLimiter = (limit, windowSeconds, keyGenerator) => {
         - User-based limiting
         - Route-specific strategies
       */
-      const identifier = keyGenerator ? keyGenerator(req) : req.ip;
-
       /*
-        Redis key format strategy:
-        rl means rate limiting here.
-        rl:<identifier>:<route>
+        Key generation strategy:
 
-        Example:
-        rl:192.168.1.10:/api/auth
-        rl:64fa8123:/api/chat
+        - No keyGenerator (default, used by global limiter):
+            key = rl:global:<ip>
+            All requests from the same IP share ONE counter regardless of route.
+            This is the correct behavior for a global rate limiter.
 
-        This ensures:
-        - Each route has separate counter
-        - Each identifier (IP or userId) is isolated
-        - No interference between routes
+        - Custom keyGenerator provided (used by per-route limiters):
+            key = rl:<customIdentifier>:<method>:<path>
+            Each route gets its own isolated counter per identifier.
+            Example: rateLimiter(5, 60) on /login uses rl:<ip>:POST:/api/user/login
       */
-      const key = `rl:${identifier}:${req.baseUrl}`;
+      const key = keyGenerator
+        ? `rl:${keyGenerator(req)}:${req.method}:${req.originalUrl.split("?")[0]}`
+        : `rl:global:${req.ip}`;
 
       /*
         INCR operation in Redis is atomic.
@@ -79,7 +78,7 @@ export const rateLimiter = (limit, windowSeconds, keyGenerator) => {
         After windowSeconds, the key automatically expires,
         and the counter resets without manual cleanup.
       */
-      if (currentCount === 1){
+      if (currentCount === 1) {
         await redis.expire(key, windowSeconds);
       }
 
@@ -90,7 +89,7 @@ export const rateLimiter = (limit, windowSeconds, keyGenerator) => {
       if (currentCount > limit) {
         return res.status(429).json({
           success: false,
-          message: "Too many requests. Please try again later."
+          message: "Too many requests. Please try again later.",
         });
       }
 
@@ -98,7 +97,6 @@ export const rateLimiter = (limit, windowSeconds, keyGenerator) => {
         If within limit, allow request to proceed.
       */
       next();
-
     } catch (error) {
       /*
         In case Redis fails or any unexpected error occurs,

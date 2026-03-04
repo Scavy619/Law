@@ -239,13 +239,13 @@ export const loginUser = async (req, res) => {
       }
 
       // Verify 2FA code using otpauth
-      // brute-force protection: max 5 failed attempts per email per 15 minutes
+      // brute-force protection: max 5 failed attempts per user per 15 minutes
       const bruteKey = `2fa:login:${existingUser._id}`;
-      const attempts = await redis.incr(bruteKey);
-      if (attempts === 1) {
-        await redis.expire(bruteKey, 15 * 60);
-      }
-      if (attempts > 5) {
+
+      // check lockout BEFORE doing anything — so even a correct code is blocked
+      // until the window expires
+      const currentAttempts = await redis.get(bruteKey);
+      if (currentAttempts !== null && parseInt(currentAttempts, 10) >= 5) {
         const ttl = await redis.ttl(bruteKey);
         return res.status(429).json({
           success: false,
@@ -257,6 +257,11 @@ export const loginUser = async (req, res) => {
       const delta = totp.validate({ token: twoFactorCode, window: 1 });
 
       if (delta === null) {
+        // increment counter only on failure
+        const attempts = await redis.incr(bruteKey);
+        if (attempts === 1) {
+          await redis.expire(bruteKey, 15 * 60);
+        }
         return res.status(401).json({
           success: false,
           message: "Invalid or expired 2FA code",

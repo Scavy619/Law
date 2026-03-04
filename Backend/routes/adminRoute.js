@@ -1,6 +1,6 @@
 import express from "express";
 import authAdmin from "../middleware/authAdmin.js";
-import { rateLimiter } from "../middleware/rateLimiter.js";
+import { routeLimiter } from "../middleware/rateLimiter.js";
 import {
   addlawyer,
   adminLogin,
@@ -17,7 +17,7 @@ const AdminRouter = express.Router();
 
 AdminRouter.post("/add-lawyer", authAdmin, upload.single("image"), addlawyer);
 
-AdminRouter.post("/login", rateLimiter(5, 60), adminLogin);
+AdminRouter.post("/login", routeLimiter(5, 60), adminLogin);
 AdminRouter.post("/refresh", refreshAdminAccessToken);
 AdminRouter.post("/logout", logoutAdmin);
 AdminRouter.get("/all-lawyers", authAdmin, getAllLawyers);

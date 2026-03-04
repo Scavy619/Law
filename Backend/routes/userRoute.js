@@ -21,20 +21,20 @@ import {
   setup2FA,
   disable2FA,
 } from "../controllers/userController.js";
-import { rateLimiter } from "../middleware/rateLimiter.js";
+import { rateLimiter, routeLimiter } from "../middleware/rateLimiter.js";
 
 const userRouter = express.Router();
 
 // signup and login routes
-userRouter.post("/signup", rateLimiter(3, 60), signupUser);
-userRouter.post("/login", rateLimiter(5, 60), loginUser);
+userRouter.post("/signup", routeLimiter(3, 60), signupUser);
+userRouter.post("/login", routeLimiter(5, 60), loginUser);
 userRouter.get("/verify-email/:token", verifyEmail);
 
 // forgot password routes
-userRouter.post("/forgot-password", rateLimiter(3, 60 * 60), forgotPassword);
+userRouter.post("/forgot-password", routeLimiter(3, 60 * 60), forgotPassword);
 userRouter.post(
   "/reset-password/:token",
-  rateLimiter(5, 60 * 15),
+  routeLimiter(5, 60 * 15),
   resetPassword,
 );
 
@@ -50,7 +50,7 @@ userRouter.patch(
 // resending verification email
 userRouter.post(
   "/resend-verification",
-  rateLimiter(3, 60 * 60),
+  routeLimiter(3, 60 * 60),
   resendVerificationEmail,
 );
 

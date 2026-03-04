@@ -10,7 +10,6 @@ import messageRouter from "./routes/messageRoutes.js";
 import AuthRouter from "./routes/authRoute.js";
 import { connectMongoDB } from "./config/mongodb.js";
 import { connectCloudinary } from "./config/cloudinary.js";
-import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
 import { rateLimiter } from "./middleware/rateLimiter.js";
 

@@ -1,10 +1,9 @@
 import redis from "../config/redis.js";
 
 /*
-  rateLimiter middleware
+  buildLimiter — shared internal factory
 
-  This middleware implements a fixed-window rate limiting strategy
-  using Redis as a distributed counter store.
+  Implements a fixed-window rate limiting strategy using Redis.
 
   Why Redis?
   - Works across multiple server instances (cluster safe)
@@ -15,77 +14,21 @@ import redis from "../config/redis.js";
   Parameters:
   - limit: maximum number of requests allowed within the window
   - windowSeconds: time window in seconds
-  - keyGenerator (optional): custom function to determine identifier
-    If not provided, defaults to req.ip
-
-  Example usages:
-  rateLimiter(200, 60)                        -> 200 requests per minute per IP
-  rateLimiter(5, 60)                          -> 5 login attempts per minute per IP
-  rateLimiter(30, 60, req => req.user.id)     -> 30 requests per minute per user
+  - keyFn: function(req) => string — determines the Redis key
 */
-
-export const rateLimiter = (limit, windowSeconds, keyGenerator) => {
+const buildLimiter = (limit, windowSeconds, keyFn) => {
   return async (req, res, next) => {
     try {
-      /*
-        Determine identifier for rate limiting.
+      const key = keyFn(req);
 
-        If a custom keyGenerator is provided, use it.
-        Otherwise, use req.ip (which depends on trust proxy setting).
-
-        This allows:
-        - IP-based limiting
-        - User-based limiting
-        - Route-specific strategies
-      */
-      /*
-        Key generation strategy:
-
-        - No keyGenerator (default, used by global limiter):
-            key = rl:global:<ip>
-            All requests from the same IP share ONE counter regardless of route.
-            This is the correct behavior for a global rate limiter.
-
-        - Custom keyGenerator provided (used by per-route limiters):
-            key = rl:<customIdentifier>:<method>:<path>
-            Each route gets its own isolated counter per identifier.
-            Example: rateLimiter(5, 60) on /login uses rl:<ip>:POST:/api/user/login
-      */
-      const key = keyGenerator
-        ? `rl:${keyGenerator(req)}:${req.method}:${req.originalUrl.split("?")[0]}`
-        : `rl:global:${req.ip}`;
-
-      /*
-        INCR operation in Redis is atomic.
-
-        If the key does not exist:
-          - Redis creates it
-          - Sets value to 1
-
-        If the key exists:
-          - Increments current value by 1
-
-        This guarantees safe counting even under high concurrency.
-      */
+      // INCR is atomic — creates key at 1 if missing, increments if exists
       const currentCount = await redis.incr(key);
 
-      /*
-        If this is the first request in the window,
-        set expiration time for this key.
-
-        This creates a fixed time window rate limit.
-
-        After windowSeconds, the key automatically expires,
-        and the counter resets without manual cleanup.
-      */
+      // Set expiry only on first request to start the fixed window
       if (currentCount === 1) {
         await redis.expire(key, windowSeconds);
       }
 
-      /*
-        If request count exceeds allowed limit,
-        block the request immediately.
-      */
       if (currentCount > limit) {
         return res.status(429).json({
           success: false,
@@ -93,16 +36,48 @@ export const rateLimiter = (limit, windowSeconds, keyGenerator) => {
         });
       }
 
-      /*
-        If within limit, allow request to proceed.
-      */
       next();
     } catch (error) {
-      /*
-        In case Redis fails or any unexpected error occurs,
-        pass error to global error handler.
-      */
       next(error);
     }
   };
+};
+
+/*
+  rateLimiter — GLOBAL use only (app.use)
+
+  Key: rl:global:<ip>
+  All routes from the same IP share one counter.
+
+  Example:
+  app.use(rateLimiter(200, 60))  -> 200 requests per minute per IP across all routes
+*/
+export const rateLimiter = (limit, windowSeconds) => {
+  return buildLimiter(limit, windowSeconds, (req) => `rl:global:${req.ip}`);
+};
+
+/*
+  routeLimiter — per-route use only
+
+  Key: rl:<identifier>:<method>:<path>
+  Each route gets its own isolated counter per identifier.
+
+  Parameters:
+  - limit: maximum requests allowed within the window
+  - windowSeconds: time window in seconds
+  - keyGenerator (optional): custom function to determine identifier
+    Defaults to req.ip if not provided.
+
+  Example usages:
+  routeLimiter(5, 60)                        -> 5 attempts per minute per IP on this route
+  routeLimiter(3, 3600)                      -> 3 attempts per hour per IP on this route
+  routeLimiter(30, 60, req => req.user.id)   -> 30 requests per minute per user on this route
+*/
+export const routeLimiter = (limit, windowSeconds, keyGenerator) => {
+  return buildLimiter(
+    limit,
+    windowSeconds,
+    (req) =>
+      `rl:${keyGenerator ? keyGenerator(req) : req.ip}:${req.method}:${req.originalUrl.split("?")[0]}`,
+  );
 };

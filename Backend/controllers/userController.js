@@ -3,7 +3,9 @@ import {
   loginPostRequestBodySchema,
   updatePatchRequestBodySchemaforUser,
   resetPasswordPostRequestBodySchema,
+  verify2FASchema,
 } from "../validations/reqValidation.js";
+import redis from "../config/redis.js";
 import userModel from "../models/userModel.js";
 import lawyerModel from "../models/lawyerModel.js";
 import appointmentModel from "../models/appointmentModel.js";
@@ -106,9 +108,10 @@ export const signupUser = async (req, res) => {
 
 // api to login user
 
-const createTOTP = (secret) => {
+const createTOTP = (secret, label = "") => {
   return new TOTP({
     issuer: "LawBridge",
+    label,
     algorithm: "SHA1",
     digits: 6,
     period: 30,
@@ -147,15 +150,8 @@ export const setup2FA = async (req, res) => {
     const secret = new Secret({ size: 20 }); // 160-bit
     const base32Secret = secret.base32;
 
-    // Create TOTP instance
-    const totp = new TOTP({
-      issuer: "LawBridge",
-      label: user.email,
-      algorithm: "SHA1",
-      digits: 6,
-      period: 30,
-      secret: base32Secret,
-    });
+    // Create TOTP instance using shared factory
+    const totp = createTOTP(base32Secret, user.email);
 
     // Generate otpauth URI
     const otpauthUrl = totp.toString();
@@ -243,6 +239,20 @@ export const loginUser = async (req, res) => {
       }
 
       // Verify 2FA code using otpauth
+      // brute-force protection: max 5 failed attempts per email per 15 minutes
+      const bruteKey = `2fa:login:${existingUser._id}`;
+      const attempts = await redis.incr(bruteKey);
+      if (attempts === 1) {
+        await redis.expire(bruteKey, 15 * 60);
+      }
+      if (attempts > 5) {
+        const ttl = await redis.ttl(bruteKey);
+        return res.status(429).json({
+          success: false,
+          message: `Too many 2FA attempts. Try again in ${Math.ceil(ttl / 60)} minutes.`,
+        });
+      }
+
       const totp = createTOTP(existingUser.twoFactorSecret);
       const delta = totp.validate({ token: twoFactorCode, window: 1 });
 
@@ -252,6 +262,9 @@ export const loginUser = async (req, res) => {
           message: "Invalid or expired 2FA code",
         });
       }
+
+      // clear brute-force counter on success
+      await redis.del(bruteKey);
     }
 
     // generating the access token and refresh token
@@ -1097,7 +1110,6 @@ export const refreshAccessToken = async (req, res) => {
 export const verify2FA = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { code } = req.body;
 
     if (!userId) {
       return res.status(401).json({
@@ -1105,6 +1117,16 @@ export const verify2FA = async (req, res) => {
         message: "Unauthorized",
       });
     }
+
+    const validationResult = verify2FASchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: validationResult.error.errors[0].message,
+      });
+    }
+
+    const { code } = validationResult.data;
 
     const user = await userModel.findById(userId);
 
@@ -1115,17 +1137,17 @@ export const verify2FA = async (req, res) => {
       });
     }
 
+    if (user.twoFactorEnabled) {
+      return res.status(400).json({
+        success: false,
+        message: "2FA is already enabled",
+      });
+    }
+
     if (!user.twoFactorSecret) {
       return res.status(400).json({
         success: false,
         message: "2FA setup not initiated",
-      });
-    }
-
-    if (!code) {
-      return res.status(400).json({
-        success: false,
-        message: "2FA code is required",
       });
     }
 
@@ -1143,7 +1165,7 @@ export const verify2FA = async (req, res) => {
 
     // Enable 2FA
     user.twoFactorEnabled = true;
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     return res.status(200).json({
       success: true,

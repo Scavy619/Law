@@ -131,6 +131,14 @@ export const addLawyerByAdminSchema = z.object({
     .describe("Address object is required"),
 });
 
+export const verify2FASchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .length(6, "2FA code must be exactly 6 digits")
+    .regex(/^\d{6}$/, "2FA code must contain only digits"),
+});
+
 export const resetPasswordPostRequestBodySchema = z.object({
   password: z
     .string()

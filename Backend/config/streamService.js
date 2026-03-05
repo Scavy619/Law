@@ -1,5 +1,3 @@
-// Backend/config/streamService.js
-
 import { StreamClient } from '@stream-io/node-sdk';
 
 // Initialize Stream client

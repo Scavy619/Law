@@ -6,13 +6,13 @@ import {
   StreamVideo,
   StreamVideoClient,
   StreamCall,
+  StreamTheme,
   CallControls,
   SpeakerLayout,
-  CallParticipantsList,
 } from "@stream-io/video-react-sdk";
 import { toast } from "react-toastify";
-import { getVideoToken, joinVideoCall, leaveVideoCall } from "../api/video.api";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
+import { getVideoToken, joinVideoCall, leaveVideoCall } from "../api/video.api";
 
 const VideoCall = () => {
   const { appointmentId } = useParams();
@@ -159,88 +159,14 @@ const VideoCall = () => {
   }
 
   return (
-    <div className="h-screen bg-gray-900 flex flex-col">
+    <div className="h-screen">
       <StreamVideo client={client}>
-        <StreamCall call={call}>
-          {/* Header */}
-          <div className="bg-gray-800 px-6 py-4 flex items-center justify-between border-b border-gray-700">
-            <div className="flex items-center space-x-3">
-              <div
-                className={`w-3 h-3 rounded-full ${
-                  connectionStatus === "connected"
-                    ? "bg-green-500"
-                    : connectionStatus === "connecting"
-                      ? "bg-yellow-500 animate-pulse"
-                      : "bg-red-500"
-                }`}
-              ></div>
-              <h1 className="text-white font-semibold">Legal Consultation</h1>
-              <span className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded-md">
-                {connectionStatus === "connected"
-                  ? "Connected"
-                  : connectionStatus === "connecting"
-                    ? "Connecting..."
-                    : "Disconnected"}
-              </span>
-            </div>
-            <div className="text-gray-300 text-sm">
-              ID: {appointmentId.slice(-6).toUpperCase()}
-            </div>
-          </div>
-
-          <div className="flex-1 flex flex-col relative">
-            {/* Video Layout */}
-            <div className="flex-1 relative bg-black">
-              <SpeakerLayout />
-
-              {/* Floating Participants Panel */}
-              <div className="absolute top-4 right-4 bg-gray-800/90 rounded-lg p-3 max-w-xs backdrop-blur-sm">
-                <div className="text-white text-sm font-medium mb-2">
-                  Participants
-                </div>
-                <CallParticipantsList onClose={() => {}} />
-              </div>
-            </div>
-
-            {/* Enhanced Call Controls */}
-            <div className="bg-gray-800 px-6 py-4">
-              <div className="flex items-center justify-center space-x-4">
-                {/* Custom Controls */}
-                <div className="flex items-center space-x-3">
-                  <CallControls onLeave={handleLeaveCall} />
-                </div>
-
-                {/* Leave Call Button */}
-                <button
-                  onClick={handleLeaveCall}
-                  className="flex items-center space-x-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 shadow-lg"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
-                    />
-                  </svg>
-                  <span>Leave Call</span>
-                </button>
-              </div>
-
-              {/* Call Info */}
-              <div className="mt-3 text-center">
-                <p className="text-gray-400 text-sm">
-                  Click "Leave Call" to exit the consultation
-                </p>
-              </div>
-            </div>
-          </div>
-        </StreamCall>
+        <StreamTheme>
+          <StreamCall call={call}>
+            <SpeakerLayout />
+            <CallControls onLeave={handleLeaveCall} />
+          </StreamCall>
+        </StreamTheme>
       </StreamVideo>
     </div>
   );

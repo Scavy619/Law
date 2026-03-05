@@ -177,10 +177,9 @@ export const getMessage = async (req, res) => {
       }
     })();
   } catch (error) {
-    console.error("getMessage error:", error.message);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };

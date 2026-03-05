@@ -8,7 +8,7 @@ const SALT_ROUNDS = 10;
  * @param {string} [userSalt] - Optional salt (not typically required since bcrypt manages it internally).
  * @returns {Promise<{ salt: string, password: string }>} Object containing salt and hashed password.
  */
-export async function hashPasswordWithSalt(password){
+export async function hashPasswordWithSalt(password) {
   // bcrypt generates its own salt if not provided
   const salt = await bcrypt.genSalt(SALT_ROUNDS);
   const hashedPassword = await bcrypt.hash(password, salt);
@@ -26,13 +26,16 @@ export async function verifyPassword(password, hashedPassword) {
   return bcrypt.compare(password, hashedPassword);
 }
 
+import crypto from "crypto";
 
-export async function hashToken(token) {
-  const salt = await bcrypt.genSalt(SALT_ROUNDS);
-  return bcrypt.hash(token, salt);
+// Tokens are already cryptographically random (JWT or crypto.randomBytes),
+// so bcrypt's slowness adds nothing. SHA-256 is fast, deterministic, and correct.
+export function hashToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-export async function verifyHashedToken(token, hashedToken) {
-  return bcrypt.compare(token, hashedToken);
+export function verifyHashedToken(token, hashedToken) {
+  return (
+    crypto.createHash("sha256").update(token).digest("hex") === hashedToken
+  );
 }
-

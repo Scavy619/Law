@@ -1,4 +1,10 @@
-import { createContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import api from "../api/axiosClient";
 import { setAdminAccessToken, setLawyerAccessToken } from "./auth.tokens";
 
@@ -28,24 +34,26 @@ const AppContextProvider = (props) => {
   ];
 
   // Function to format the date eg. ( 20_01_2000 => 20 Jan 2000 )
-  const slotDateFormat = (slotDate) => {
+  const slotDateFormat = useCallback((slotDate) => {
     if (!slotDate) return "-";
     const dateArray = slotDate.split("_");
     if (dateArray.length !== 3) return "-";
     return (
       dateArray[0] + " " + months[Number(dateArray[1])] + " " + dateArray[2]
     );
-  };
+    // months is a stable constant array defined in render — no deps needed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Function to calculate the age eg. ( 20_01_2000 => 24 )
-  const calculateAge = (dob) => {
+  const calculateAge = useCallback((dob) => {
     if (!dob) return "-";
     const today = new Date();
     const birthDate = new Date(dob);
     if (isNaN(birthDate.getTime())) return "-";
     let age = today.getFullYear() - birthDate.getFullYear();
     return age;
-  };
+  }, []);
 
   // 🔐 INIT AUTH (refresh token flow)
   useEffect(() => {
@@ -86,18 +94,28 @@ const AppContextProvider = (props) => {
     initAuth();
   }, []);
 
-  const value = {
-    currency,
-    slotDateFormat,
-    calculateAge,
+  const value = useMemo(
+    () => ({
+      currency,
+      slotDateFormat,
+      calculateAge,
 
-    // Auth state
-    adminData,
-    setAdminData,
-    lawyerData,
-    setLawyerData,
-    authLoading,
-  };
+      // Auth state
+      adminData,
+      setAdminData,
+      lawyerData,
+      setLawyerData,
+      authLoading,
+    }),
+    [
+      currency,
+      slotDateFormat,
+      calculateAge,
+      adminData,
+      lawyerData,
+      authLoading,
+    ],
+  );
 
   return (
     <AppContext.Provider value={value}>{props.children}</AppContext.Provider>

@@ -43,13 +43,22 @@ export const getLawyerList = async (req, res) => {
     // TODO:
     // - Add pagination (page & limit via query params)
     // - Filter only available lawyers if required by frontend
-    // - Select only required fields for better performance
 
-    const lawyers = await lawyerModel.find({}).select("-password");
+    // Explicitly allowlist fields instead of blacklisting password.
+    // This ensures internal fields (refreshToken, date) are never
+    // accidentally sent to unauthenticated frontend clients.
+    // slots_booked is intentionally included — Appointment.jsx reads it
+    // to check slot availability client-side.
+    const lawyers = await lawyerModel
+      .find({})
+      .select(
+        "_id name email image speciality degree experience about available fees address slots_booked",
+      );
+
     res.status(200).json({ success: true, lawyers });
   } catch (error) {
     // console.log(error)
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -224,16 +233,13 @@ export const cancelAppointmentByLawyer = async (req, res) => {
       });
     }
 
-    const updatedAppointment = await appointmentModel.findByIdAndUpdate(
-      appointmentId,
-      { cancelled: "Cancelled by Lawyer" },
-      { new: true },
-    );
+    await appointmentModel.findByIdAndUpdate(appointmentId, {
+      cancelled: "Cancelled by Lawyer",
+    });
 
     return res.status(200).json({
       success: true,
       message: "Appointment cancelled successfully by Lawyer",
-      appointment: updatedAppointment,
     });
   } catch (error) {
     // console.error("Error cancelling appointment:", error);

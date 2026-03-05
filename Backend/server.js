@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
+import helmet from "helmet";
+import mongoSanitize from "./middleware/mongoSanitize.js";
 import userRouter from "./routes/userRoute.js";
 import adminRouter from "./routes/adminRoute.js";
 import LawyerRouter from "./routes/lawyerRoute.js";
@@ -12,7 +14,6 @@ import { connectMongoDB } from "./config/mongodb.js";
 import { connectCloudinary } from "./config/cloudinary.js";
 import cookieParser from "cookie-parser";
 import { rateLimiter } from "./middleware/rateLimiter.js";
-
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,23 +50,17 @@ app.use(
   }),
 );
 
+// Security headers
+app.use(helmet());
+
 // json middleware
 app.use(express.json());
 
 // cookie parser
 app.use(cookieParser());
 
-// Rate limiting middleware
-// const limiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, // 15 minutes
-//   max: 100, // each IP gets 100 requests ie about 7 requests per minute
-//   standardHeaders: true,
-//   legacyHeaders: false,
-//   message: "Too many requests from this IP, try again later.",
-// });
-
-// app.use(limiter);
-
+// Strip $ and . from request body/params to prevent MongoDB operator injection
+app.use(mongoSanitize());
 
 /*
   trust proxy configuration
@@ -86,8 +81,6 @@ app.use(cookieParser());
 */
 app.set("trust proxy", 1);
 
-
-
 /*
   Global rate limiter
 
@@ -103,8 +96,6 @@ app.set("trust proxy", 1);
   all further requests will be blocked until the window resets.
 */
 app.use(rateLimiter(200, 60));
-
-
 
 connectMongoDB(process.env.MONGODB_URI).then(() =>
   console.log("Mongo DB Connected!!"),

@@ -1,19 +1,16 @@
-import { createContext, useState, useContext } from "react";
+import { createContext, useState, useCallback, useMemo } from "react";
 import { toast } from "react-toastify";
 import api from "../api/axiosClient";
-import { AppContext } from "./AppContext";
 
 export const LawyerContext = createContext();
 
 const LawyerContextProvider = (props) => {
-  const { lawyerData } = useContext(AppContext);
-
   const [appointments, setAppointments] = useState([]);
   const [dashData, setDashData] = useState(false);
   const [profileData, setProfileData] = useState(false);
 
   // Getting Lawyer appointment data from Database using API
-  const getAppointments = async () => {
+  const getAppointments = useCallback(async () => {
     try {
       const { data } = await api.get("/api/lawyer/appointments");
 
@@ -26,14 +23,12 @@ const LawyerContextProvider = (props) => {
       // console.log(error);
       toast.error(error.message);
     }
-  };
+  }, []);
 
   // Getting Lawyer profile data from Database using API
-  const getProfileData = async () => {
+  const getProfileData = useCallback(async () => {
     try {
       const { data } = await api.get("/api/lawyer/profile");
-      // console.log("Profile API Response:", data);
-      // console.log("Profile Data Address:", data.profileData?.address);
 
       if (data.success) {
         setProfileData(data.profileData);
@@ -45,56 +40,12 @@ const LawyerContextProvider = (props) => {
       // console.log("Profile fetch error:", error);
       toast.error(error.response?.data?.message || error.message);
     }
-  };
-
-  // Function to cancel lawyer appointment using API
-  const cancelAppointment = async (appointmentId) => {
-    try {
-      const { data } = await api.post("/api/lawyer/cancel-appointment", {
-        appointmentId,
-      });
-
-      if (data.success) {
-        toast.success(data.message);
-        getAppointments();
-        // after creating dashboard
-        getDashData();
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error(error.message);
-      // console.log(error);
-    }
-  };
-
-  // Function to Mark appointment completed using API
-  const completeAppointment = async (appointmentId) => {
-    try {
-      const { data } = await api.post("/api/lawyer/complete-appointment", {
-        appointmentId,
-      });
-
-      if (data.success) {
-        toast.success(data.message);
-        getAppointments();
-        // Later after creating getDashData Function
-        getDashData();
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error(error.message);
-      // console.log(error);
-    }
-  };
+  }, []);
 
   // Getting lawyer dashboard data using API
-  const getDashData = async () => {
+  const getDashData = useCallback(async () => {
     try {
       const { data } = await api.get("/api/lawyer/dashboard");
-
-      // console.log("Dashboard API Response:", data);
 
       if (data.success) {
         setDashData(data.dashData);
@@ -106,19 +57,77 @@ const LawyerContextProvider = (props) => {
       // console.log("Dashboard fetch error:", error);
       toast.error(error.response?.data?.message || error.message);
     }
-  };
+  }, []);
 
-  const value = {
-    appointments,
-    getAppointments,
-    cancelAppointment,
-    completeAppointment,
-    dashData,
-    getDashData,
-    profileData,
-    setProfileData,
-    getProfileData,
-  };
+  // Function to cancel lawyer appointment using API
+  const cancelAppointment = useCallback(
+    async (appointmentId) => {
+      try {
+        const { data } = await api.post("/api/lawyer/cancel-appointment", {
+          appointmentId,
+        });
+
+        if (data.success) {
+          toast.success(data.message);
+          getAppointments();
+          getDashData();
+        } else {
+          toast.error(data.message);
+        }
+      } catch (error) {
+        toast.error(error.message);
+        // console.log(error);
+      }
+    },
+    [getAppointments, getDashData],
+  );
+
+  // Function to mark appointment completed using API
+  const completeAppointment = useCallback(
+    async (appointmentId) => {
+      try {
+        const { data } = await api.post("/api/lawyer/complete-appointment", {
+          appointmentId,
+        });
+
+        if (data.success) {
+          toast.success(data.message);
+          getAppointments();
+          getDashData();
+        } else {
+          toast.error(data.message);
+        }
+      } catch (error) {
+        toast.error(error.message);
+        // console.log(error);
+      }
+    },
+    [getAppointments, getDashData],
+  );
+
+  const value = useMemo(
+    () => ({
+      appointments,
+      getAppointments,
+      cancelAppointment,
+      completeAppointment,
+      dashData,
+      getDashData,
+      profileData,
+      setProfileData,
+      getProfileData,
+    }),
+    [
+      appointments,
+      getAppointments,
+      cancelAppointment,
+      completeAppointment,
+      dashData,
+      getDashData,
+      profileData,
+      getProfileData,
+    ],
+  );
 
   return (
     <LawyerContext.Provider value={value}>

@@ -22,7 +22,7 @@ export const createChat = async (req, res) => {
       chatId: newChat._id,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -41,7 +41,7 @@ export const getChat = async (req, res) => {
       chats: chat || { sessionId, messages: [] },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -51,20 +51,22 @@ export const getUserChats = async (req, res) => {
     const userId = req.user.id;
 
     // Get all user chats with basic info (sessionId, title, first message, timestamps)
-    const chats = await conversationModel.find({ userId })
-      .select('sessionId title messages createdAt updatedAt')
+    const chats = await conversationModel
+      .find({ userId })
+      .select("sessionId title messages createdAt updatedAt")
       .sort({ updatedAt: -1 }); // Latest first
 
     // Format the response to include last message preview
-    const formattedChats = chats.map(chat => ({
+    const formattedChats = chats.map((chat) => ({
       sessionId: chat.sessionId,
       title: chat.title,
-      lastMessage: chat.messages.length > 0 
-        ? chat.messages[chat.messages.length - 1].content.slice(0, 50) + '...'
-        : 'New chat',
+      lastMessage:
+        chat.messages.length > 0
+          ? chat.messages[chat.messages.length - 1].content.slice(0, 50) + "..."
+          : "New chat",
       messageCount: chat.messages.length,
       createdAt: chat.createdAt,
-      updatedAt: chat.updatedAt
+      updatedAt: chat.updatedAt,
     }));
 
     res.status(200).json({
@@ -72,7 +74,7 @@ export const getUserChats = async (req, res) => {
       sessions: formattedChats,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -85,7 +87,7 @@ export const updateChatTitle = async (req, res) => {
     const updatedChat = await conversationModel.findOneAndUpdate(
       { sessionId, userId },
       { title },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedChat) {
@@ -101,10 +103,11 @@ export const updateChatTitle = async (req, res) => {
       message: "Chat title updated",
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
+// Delete chat by sessionId
 // Delete chat by sessionId (only user's own chat)
 export const deleteChat = async (req, res) => {
   try {
@@ -119,6 +122,6 @@ export const deleteChat = async (req, res) => {
       message: "Chat deleted",
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

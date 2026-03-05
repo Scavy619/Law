@@ -21,7 +21,9 @@ export const getVideoToken = async (req, res) => {
     const appointment = await appointmentModel.findById(appointmentId);
 
     if (!appointment) {
-      return res.json({ success: false, message: "Appointment not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Appointment not found" });
     }
 
     // Verify user is part of appointment
@@ -29,17 +31,23 @@ export const getVideoToken = async (req, res) => {
     const isLawyer = appointment.lawyerId.toString() === userId;
 
     if (!isUser && !isLawyer) {
-      return res.json({ success: false, message: "Unauthorized access" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized access" });
     }
 
     // Check if appointment is paid
     if (!appointment.payment) {
-      return res.json({ success: false, message: "Appointment not paid" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Appointment not paid" });
     }
 
     // Check if appointment is not cancelled
     if (appointment.cancelled && appointment.cancelled !== "Not Cancelled") {
-      return res.json({ success: false, message: "Appointment cancelled" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Appointment cancelled" });
     }
 
     // Get user name
@@ -80,7 +88,7 @@ export const getVideoToken = async (req, res) => {
     });
   } catch (error) {
     // console.error('Get video token error:', error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -96,7 +104,9 @@ export const updateCallStatus = async (req, res) => {
     const appointment = await appointmentModel.findById(appointmentId);
 
     if (!appointment) {
-      return res.json({ success: false, message: "Appointment not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Appointment not found" });
     }
 
     const isUser = appointment.userId.toString() === userId;
@@ -159,7 +169,7 @@ export const updateCallStatus = async (req, res) => {
     res.json({ success: true, message: "Call status updated" });
   } catch (error) {
     // console.error('Update call status error:', error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -175,14 +185,18 @@ export const getCallDetails = async (req, res) => {
     const appointment = await appointmentModel.findById(appointmentId);
 
     if (!appointment) {
-      return res.json({ success: false, message: "Appointment not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Appointment not found" });
     }
 
     const isUser = appointment.userId.toString() === userId;
     const isLawyer = appointment.lawyerId.toString() === userId;
 
     if (!isUser && !isLawyer) {
-      return res.json({ success: false, message: "Unauthorized access" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized access" });
     }
 
     res.json({
@@ -192,6 +206,6 @@ export const getCallDetails = async (req, res) => {
     });
   } catch (error) {
     // console.error('Get call details error:', error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

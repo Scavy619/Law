@@ -178,7 +178,13 @@ export const adminLogin = async (req, res) => {
 
 export const getAllLawyers = async (req, res) => {
   try {
-    const lawyers = await lawyerModel.find().select("-password");
+    // Explicit allowlist — ensures refreshToken, date, and any future
+    // internal fields are never accidentally sent to the admin frontend.
+    const lawyers = await lawyerModel
+      .find()
+      .select(
+        "_id name email image speciality degree experience about available fees address slots_booked",
+      );
     res.status(200).json({ success: true, lawyers });
   } catch (error) {
     // console.error("Error fetching lawyers:", error);
@@ -318,7 +324,6 @@ export const cancelAppointmentByAdmin = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Appointment cancelled successfully by Admin",
-      appointment: updatedAppointment,
     });
   } catch (error) {
     // console.error("Error cancelling appointment:", error);

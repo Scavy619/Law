@@ -282,10 +282,8 @@ export const loginUser = async (req, res) => {
     });
 
     // store the hashed refresh token in DB
-    existingUser.refreshToken = await hashToken(refreshToken);
+    existingUser.refreshToken = hashToken(refreshToken);
     await existingUser.save({ validateBeforeSave: false });
-
-    // console.log("Login successful, sending response with cookie");
 
     // sending refresh token as cookie
     return res
@@ -304,6 +302,8 @@ export const loginUser = async (req, res) => {
           address: existingUser.address,
           gender: existingUser.gender,
           dob: existingUser.dob,
+          emailVerified: existingUser.emailVerified,
+          twoFactorEnabled: existingUser.twoFactorEnabled,
         },
       });
   } catch (error) {
@@ -340,7 +340,8 @@ export const verifyEmail = async (req, res) => {
     res.status(201).json({ message: "Email Verified Successfully!!!" });
   } catch (error) {
     res.status(500).json({
-      message: error.message,
+      success: false,
+      message: "Internal server error",
     });
   }
 };
@@ -498,7 +499,7 @@ export const forgotPassword = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Internal server error",
     });
   }
 };
@@ -661,6 +662,12 @@ export const bookAppointment = async (req, res) => {
 
     const lawyerData = await lawyerModel.findById(lawyerId).select("-password");
 
+    if (!lawyerData) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Lawyer not found" });
+    }
+
     if (!lawyerData.available) {
       // if lawyer is not available
       return res
@@ -686,16 +693,50 @@ export const bookAppointment = async (req, res) => {
       slots_booked[slotDate].push(slotTime);
     }
 
-    const userData = await userModel.findById(userId).select("-password");
+    // Snapshot only the fields needed for appointment display — never store
+    // sensitive internal fields (refreshToken, twoFactorSecret, tokens, credits)
+    // permanently in the appointment document.
+    const rawUser = await userModel
+      .findById(userId)
+      .select("_id name image phone gender dob address");
+    const userData = rawUser
+      ? {
+          _id: rawUser._id,
+          name: rawUser.name,
+          image:
+            rawUser.image && rawUser.image.startsWith("http")
+              ? rawUser.image
+              : null,
+          phone: rawUser.phone,
+          gender: rawUser.gender,
+          dob: rawUser.dob,
+          address: rawUser.address,
+        }
+      : {};
 
     // remove booked slots from lawyer data so frontend does not receive it so vo dikaaye hi na uss slot ko jo booked hai
     delete lawyerData.slots_booked;
+
+    // Snapshot only safe lawyer fields into the appointment document
+    const lawyerSnapshot = {
+      _id: lawyerData._id,
+      name: lawyerData.name,
+      image:
+        lawyerData.image && lawyerData.image.startsWith("http")
+          ? lawyerData.image
+          : null,
+      speciality: lawyerData.speciality,
+      degree: lawyerData.degree,
+      experience: lawyerData.experience,
+      fees: lawyerData.fees,
+      address: lawyerData.address,
+    };
 
     const appointmentData = {
       userId,
       lawyerId,
       userData,
-      lawyerData,
+      lawyerData: lawyerSnapshot,
       amount: lawyerData.fees,
       slotTime,
       slotDate,
@@ -713,11 +754,11 @@ export const bookAppointment = async (req, res) => {
       message: "Appointment Booked! Pay online to complete the booking!",
     });
   } catch (error) {
-    // console.log(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
+// api to list all appointments of a user
 // api to get user appointments for frontend my-appointments page
 export const listAppointment = async (req, res) => {
   try {
@@ -886,28 +927,50 @@ export const paymentRazorpay = async (req, res) => {
 
     res.status(200).json({ success: true, order });
   } catch (error) {
-    // console.log(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
 // API to verify payment of razorpay
 export const verifyRazorpay = async (req, res) => {
   try {
-    const { razorpay_order_id } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing payment verification fields",
+      });
+    }
+
+    // Verify HMAC-SHA256 signature — this is the only safe way to confirm
+    // a real payment from Razorpay. Fetching order status alone can be spoofed
+    // by replaying a real order_id from a previous payment.
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment signature",
+      });
+    }
+
+    // Signature is valid — fetch order to get the appointmentId from receipt
     const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
 
-    if (orderInfo.status === "paid") {
-      await appointmentModel.findByIdAndUpdate(orderInfo.receipt, {
-        payment: true,
-      });
-      res.status(200).json({ success: true, message: "Payment Successful" });
-    } else {
-      res.status(400).json({ success: false, message: "Payment Failed" });
-    }
+    await appointmentModel.findByIdAndUpdate(orderInfo.receipt, {
+      payment: true,
+    });
+
+    res.status(200).json({ success: true, message: "Payment Successful" });
   } catch (error) {
-    // console.log(error);
-    res.status(500).json({ success: false, message: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: "Payment verification failed" });
   }
 };
 
@@ -1074,11 +1137,12 @@ export const refreshAccessToken = async (req, res) => {
 
     const newAccessToken = generateAccessToken(payload);
 
-    // Fetch user data to send with the response
+    // Fetch only the fields needed for the client — explicit allowlist so no
+    // internal tokens, secrets, or OTP hashes ever travel over the wire.
     const user = await userModel
       .findById(decoded.id)
       .select(
-        "-password -refreshToken -verificationToken -verificationTokenExpiry -resetPasswordToken -resetPasswordTokenExpiry -deleteAccountOtp -deleteAccountOtpExpiry",
+        "_id name email image phone address gender dob emailVerified twoFactorEnabled credits",
       );
 
     if (!user) {
@@ -1100,6 +1164,8 @@ export const refreshAccessToken = async (req, res) => {
         address: user.address,
         gender: user.gender,
         dob: user.dob,
+        emailVerified: user.emailVerified,
+        twoFactorEnabled: user.twoFactorEnabled,
       },
     });
   } catch (error) {
@@ -1177,8 +1243,7 @@ export const verify2FA = async (req, res) => {
       message: "2FA enabled successfully",
     });
   } catch (error) {
-    console.error("Error in verify2FA:", error);
-
+    // console.error("Error in verify2FA:", error);
     return res.status(500).json({
       success: false,
       message: "Could not verify 2FA",
@@ -1250,8 +1315,7 @@ export const disable2FA = async (req, res) => {
       message: "2FA disabled successfully",
     });
   } catch (error) {
-    console.error("Error in disable2FA:", error);
-
+    // console.error("Error in disable2FA:", error);
     return res.status(500).json({
       success: false,
       message: "Could not disable 2FA",

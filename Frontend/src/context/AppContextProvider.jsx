@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { AppProvider } from "./AppContext";
 import { appActions } from "./app.actions";
 import api from "../api/axiosClient";
@@ -23,12 +23,17 @@ const AppContextProvider = ({ children }) => {
   const [creditsExhausted, setCreditsExhausted] = useState(false);
   const [creditsRemaining, setCreditsRemaining] = useState(null);
 
-  const actions = appActions({
-    setLawyers,
-    setUserData,
-    setSessionId,
-    setCurrentSession,
-  });
+  const actions = useMemo(
+    () =>
+      appActions({
+        setLawyers,
+        setUserData,
+        setSessionId,
+        setCurrentSession,
+      }),
+    // setters from useState are guaranteed stable by React — no deps needed
+    [],
+  );
 
   // 🔐 INIT AUTH (refresh token flow)
   useEffect(() => {
@@ -78,37 +83,48 @@ const AppContextProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <AppProvider
-      value={{
-        currencySymbol,
+  const contextValue = useMemo(
+    () => ({
+      currencySymbol,
 
-        lawyers,
-        userData,
-        setUserData,
-        authLoading,
+      lawyers,
+      userData,
+      setUserData,
+      authLoading,
 
-        sessionId,
-        setSessionId,
-        currentSession,
-        setCurrentSession,
+      sessionId,
+      setSessionId,
+      currentSession,
+      setCurrentSession,
 
-        loadingResponse,
-        setLoadingResponse,
+      loadingResponse,
+      setLoadingResponse,
 
-        rateLimitCooldown,
-        setRateLimitCooldown,
-        creditsExhausted,
-        setCreditsExhausted,
-        creditsRemaining,
-        setCreditsRemaining,
+      rateLimitCooldown,
+      setRateLimitCooldown,
+      creditsExhausted,
+      setCreditsExhausted,
+      creditsRemaining,
+      setCreditsRemaining,
 
-        ...actions,
-      }}
-    >
-      {children}
-    </AppProvider>
+      ...actions,
+    }),
+    [
+      currencySymbol,
+      lawyers,
+      userData,
+      authLoading,
+      sessionId,
+      currentSession,
+      loadingResponse,
+      rateLimitCooldown,
+      creditsExhausted,
+      creditsRemaining,
+      actions,
+    ],
   );
+
+  return <AppProvider value={contextValue}>{children}</AppProvider>;
 };
 
 export default AppContextProvider;

@@ -14,7 +14,7 @@ import {
 } from "../api/payment.api";
 
 const MyAppointments = () => {
-  const { userData, authLoading, getLawyersData } = useApp();
+  const { userData, authLoading } = useApp();
   const navigate = useNavigate();
 
   const [appointments, setAppointments] = useState([]);
@@ -85,13 +85,14 @@ const MyAppointments = () => {
       if (data.success) {
         toast.success(data.message);
         getUserAppointments();
-        getLawyersData();
       } else {
         toast.error(data.message);
       }
     } catch (error) {
       // console.log(error);
-      toast.error(error.message);
+      toast.error(
+        error.response?.data?.message || "Failed to cancel appointment",
+      );
     }
   };
 
@@ -113,7 +114,9 @@ const MyAppointments = () => {
           }
         } catch (error) {
           // console.log(error);
-          toast.error(error.message);
+          toast.error(
+            error.response?.data?.message || "Payment verification failed",
+          );
         }
       },
     };
@@ -133,7 +136,7 @@ const MyAppointments = () => {
       }
     } catch (error) {
       // console.log(error);
-      toast.error(error.message);
+      toast.error(error.response?.data?.message || "Payment failed");
     }
   };
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import {resetPassword} from "../api/user.api"
+import { resetPassword } from "../api/user.api";
 import { toast } from "react-toastify";
 
 const ResetPassword = () => {
@@ -11,8 +11,20 @@ const ResetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Password strength checks — same rules as signup
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  const hasLength = password.length >= 8;
+  const passwordValid = hasUpper && hasLower && hasSpecial && hasLength;
+
   const handleResetPassword = async (e) => {
     e.preventDefault();
+
+    if (!passwordValid) {
+      toast.error("Password does not meet the requirements");
+      return;
+    }
 
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
@@ -30,11 +42,9 @@ const ResetPassword = () => {
       setTimeout(() => {
         navigate("/login");
       }, 1500);
-
     } catch (error) {
       toast.error(
-        error.response?.data?.message ||
-          "Reset link is invalid or expired"
+        error.response?.data?.message || "Reset link is invalid or expired",
       );
     } finally {
       setLoading(false);
@@ -47,10 +57,7 @@ const ResetPassword = () => {
       className="min-h-[80vh] flex items-center"
     >
       <div className="flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-[#5E5E5E] text-sm shadow-lg">
-
-        <p className="text-2xl font-semibold">
-          Reset Password
-        </p>
+        <p className="text-2xl font-semibold">Reset Password</p>
 
         <div className="w-full">
           <p>New Password</p>
@@ -62,6 +69,24 @@ const ResetPassword = () => {
             required
           />
         </div>
+
+        {/* Password strength rules */}
+        {password.length > 0 && (
+          <ul className="text-xs w-full">
+            <li className={hasLength ? "text-green-600" : "text-red-500"}>
+              {hasLength ? "✔" : "✖"} At least 8 characters
+            </li>
+            <li className={hasUpper ? "text-green-600" : "text-red-500"}>
+              {hasUpper ? "✔" : "✖"} One uppercase letter
+            </li>
+            <li className={hasLower ? "text-green-600" : "text-red-500"}>
+              {hasLower ? "✔" : "✖"} One lowercase letter
+            </li>
+            <li className={hasSpecial ? "text-green-600" : "text-red-500"}>
+              {hasSpecial ? "✔" : "✖"} One special character
+            </li>
+          </ul>
+        )}
 
         <div className="w-full">
           <p>Confirm Password</p>
@@ -75,16 +100,13 @@ const ResetPassword = () => {
         </div>
 
         <button
-          disabled={loading}
+          disabled={loading || !passwordValid || password !== confirmPassword}
           className="bg-primary text-white w-full py-2 my-2 rounded-md text-base disabled:opacity-60"
         >
           {loading ? "Resetting..." : "Reset Password"}
         </button>
 
-        <Link
-          to="/login"
-          className="text-primary underline text-sm"
-        >
+        <Link to="/login" className="text-primary underline text-sm">
           Back to Login
         </Link>
       </div>

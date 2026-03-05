@@ -169,7 +169,11 @@ const Navbar = () => {
               <div className="relative">
                 <img
                   className="w-auto h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-200 shadow-sm hover:border-primary transition-all duration-300 hover:shadow-md"
-                  src={userData.image}
+                  src={
+                    userData.image && userData.image.startsWith("http")
+                      ? userData.image
+                      : "https://res.cloudinary.com/dcvbky2xa/image/upload/v1772559451/default-img_zgazcn.png"
+                  }
                   alt="User Profile"
                 />
                 <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>

@@ -98,6 +98,11 @@ const Appointment = () => {
       return navigate("/login");
     }
 
+    if (!lawyerSlots[slotIndex] || lawyerSlots[slotIndex].length === 0) {
+      toast.warning("No slots available for the selected day");
+      return;
+    }
+
     const date = lawyerSlots[slotIndex][0].datetime;
 
     let day = date.getDate();
@@ -247,12 +252,15 @@ const Appointment = () => {
                 lawyerSlots.map((item, index) => (
                   <div
                     key={index}
-                    onClick={() => setSlotIndex(index)}
+                    onClick={() => {
+                      setSlotIndex(index);
+                      setSlotTime(""); // reset time when day changes
+                    }}
                     className={`text-center py-4 px-3 min-w-[4.5rem] rounded-full cursor-pointer transition-all ${
                       slotIndex === index
                         ? "bg-primary text-white"
                         : "border border-[#DDDDDD] hover:bg-gray-50"
-                    }`}
+                    } ${item.length === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
                   >
                     <p className="text-sm font-medium">
                       {item[0] && daysOfWeek[item[0].datetime.getDay()]}
@@ -260,6 +268,9 @@ const Appointment = () => {
                     <p className="text-lg font-bold mt-0.5">
                       {item[0] && item[0].datetime.getDate()}
                     </p>
+                    {item.length === 0 && (
+                      <p className="text-xs mt-0.5 opacity-70">Full</p>
+                    )}
                   </div>
                 ))}
             </div>

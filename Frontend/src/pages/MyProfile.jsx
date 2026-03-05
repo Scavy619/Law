@@ -63,7 +63,14 @@ const MyProfile = () => {
       const formData = new FormData();
       formData.append("name", userData.name);
       formData.append("phone", userData.phone);
-      formData.append("address", JSON.stringify(userData.address));
+      formData.append(
+        "address",
+        JSON.stringify({
+          Location: userData.address?.Location ?? "",
+          City: userData.address?.City ?? "",
+          State: userData.address?.State ?? "",
+        }),
+      );
       formData.append("gender", userData.gender);
       formData.append("dob", userData.dob);
       image && formData.append("image", image);
@@ -294,32 +301,43 @@ const MyProfile = () => {
               <div className="space-y-3 mt-2">
                 <input
                   className="w-full border-2 border-gray-300 rounded-lg px-4 py-3"
-                  placeholder="Address Line 1"
-                  value={userData.address.line1}
+                  placeholder="Location / Street"
+                  value={userData.address?.Location ?? ""}
                   onChange={(e) =>
                     setUserData((prev) => ({
                       ...prev,
-                      address: { ...prev.address, line1: e.target.value },
+                      address: { ...prev.address, Location: e.target.value },
                     }))
                   }
                 />
                 <input
                   className="w-full border-2 border-gray-300 rounded-lg px-4 py-3"
-                  placeholder="Address Line 2"
-                  value={userData.address.line2}
+                  placeholder="City"
+                  value={userData.address?.City ?? ""}
                   onChange={(e) =>
                     setUserData((prev) => ({
                       ...prev,
-                      address: { ...prev.address, line2: e.target.value },
+                      address: { ...prev.address, City: e.target.value },
+                    }))
+                  }
+                />
+                <input
+                  className="w-full border-2 border-gray-300 rounded-lg px-4 py-3"
+                  placeholder="State"
+                  value={userData.address?.State ?? ""}
+                  onChange={(e) =>
+                    setUserData((prev) => ({
+                      ...prev,
+                      address: { ...prev.address, State: e.target.value },
                     }))
                   }
                 />
               </div>
             ) : (
               <p className="mt-2 text-lg">
-                {userData.address.line1}
-                <br />
-                {userData.address.line2}
+                {userData.address?.Location || "—"}
+                {userData.address?.City ? `, ${userData.address.City}` : ""}
+                {userData.address?.State ? `, ${userData.address.State}` : ""}
               </p>
             )}
           </div>

@@ -1,6 +1,6 @@
 // Admin/src/pages/Lawyer/LawyerVideoCall.jsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   StreamVideo,
@@ -21,14 +21,39 @@ const LawyerVideoCall = () => {
   const [client, setClient] = useState(null);
   const [call, setCall] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState("connecting");
+  const [isCallEnded, setIsCallEnded] = useState(false);
+
+  // Use a ref so the cleanup function always sees the latest call instance
+  // without needing it as an effect dependency
+  const callRef = useRef(null);
 
   useEffect(() => {
-    initializeCall();
+    let mounted = true;
+
+    if (mounted) {
+      initializeCall();
+    }
 
     return () => {
-      if (call) {
-        handleLeaveCall();
+      mounted = false;
+      // Cleanup: leave the call if still active — use ref to avoid stale closure
+      const activeCall = callRef.current;
+      if (activeCall) {
+        try {
+          if (activeCall._eventHandlers) {
+            activeCall.off(
+              "call.ended",
+              activeCall._eventHandlers.handleCallEnded,
+            );
+            activeCall.off(
+              "call.session_ended",
+              activeCall._eventHandlers.handleSessionEnded,
+            );
+          }
+          activeCall.leave();
+        } catch {
+          // ignore cleanup errors
+        }
       }
     };
   }, [appointmentId]);
@@ -60,9 +85,35 @@ const LawyerVideoCall = () => {
       const streamCall = streamClient.call("default", data.callId);
       await streamCall.join({ create: true });
 
+      // Listen for remote call-ended events (e.g. user ends the call)
+      const handleCallEnded = () => {
+        setIsCallEnded(true);
+        setTimeout(() => {
+          toast.info("Call ended by the other participant");
+          navigate("/lawyer-appointments");
+        }, 100);
+      };
+
+      const handleSessionEnded = () => {
+        setIsCallEnded(true);
+        setTimeout(() => {
+          toast.info("Call session ended");
+          navigate("/lawyer-appointments");
+        }, 100);
+      };
+
+      streamCall.on("call.ended", handleCallEnded);
+      streamCall.on("call.session_ended", handleSessionEnded);
+
+      // Store handlers so cleanup can remove them
+      streamCall._eventHandlers = { handleCallEnded, handleSessionEnded };
+
+      // Keep ref in sync so the effect cleanup always finds the live instance
+      callRef.current = streamCall;
+
       setClient(streamClient);
       setCall(streamCall);
-      setConnectionStatus("connected");
+
       setLoading(false);
 
       // Update call status to joined
@@ -70,8 +121,7 @@ const LawyerVideoCall = () => {
         appointmentId,
         action: "join",
       });
-    } catch (error) {
-      // console.error("Video call initialization error:", error);
+    } catch {
       toast.error("Failed to join video call");
       navigate("/lawyer-appointments");
     }
@@ -79,8 +129,10 @@ const LawyerVideoCall = () => {
 
   const handleLeaveCall = async () => {
     try {
-      if (call) {
-        await call.leave();
+      const activeCall = callRef.current;
+      if (activeCall) {
+        await activeCall.leave();
+        callRef.current = null;
       }
 
       // Update call status to left
@@ -91,17 +143,18 @@ const LawyerVideoCall = () => {
 
       toast.success("Call ended");
       navigate("/lawyer-appointments");
-    } catch (error) {
-      // console.error("Leave call error:", error);
+    } catch {
       navigate("/lawyer-appointments");
     }
   };
 
   const handleEndCall = async () => {
     try {
-      if (call) {
+      const activeCall = callRef.current;
+      if (activeCall) {
         // End the call for all participants
-        await call.endCall();
+        await activeCall.endCall();
+        callRef.current = null;
       }
 
       // End call for everyone
@@ -112,8 +165,7 @@ const LawyerVideoCall = () => {
 
       toast.success("Call ended for all participants");
       navigate("/lawyer-appointments");
-    } catch (error) {
-      // console.error("End call error:", error);
+    } catch {
       navigate("/lawyer-appointments");
     }
   };
@@ -129,13 +181,32 @@ const LawyerVideoCall = () => {
     );
   }
 
+  if (isCallEnded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-600">Call ended. Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen">
       <StreamVideo client={client}>
         <StreamTheme>
           <StreamCall call={call}>
             <SpeakerLayout />
-            <CallControls onLeave={handleLeaveCall} />
+            <div className="str-video__call-controls">
+              <CallControls onLeave={handleLeaveCall} />
+              <button
+                onClick={handleEndCall}
+                className="str-video__call-controls__button ml-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+                title="End call for everyone"
+              >
+                End for All
+              </button>
+            </div>
           </StreamCall>
         </StreamTheme>
       </StreamVideo>

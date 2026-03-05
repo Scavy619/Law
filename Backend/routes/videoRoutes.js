@@ -7,6 +7,7 @@ import {
   getCallDetails,
 } from "../controllers/videoController.js";
 import { verifyAccessToken } from "../utils/token.js";
+import { routeLimiter } from "../middleware/rateLimiter.js";
 
 const videoRouter = express.Router();
 
@@ -41,10 +42,22 @@ const authUserOrLawyer = (req, res, next) => {
 };
 
 // Get Stream token and call details
-videoRouter.post("/get-token", authUserOrLawyer, getVideoToken);
+// 5 per 5 min per user — covers reconnects, blocks Stream API abuse
+videoRouter.post(
+  "/get-token",
+  authUserOrLawyer,
+  routeLimiter(5, 5 * 60, (req) => req.user.id),
+  getVideoToken,
+);
 
 // Update call status (join/leave/end)
-videoRouter.post("/update-status", authUserOrLawyer, updateCallStatus);
+// 20 per min per user — join/leave/end fire rapidly on reconnect
+videoRouter.post(
+  "/update-status",
+  authUserOrLawyer,
+  routeLimiter(20, 60, (req) => req.user.id),
+  updateCallStatus,
+);
 
 // Get call details
 videoRouter.get(

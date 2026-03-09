@@ -3,6 +3,7 @@
 import sys
 import time
 from pathlib import Path
+
 from pinecone import Pinecone, ServerlessSpec
 
 # Ensure we can import from src directory
@@ -11,6 +12,7 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 from config.env import PINECONE_API_KEY, PINECONE_INDEX
+
 
 def get_pinecone_index():
     # 1. Init client
@@ -24,7 +26,7 @@ def get_pinecone_index():
     # if PINECONE_INDEX not in existing_indexes:
     #     pc.create_index(
     #         name=PINECONE_INDEX,
-    #         dimension=768,  # Google text-embedding-004 dimension
+    #         dimension=3072,  # Google gemini-embedding-001 dimension
     #         metric="cosine",
     #         spec=ServerlessSpec(
     #             cloud="aws",

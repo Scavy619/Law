@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import { useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Video } from "lucide-react";
+import { Video, ArrowDownAZ, ArrowUpZA, Filter, Check, X } from "lucide-react";
 import { LawyerContext } from "../../context/LawyerContext";
 import { AppContext } from "../../context/AppContext";
 import { assets } from "../../assets/assets";
@@ -19,26 +18,21 @@ const LawyerAppointments = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-  // Add this function to handle video call
+  // Filters State
+  const [sortOrder, setSortOrder] = useState("desc"); // 'asc' or 'desc'
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // Handle video call
   const handleJoinVideoCall = (appointmentId) => {
     navigate(`/lawyer/video-call/${appointmentId}`);
   };
 
-  // Add this function to check if appointment can join video
+  // Check if appointment can join video
   const canJoinVideo = (appointment) => {
     const canJoin =
       appointment.payment &&
       (appointment.cancelled === "Not Cancelled" || !appointment.cancelled) &&
       !appointment.isCompleted;
-
-    // Debug logging
-    // console.log("Lawyer video call check:", {
-    //   appointmentId: appointment._id,
-    //   payment: appointment.payment,
-    //   cancelled: appointment.cancelled,
-    //   isCompleted: appointment.isCompleted,
-    //   canJoin,
-    // });
 
     return canJoin;
   };
@@ -51,84 +45,207 @@ const LawyerAppointments = () => {
     }
   }, [lawyerData]);
 
+  // Apply Filters and Sorting
+  const filteredAppointments = useMemo(() => {
+    if (!appointments) return [];
+
+    let result = [...appointments];
+
+    // 1. Status Filter
+    if (statusFilter !== "all") {
+      result = result.filter((item) => {
+        if (statusFilter === "cancelled")
+          return item.cancelled && item.cancelled !== "Not Cancelled";
+        if (statusFilter === "completed") return item.isCompleted;
+        if (statusFilter === "upcoming")
+          return !item.cancelled && !item.isCompleted;
+        return true;
+      });
+    }
+
+    // 2. Date Sort
+    result.sort((a, b) => {
+      const parseDate = (dateStr) => {
+        if (!dateStr) return 0;
+        const [day, month, year] = dateStr.split("_").map(Number);
+        return new Date(year, month - 1, day).getTime();
+      };
+
+      const dateA = parseDate(a.slotDate);
+      const dateB = parseDate(b.slotDate);
+
+      return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+    });
+
+    return result;
+  }, [appointments, statusFilter, sortOrder]);
+
   if (loading) {
     return <Loading />;
   }
 
   return (
-    <div className="w-full max-w-6xl m-5 ">
-      <p className="mb-3 text-lg font-medium">All Appointments</p>
+    <div className="w-full flex-1 flex flex-col bg-white overflow-hidden relative">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-6 border-b border-gray-100 gap-4 sticky top-0 bg-white z-10 shadow-sm">
+        <p className="text-2xl font-bold text-gray-800">All Appointments</p>
 
-      <div className="bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll">
-        <div className="max-sm:hidden grid grid-cols-[0.5fr_2fr_1fr_1fr_3fr_1fr_1fr] gap-1 py-3 px-6 border-b">
+        {/* Controls Section */}
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          {/* Status Filter */}
+          <div className="relative flex-1 min-w-[140px] sm:flex-none">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg pl-3 pr-8 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors cursor-pointer"
+            >
+              <option value="all">All Status</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+              <svg
+                className="fill-current h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+              >
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Sort Button */}
+          <button
+            onClick={() =>
+              setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"))
+            }
+            className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-lg transition-colors text-sm shadow-sm active:scale-95"
+            title={`Sort Date: ${sortOrder === "desc" ? "Newest First" : "Oldest First"}`}
+          >
+            <span className="hidden sm:inline">Date</span>
+            {sortOrder === "desc" ? (
+              <ArrowDownAZ size={16} />
+            ) : (
+              <ArrowUpZA size={16} />
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="hidden sm:grid grid-cols-[0.5fr_2fr_2fr_1fr_1.5fr] items-center py-4 px-6 border-b border-gray-100 bg-gray-50/80 font-semibold text-gray-500 tracking-wider uppercase text-xs sticky top-0 z-10">
           <p>#</p>
           <p>Client</p>
-          <p>Payment</p>
-          <p>Age</p>
           <p>Date & Time</p>
           <p>Fees</p>
-          <p>Action</p>
+          <p className="text-right">Action</p>
         </div>
-        {appointments.map((item, index) => (
-          <div
-            className="flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_2fr_1fr_1fr_3fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50"
-            key={index}
-          >
-            <p className="max-sm:hidden">{index}</p>
-            <div className="flex items-center gap-2">
-              <img
-                src={item.user?.image || "/default-user.png"}
-                className="w-8 rounded-full"
-                alt=""
-              />{" "}
-              <p>{item.user?.name || "Unknown"}</p>
-            </div>
-            <div>
-              <p className="text-xs inline border border-primary px-2 rounded-full">
-                {item.payment ? "Online" : "CASH"}
+
+        <div className="divide-y divide-gray-50">
+          {filteredAppointments.map((item, index) => (
+            <div
+              className="flex flex-col sm:grid sm:grid-cols-[0.5fr_2fr_2fr_1fr_1.5fr] items-start sm:items-center py-4 px-6 gap-3 sm:gap-4 hover:bg-gray-50/60 transition-colors"
+              key={index}
+            >
+              <p className="hidden sm:block text-gray-400 font-medium">
+                {index + 1}
               </p>
-            </div>
-            <p className="max-sm:hidden">{calculateAge(item.user?.dob)}</p>
-            <p>
-              {slotDateFormat(item.slotDate)}, {item.slotTime}
-            </p>
-            <p>
-              {currency}
-              {item.amount}
-            </p>
-            {item.cancelled && item.cancelled !== "Not Cancelled" ? (
-              <p className="text-red-400 text-xs font-medium">Cancelled</p>
-            ) : item.isCompleted ? (
-              <p className="text-green-500 text-xs font-medium">Completed</p>
-            ) : (
-              <div className="flex items-center gap-2">
-                {/* Join Video Call Button */}
-                {canJoinVideo(item) && (
-                  <button
-                    onClick={() => handleJoinVideoCall(item.id)}
-                    className="flex items-center gap-1 px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition"
-                    title="Join Video Call"
-                  >
-                    <Video size={14} />
-                    Video
-                  </button>
-                )}
-                <img
-                  onClick={() => cancelAppointment(item.id)}
-                  className="w-10 cursor-pointer"
-                  src={assets.cancel_icon}
-                  alt=""
-                />
-                <img
-                  onClick={() => completeAppointment(item.id)}
-                  className="w-10 cursor-pointer"
-                  src={assets.tick_icon}
-                  alt=""
-                />
+
+              <div className="w-full sm:w-auto flex justify-between sm:block">
+                <span className="sm:hidden text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Client
+                </span>
+                <p className="font-medium text-gray-800">
+                  {item.user?.name || "Unknown"}
+                </p>
               </div>
-            )}
-          </div>
-        ))}
+
+              <div className="w-full sm:w-auto flex justify-between sm:block">
+                <span className="sm:hidden text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Time
+                </span>
+                <p className="text-gray-600">
+                  {slotDateFormat(item.slotDate)},{" "}
+                  <span className="text-gray-400">{item.slotTime}</span>
+                </p>
+              </div>
+
+              <div className="w-full sm:w-auto flex justify-between sm:block">
+                <span className="sm:hidden text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Fees
+                </span>
+                <p className="font-medium text-gray-700">
+                  {currency}
+                  {item.amount}
+                </p>
+              </div>
+
+              <div className="w-full sm:w-auto flex justify-end sm:flex sm:justify-end mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100 items-center gap-2 pr-2">
+                {item.cancelled && item.cancelled !== "Not Cancelled" ? (
+                  <span className="px-3 md:px-4 py-1.5 bg-red-50 text-red-600 rounded-full text-xs font-bold whitespace-nowrap border border-red-100">
+                    CANCELLED
+                  </span>
+                ) : item.isCompleted ? (
+                  <span className="px-3 md:px-4 py-1.5 bg-green-50 text-green-600 rounded-full text-xs font-bold whitespace-nowrap border border-green-100">
+                    COMPLETED
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    {/* Join Video Call Button */}
+                    {canJoinVideo(item) && (
+                      <button
+                        onClick={() => handleJoinVideoCall(item.id)}
+                        className="flex items-center justify-center gap-2 px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-full text-[10px] font-bold transition-all duration-300 shadow-md hover:shadow-green-200 ring-2 ring-white"
+                        title="Join Video Call"
+                      >
+                        <Video size={14} className="stroke-[2.5px]" />
+                        JOIN CALL
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => cancelAppointment(item.id)}
+                      className="p-2 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-full transition-all duration-300 group border border-red-100"
+                      title="Cancel Appointment"
+                    >
+                      <X size={16} />
+                    </button>
+
+                    <button
+                      onClick={() => completeAppointment(item.id)}
+                      className="p-2 bg-green-50 hover:bg-green-500 text-green-600 hover:text-white rounded-full transition-all duration-300 group border border-green-100"
+                      title="Complete Appointment"
+                    >
+                      <Check size={16} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {(!filteredAppointments || filteredAppointments.length === 0) && (
+            <div className="py-20 text-center flex flex-col items-center justify-center">
+              <div className="bg-gray-50 w-24 h-24 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                <Filter size={32} className="text-gray-400" />
+              </div>
+              <p className="text-lg font-bold text-gray-700">
+                No appointments found
+              </p>
+              <p className="text-gray-500 text-sm mt-1">
+                Try adjusting your filters or search terms.
+              </p>
+              {appointments.length > 0 && (
+                <button
+                  onClick={() => setStatusFilter("all")}
+                  className="mt-4 text-primary hover:text-primary/80 font-semibold text-sm hover:underline"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

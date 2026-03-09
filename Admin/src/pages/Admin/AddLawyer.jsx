@@ -111,19 +111,26 @@ const AddLawyer = () => {
   }
 
   return (
-    <form onSubmit={onSubmitHandler} className="m-5 w-full">
-      <p className="mb-3 text-lg font-medium">Add Lawyer</p>
+    <form onSubmit={onSubmitHandler} className="m-5 w-full max-w-7xl">
+      <p className="mb-6 text-2xl font-bold text-gray-800">Add Lawyer</p>
 
-      <div className="bg-white px-8 py-8 border rounded w-full max-w-4xl max-h-[80vh] overflow-y-scroll">
-        <div className="flex items-center gap-4 mb-8 text-gray-500">
-          <label htmlFor="lawyer-img">
-            <img
-              className="w-16 bg-gray-100 rounded-full cursor-pointer"
-              src={
-                lawyerImg ? URL.createObjectURL(lawyerImg) : assets.upload_area
-              }
-              alt=""
-            />
+      <div className="bg-white p-8 border border-gray-100 rounded-xl shadow-sm w-full max-h-[80vh] overflow-y-auto">
+        <div className="flex items-center gap-6 mb-10 text-gray-600">
+          <label htmlFor="lawyer-img" className="group cursor-pointer">
+            <div className="relative">
+              <img
+                className="w-24 h-24 rounded-full object-cover border-4 border-gray-50 shadow-sm group-hover:border-primary/20 transition-colors duration-300"
+                src={
+                  lawyerImg ? URL.createObjectURL(lawyerImg) : assets.upload_area
+                }
+                alt="Lawyer profile"
+              />
+              {!lawyerImg && (
+                 <div className="absolute inset-0 bg-black/5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-2xl text-gray-400">+</span>
+                 </div>
+              )}
+            </div>
           </label>
           <input
             type="file"
@@ -149,49 +156,55 @@ const AddLawyer = () => {
               setLawyerImg(file);
             }}
           />
-          <p>
-            Upload lawyer <br /> picture
-          </p>
+          <div className="flex flex-col">
+            <p className="font-semibold text-gray-800 text-lg">Profile Picture</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Upload a high-quality headshot.<br />PNG or JPG, max 2MB.
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row items-start gap-10 text-gray-600">
-          <div className="w-full lg:flex-1 flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <p>Your name</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-gray-700">
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Full Name</label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="border rounded px-3 py-2"
+                className="border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50"
                 type="text"
+                placeholder="e.g. John Doe"
                 required
               />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <p>Lawyer Email</p>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Email Address</label>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="border rounded px-3 py-2"
+                className="border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50"
                 type="email"
+                placeholder="john@example.com"
                 required
               />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <p>Set Password</p>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Account Password</label>
               <div className="relative">
                 <input
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="border rounded px-3 py-2 w-full pr-10"
+                  className="border border-gray-200 rounded-lg px-4 py-2.5 w-full pr-11 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50"
                   type={showPassword ? "text" : "password"}
+                  placeholder="Set securely"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1"
                 >
                   {showPassword ? (
                     <svg
@@ -231,135 +244,158 @@ const AddLawyer = () => {
                 </button>
               </div>
               {password.length > 0 && (
-                <ul className="mt-1 text-xs">
-                  <li className={hasLength ? "text-green-600" : "text-red-500"}>
-                    {hasLength ? "✔" : "✖"} At least 8 characters
+                <ul className="mt-2 text-[11px] bg-gray-50/80 p-3 rounded border border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  <li className={hasLength ? "text-green-600 font-medium" : "text-gray-500"}>
+                    {hasLength ? "✓" : "○"} Min 8 chars
                   </li>
-                  <li className={hasUpper ? "text-green-600" : "text-red-500"}>
-                    {hasUpper ? "✔" : "✖"} One uppercase letter
+                  <li className={hasUpper ? "text-green-600 font-medium" : "text-gray-500"}>
+                    {hasUpper ? "✓" : "○"} Uppercase
                   </li>
-                  <li className={hasLower ? "text-green-600" : "text-red-500"}>
-                    {hasLower ? "✔" : "✖"} One lowercase letter
+                  <li className={hasLower ? "text-green-600 font-medium" : "text-gray-500"}>
+                    {hasLower ? "✓" : "○"} Lowercase
                   </li>
-                  <li className={hasNumber ? "text-green-600" : "text-red-500"}>
-                    {hasNumber ? "✔" : "✖"} One number
+                  <li className={hasNumber ? "text-green-600 font-medium" : "text-gray-500"}>
+                    {hasNumber ? "✓" : "○"} Number
                   </li>
-                  <li
-                    className={hasSpecial ? "text-green-600" : "text-red-500"}
-                  >
-                    {hasSpecial ? "✔" : "✖"} One special character (!@#$%^&*...)
+                  <li className={`col-span-full ${hasSpecial ? "text-green-600 font-medium" : "text-gray-500"}`}>
+                    {hasSpecial ? "✓" : "○"} Special character (!@#$%^&*...)
                   </li>
                 </ul>
               )}
             </div>
 
-            <div className="flex flex-col gap-1">
-              <p>Experience</p>
-              <select
-                value={experience}
-                onChange={(e) => setExperience(e.target.value)}
-                className="border rounded px-2 py-2"
-              >
-                <option>1 Year</option>
-                <option>2 Year</option>
-                <option>3 Year</option>
-                <option>4 Year</option>
-                <option>5 Year</option>
-                <option>6 Year</option>
-                <option>8 Year</option>
-                <option>9 Year</option>
-                <option>10 Year</option>
-                <option>&gt;10 Year</option>
-              </select>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Experience</label>
+              <div className="relative">
+                <select
+                  value={experience}
+                  onChange={(e) => setExperience(e.target.value)}
+                  className="appearance-none border border-gray-200 rounded-lg px-4 py-2.5 w-full focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50"
+                >
+                  <option>1 Year</option>
+                  <option>2 Year</option>
+                  <option>3 Year</option>
+                  <option>4 Year</option>
+                  <option>5 Year</option>
+                  <option>6 Year</option>
+                  <option>8 Year</option>
+                  <option>9 Year</option>
+                  <option>10 Year</option>
+                  <option>&gt;10 Year</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <p>Fees</p>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Fees (₹)</label>
               <input
                 value={fees}
                 onChange={(e) => setFees(e.target.value)}
-                className="border rounded px-3 py-2"
+                className="border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50"
                 type="number"
+                placeholder="e.g. 1500"
                 required
               />
             </div>
           </div>
 
-          <div className="w-full lg:flex-1 flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <p>Speciality</p>
-              <select
-                value={speciality}
-                onChange={(e) => setSpeciality(e.target.value)}
-                className="border rounded px-2 py-2"
-              >
-                <option>Criminal Lawyer</option>
-                <option>Family & Divorce Lawyer</option>
-                <option>Corporate Lawyer</option>
-                <option>Civil Litigation Lawyer</option>
-                <option>Intellectual Property Lawyer</option>
-                <option>Tax Lawyer</option>
-              </select>
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Speciality</label>
+              <div className="relative">
+                <select
+                  value={speciality}
+                  onChange={(e) => setSpeciality(e.target.value)}
+                  className="appearance-none border border-gray-200 rounded-lg px-4 py-2.5 w-full focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50"
+                >
+                  <option>Criminal Lawyer</option>
+                  <option>Family & Divorce Lawyer</option>
+                  <option>Corporate Lawyer</option>
+                  <option>Civil Litigation Lawyer</option>
+                  <option>Intellectual Property Lawyer</option>
+                  <option>Tax Lawyer</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <p>Degree</p>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Highest Degree</label>
               <input
                 value={degree}
                 onChange={(e) => setDegree(e.target.value)}
-                className="border rounded px-3 py-2"
+                className="border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50"
                 type="text"
+                placeholder="e.g. LL.B, LL.M"
                 required
               />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <p>Address</p>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">Location Area</label>
               <input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="border rounded px-3 py-2"
+                className="border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50"
                 type="text"
-                placeholder="Location"
+                placeholder="Sector / Area Name"
                 required
               />
-              <input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="border rounded px-3 py-2"
-                type="text"
-                placeholder="City"
-                required
-              />
-              <input
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                className="border rounded px-3 py-2"
-                type="text"
-                placeholder="State"
-                required
-              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+               <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">City</label>
+                <input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50"
+                  type="text"
+                  placeholder="City"
+                  required
+                />
+              </div>
+               <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">State</label>
+                <input
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50"
+                  type="text"
+                  placeholder="State"
+                  required
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <div>
-          <p className="mt-4 mb-2">About Lawyer</p>
+        <div className="mt-8">
+          <label className="text-sm font-medium text-gray-700 mb-2 block">Professional Summary (About)</label>
           <textarea
             value={about}
             onChange={(e) => setAbout(e.target.value)}
-            className="w-full px-4 pt-2 border rounded"
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50 resize-y"
+            placeholder="Write a brief professional summary detailing experience and specializations..."
             rows={5}
+            required
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading || !passwordValid}
-          className="bg-primary px-10 py-3 mt-4 text-white rounded-full disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {loading ? "Adding lawyer..." : "Add lawyer"}
-        </button>
+        <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+          <button
+            type="submit"
+            disabled={loading || !passwordValid}
+            className="bg-primary hover:bg-primary/95 px-10 py-3 text-white font-medium rounded-full shadow-sm hover:shadow-md transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-none"
+          >
+            {loading ? "Registering Lawyer..." : "Register Lawyer"}
+          </button>
+        </div>
       </div>
     </form>
   );

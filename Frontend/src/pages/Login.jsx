@@ -36,10 +36,12 @@ const Login = () => {
   // ===================== PASSWORD VALIDATION ==========================
   const hasUpper = /[A-Z]/.test(password);
   const hasLower = /[a-z]/.test(password);
-  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  const hasNumber = /\d/.test(password);
   const hasLength = password.length >= 8;
 
-  const passwordValid = hasUpper && hasLower && hasSpecial && hasLength;
+  const passwordValid =
+    hasUpper && hasLower && hasSpecial && hasNumber && hasLength;
 
   // ===================== SUBMIT HANDLER =====================
   // ── cooldown timer on 429 ─────────────────────────────────────────────────
@@ -336,8 +338,11 @@ const Login = () => {
             <li className={hasLower ? "text-green-600" : "text-red-500"}>
               {hasLower ? "✔" : "✖"} One lowercase letter
             </li>
+            <li className={hasNumber ? "text-green-600" : "text-red-500"}>
+              {hasNumber ? "✔" : "✖"} One number
+            </li>
             <li className={hasSpecial ? "text-green-600" : "text-red-500"}>
-              {hasSpecial ? "✔" : "✖"} One special character
+              {hasSpecial ? "✔" : "✖"} One special character (!@#$%^&*...)
             </li>
           </ul>
         )}

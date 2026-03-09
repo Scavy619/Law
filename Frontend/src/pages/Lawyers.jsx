@@ -12,10 +12,12 @@ const Lawyers = () => {
   const applyFilter = () => {
     if (speciality) {
       setFilterlawyer(
-        lawyers.filter((lawyer) => lawyer.speciality === speciality),
+        lawyers.filter(
+          (lawyer) => lawyer.available && lawyer.speciality === speciality,
+        ),
       );
     } else {
-      setFilterlawyer(lawyers);
+      setFilterlawyer(lawyers.filter((lawyer) => lawyer.available));
     }
   };
 

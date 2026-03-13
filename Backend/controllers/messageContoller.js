@@ -3,6 +3,7 @@ import conversationModel from "../models/conversationModel.js";
 import User from "../models/userModel.js";
 import dotenv from "dotenv/config";
 import redis from "../config/redis.js";
+import { getMessageSchema } from "../validations/chatValidation.js";
 
 // chat message
 // this is blocking ie isme ham pehle store krte hai convo fir user ko bhejte hai, user ko bhej kar fir backend mein save kr lenge after sending to user
@@ -107,14 +108,16 @@ export const getMessage = async (req, res) => {
       });
     }
 
-    const { sessionId, message } = req.body;
+    const validationResult = getMessageSchema.safeParse(req.body);
 
-    if (!sessionId || !message) {
+    if (validationResult.error) {
       return res.status(400).json({
+        error: validationResult.error.format(),
         success: false,
-        message: "SessionId and message are required",
       });
     }
+
+    const { sessionId, message } = validationResult.data;
 
     let chat = await conversationModel.findOne({ sessionId, userId });
 

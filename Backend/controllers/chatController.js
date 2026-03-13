@@ -1,11 +1,25 @@
 import conversationModel from "../models/conversationModel.js";
+import {
+  createChatSchema,
+  updateChatTitleSchema,
+  deleteChatSchema,
+} from "../validations/chatValidation.js";
 
 // Create a new chat session
 export const createChat = async (req, res) => {
   try {
+    const validationResult = createChatSchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
     const userId = req.user.id;
 
-    const { sessionId } = req.body;
+    const { sessionId } = validationResult.data;
 
     // Create empty chat for this user
     const newChat = await conversationModel.create({
@@ -81,8 +95,17 @@ export const getUserChats = async (req, res) => {
 // Update chat title
 export const updateChatTitle = async (req, res) => {
   try {
+    const validationResult = updateChatTitleSchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
     const userId = req.user.id;
-    const { sessionId, title } = req.body;
+    const { sessionId, title } = validationResult.data;
 
     const updatedChat = await conversationModel.findOneAndUpdate(
       { sessionId, userId },
@@ -111,8 +134,17 @@ export const updateChatTitle = async (req, res) => {
 // Delete chat by sessionId (only user's own chat)
 export const deleteChat = async (req, res) => {
   try {
+    const validationResult = deleteChatSchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
     const userId = req.user.id;
-    const { sessionId } = req.body;
+    const { sessionId } = validationResult.data;
 
     await conversationModel.deleteOne({ sessionId, userId });
 

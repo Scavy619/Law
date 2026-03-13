@@ -1,9 +1,10 @@
 import lawyerModel from "../models/lawyerModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import {
-  loginPostRequestBodySchema,
+  lawyerLoginSchema,
   updatePatchRequestBodySchemaForLawyer,
-} from "../validations/reqValidation.js";
+  lawyerAppointmentSchema,
+} from "../validations/lawyerValidation.js";
 import { verifyPassword } from "../utils/hash.js";
 import mongoose from "mongoose";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
@@ -65,7 +66,7 @@ export const getLawyerList = async (req, res) => {
 // api to login lawyer
 export const lawyerLogin = async (req, res) => {
   try {
-    const validationResult = loginPostRequestBodySchema.safeParse(req.body);
+    const validationResult = lawyerLoginSchema.safeParse(req.body);
 
     if (validationResult.error) {
       return res.status(400).json({
@@ -200,15 +201,17 @@ export const getLawyerAppointments = async (req, res) => {
 // api to cancel appointment by lawyer
 export const cancelAppointmentByLawyer = async (req, res) => {
   try {
-    const { appointmentId } = req.body;
-    const lawyerId = req.lawyer.id;
+    const validationResult = lawyerAppointmentSchema.safeParse(req.body);
 
-    if (!appointmentId) {
+    if (validationResult.error) {
       return res.status(400).json({
+        error: validationResult.error.format(),
         success: false,
-        message: "Appointment ID is required",
       });
     }
+
+    const { appointmentId } = validationResult.data;
+    const lawyerId = req.lawyer.id;
 
     const appointment = await appointmentModel.findById(appointmentId);
 
@@ -253,15 +256,17 @@ export const cancelAppointmentByLawyer = async (req, res) => {
 // apit to mark appointment as completed by lawyer
 export const appointmentCompletedByLawyer = async (req, res) => {
   try {
-    const { appointmentId } = req.body;
-    const lawyerId = req.lawyer.id;
+    const validationResult = lawyerAppointmentSchema.safeParse(req.body);
 
-    if (!appointmentId) {
+    if (validationResult.error) {
       return res.status(400).json({
+        error: validationResult.error.format(),
         success: false,
-        message: "Appointment ID is required",
       });
     }
+
+    const { appointmentId } = validationResult.data;
+    const lawyerId = req.lawyer.id;
 
     const appointment = await appointmentModel.findById(appointmentId);
 

@@ -6,6 +6,10 @@ import {
   createVideoCall,
   endVideoCall,
 } from "../config/streamService.js";
+import {
+  videoTokenSchema,
+  updateCallStatusSchema,
+} from "../validations/videoValidation.js";
 
 /**
  * Generate Stream token for user
@@ -14,7 +18,16 @@ import {
 
 export const getVideoToken = async (req, res) => {
   try {
-    const { appointmentId } = req.body;
+    const validationResult = videoTokenSchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
+    const { appointmentId } = validationResult.data;
     const userId = req.user?.id || req.lawyer?.id;
 
     // Find appointment
@@ -98,7 +111,16 @@ export const getVideoToken = async (req, res) => {
  */
 export const updateCallStatus = async (req, res) => {
   try {
-    const { appointmentId, action } = req.body; // action: 'join' | 'leave' | 'end'
+    const validationResult = updateCallStatusSchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
+    const { appointmentId, action } = validationResult.data;
     const userId = req.user?.id || req.lawyer?.id;
 
     const appointment = await appointmentModel.findById(appointmentId);

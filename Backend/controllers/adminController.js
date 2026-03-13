@@ -6,8 +6,10 @@ import { verifyPassword, hashPasswordWithSalt } from "../utils/hash.js";
 import { v2 as cloudinary } from "cloudinary";
 import {
   addLawyerByAdminSchema,
-  loginPostRequestBodySchema,
-} from "../validations/reqValidation.js";
+  adminLoginSchema,
+  changeAvailabilitySchema,
+  cancelAppointmentByAdminSchema,
+} from "../validations/adminValidation.js";
 import {
   createToken,
   generateAccessToken,
@@ -116,7 +118,7 @@ export const addlawyer = async (req, res) => {
 
 export const adminLogin = async (req, res) => {
   try {
-    const validationResult = loginPostRequestBodySchema.safeParse(req.body);
+    const validationResult = adminLoginSchema.safeParse(req.body);
 
     if (validationResult.error) {
       return res.status(400).json({
@@ -195,14 +197,16 @@ export const getAllLawyers = async (req, res) => {
 // Admin function to change lawyer availability
 export const changeAvailability = async (req, res) => {
   try {
-    const { lawyerId } = req.body;
+    const validationResult = changeAvailabilitySchema.safeParse(req.body);
 
-    if (!lawyerId) {
+    if (validationResult.error) {
       return res.status(400).json({
+        error: validationResult.error.format(),
         success: false,
-        message: "Lawyer ID is required",
       });
     }
+
+    const { lawyerId } = validationResult.data;
 
     const lawyer = await lawyerModel.findById(lawyerId);
 
@@ -288,13 +292,16 @@ export const getAllAppointments = async (req, res) => {
 
 export const cancelAppointmentByAdmin = async (req, res) => {
   try {
-    const { appointmentId } = req.body;
+    const validationResult = cancelAppointmentByAdminSchema.safeParse(req.body);
 
-    if (!appointmentId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Appointment ID is required" });
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
     }
+
+    const { appointmentId } = validationResult.data;
 
     const appointment = await appointmentModel.findById(appointmentId);
 

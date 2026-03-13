@@ -4,7 +4,14 @@ import {
   updatePatchRequestBodySchemaforUser,
   resetPasswordPostRequestBodySchema,
   verify2FASchema,
-} from "../validations/reqValidation.js";
+  bookAppointmentSchema,
+  emailOnlySchema,
+  verifyEmailSchema,
+  cancelAppointmentSchema,
+  verifyRazorpaySchema,
+  disable2FASchema,
+  verifyDeleteAccountOtpSchema,
+} from "../validations/userValidation.js";
 import redis from "../config/redis.js";
 import userModel from "../models/userModel.js";
 import lawyerModel from "../models/lawyerModel.js";
@@ -349,8 +356,16 @@ export const verifyEmail = async (req, res) => {
 // resend verification email
 export const resendVerificationEmail = async (req, res) => {
   try {
-    // TODO - Email verification mein agar purana link expire na hua ho toh agla mat bhejo
-    const { email } = req.body;
+    const validationResult = emailOnlySchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
+    const { email } = validationResult.data;
 
     const user = await userModel.findOne({ email });
 
@@ -460,7 +475,16 @@ export const getUserProfile = async (req, res) => {
 // forgot password ie we will send reset link to the user if they exist
 export const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    const validationResult = emailOnlySchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
+    const { email } = validationResult.data;
 
     const user = await userModel.findOne({ email });
     // Prevent email enumeration ie hacker baar baar mail behj k pata laga skta hai konsa acc hai ya nahi
@@ -643,8 +667,17 @@ export const updateUserProfile = async (req, res) => {
 
 export const bookAppointment = async (req, res) => {
   try {
+    const validationResult = bookAppointmentSchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
     const userId = req.user.id;
-    const { lawyerId, slotDate, slotTime } = req.body;
+    const { lawyerId, slotDate, slotTime } = validationResult.data;
 
     if (!slotTime) {
       return res.status(400).json({
@@ -824,8 +857,17 @@ export const listAppointment = async (req, res) => {
 // api to cancel appointment from my-appointments page
 export const cancelAppointment = async (req, res) => {
   try {
+    const validationResult = cancelAppointmentSchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
     const userId = req.user.id;
-    const { appointmentId } = req.body;
+    const { appointmentId } = validationResult.data;
 
     if (!appointmentId) {
       return res.status(400).json({
@@ -901,7 +943,16 @@ const razorpayInstance = new razorpay({
 
 export const paymentRazorpay = async (req, res) => {
   try {
-    const { appointmentId } = req.body;
+    const validationResult = cancelAppointmentSchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
+    const { appointmentId } = validationResult.data;
     const appointmentData = await appointmentModel.findById(appointmentId);
 
     if (
@@ -934,8 +985,17 @@ export const paymentRazorpay = async (req, res) => {
 // API to verify payment of razorpay
 export const verifyRazorpay = async (req, res) => {
   try {
+    const validationResult = verifyRazorpaySchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-      req.body;
+      validationResult.data;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({
@@ -1034,9 +1094,18 @@ export const requestDeleteAccountOtp = async (req, res) => {
 //now we need to verify that OTP
 export const verifyDeleteAccountOtp = async (req, res) => {
   try {
+    const validationResult = verifyDeleteAccountOtpSchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
     // user identity ONLY from auth middleware
     const userId = req.user.id;
-    const { otp } = req.body;
+    const { otp } = validationResult.data;
 
     if (!otp) {
       return res.status(400).json({
@@ -1255,8 +1324,17 @@ export const verify2FA = async (req, res) => {
 
 export const disable2FA = async (req, res) => {
   try {
+    const validationResult = disable2FASchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
     const userId = req.user.id;
-    const { password, twoFactorCode } = req.body;
+    const { password, twoFactorCode } = validationResult.data;
 
     if (!userId) {
       return res.status(401).json({

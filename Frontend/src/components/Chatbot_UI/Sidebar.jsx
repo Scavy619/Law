@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axiosClient";
 import { Edit3, Home } from "lucide-react";
+import DeleteChatModal from "./DeleteChatModal";
 
 const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
   const {
@@ -27,6 +28,9 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
   const [loading, setLoading] = useState(false);
   const [editingTitleId, setEditingTitleId] = useState(null);
   const [tempTitle, setTempTitle] = useState("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load user's chat sessions from backend
   const loadChatSessions = async () => {
@@ -64,17 +68,19 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
   };
 
   // Delete any chat session
-  const deleteChat = async (e, sessionIdToDelete) => {
+  const handleDeleteClick = (e, chat) => {
+    e.stopPropagation();
+    setChatToDelete(chat);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!chatToDelete) return;
+
+    setIsDeleting(true);
     try {
-      e.stopPropagation();
-      const confirm = window.confirm(
-        "Are you sure you want to delete this chat?",
-      );
-
-      if (!confirm) return;
-
       const { data } = await api.delete("/api/chat/delete", {
-        data: { sessionId: sessionIdToDelete },
+        data: { sessionId: chatToDelete.sessionId },
       });
 
       if (data.success) {
@@ -82,18 +88,21 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
         await loadChatSessions();
 
         // If deleting current active session, redirect
-        if (sessionId === sessionIdToDelete) {
+        if (sessionId === chatToDelete.sessionId) {
           setSessionId(null);
           setCurrentSession(null);
           navigate("/chatbot");
         }
         toast.success(data.message || "Chat deleted successfully");
+        setDeleteModalOpen(false);
+        setChatToDelete(null);
       } else {
         toast.error(data.message || "Failed to delete chat");
       }
     } catch (error) {
       toast.error("Error deleting chat");
-      // console.log(error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -285,7 +294,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
                     <Edit3 size={16} />
                   </button>
                   <img
-                    onClick={(e) => deleteChat(e, chat.sessionId)}
+                    onClick={(e) => handleDeleteClick(e, chat)}
                     src={assets.bin_icon}
                     alt="delete"
                     className="w-4 cursor-pointer brightness-0 flex-shrink-0"
@@ -372,6 +381,26 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteChatModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          if (!isDeleting) {
+            setDeleteModalOpen(false);
+            setChatToDelete(null);
+          }
+        }}
+        onConfirm={confirmDelete}
+        chatTitle={
+          chatToDelete?.title ||
+          chatToDelete?.lastMessage ||
+          (chatToDelete
+            ? `Legal Chat ${chatToDelete.sessionId.split("-")[1]}`
+            : "")
+        }
+        isDeleting={isDeleting}
+      />
     </div>
   );
 };

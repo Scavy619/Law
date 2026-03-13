@@ -976,6 +976,8 @@ export const verifyRazorpay = async (req, res) => {
 
 // delete account routes
 
+import { generateOTP } from "../utils/generateOTP.js";
+
 export const requestDeleteAccountOtp = async (req, res) => {
   try {
     // user identity ONLY from auth middleware
@@ -1000,7 +1002,7 @@ export const requestDeleteAccountOtp = async (req, res) => {
     }
 
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = generateOTP();
 
     // Hash OTP before storing
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");

@@ -4,6 +4,7 @@ import useApp from "../context/useApp";
 import Sidebar from "../components/Chatbot_UI/Sidebar";
 import ChatBox from "../components/Chatbot_UI/ChatBox";
 import { toast } from "react-toastify";
+import Loader from "../components/common/Loader";
 
 const Chatbot = () => {
   const { sessionId: urlSessionId } = useParams();
@@ -52,16 +53,8 @@ const Chatbot = () => {
     }
   }, [userData, sessionId, urlSessionId, createNewChat, navigate]);
 
-  // Show loading state
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <Loader minHeight="min-h-screen" />;
   }
 
   // Show auth required if not logged in

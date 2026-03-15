@@ -13,6 +13,7 @@ import {
 import { toast } from "react-toastify";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 import api from "../../api/axiosClient";
+import Loader from "../../components/common/Loader";
 
 const LawyerVideoCall = () => {
   const { appointmentId } = useParams();
@@ -171,14 +172,7 @@ const LawyerVideoCall = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Connecting to video call...</p>
-        </div>
-      </div>
-    );
+    return <Loader minHeight="min-h-screen" />;
   }
 
   if (isCallEnded) {

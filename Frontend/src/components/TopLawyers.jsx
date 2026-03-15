@@ -1,10 +1,15 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import useApp from "../context/useApp";
+import Loader from "./common/Loader";
 
 const TopLawyers = () => {
   const navigate = useNavigate();
   const { lawyers } = useApp();
+
+  if (!lawyers || lawyers.length === 0) {
+    return <Loader minHeight="min-h-[400px]" />;
+  }
 
   return (
     <div className="flex flex-col items-center gap-6 my-20 text-gray-900 md:mx-10">

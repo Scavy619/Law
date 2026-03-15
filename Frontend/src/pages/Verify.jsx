@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { verifyUserEmail, resendVerification } from "../api/user.api";
+import Loader from "../components/common/Loader";
 
 const Verify = () => {
   const { token } = useParams();
@@ -52,13 +53,7 @@ const Verify = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 text-center">
         {status === "loading" && (
-          <>
-            <div className="animate-spin mx-auto mb-4 h-10 w-10 rounded-full border-4 border-blue-500 border-t-transparent"></div>
-            <h2 className="text-xl font-semibold text-gray-800">
-              Verifying your email
-            </h2>
-            <p className="mt-2 text-gray-500">Please wait a moment...</p>
-          </>
+          <Loader minHeight="min-h-[200px]" />
         )}
 
         {status === "success" && (

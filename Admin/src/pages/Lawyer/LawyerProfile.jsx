@@ -3,7 +3,7 @@ import { LawyerContext } from "../../context/LawyerContext";
 import { AppContext } from "../../context/AppContext";
 import { toast } from "react-toastify";
 import api from "../../api/axiosClient";
-import Loading from "../../components/Loading";
+import Loader from "../../components/common/Loader";
 import { Pencil, Save, X } from "lucide-react";
 
 const LawyerProfile = () => {
@@ -56,7 +56,7 @@ const LawyerProfile = () => {
     }
   }, [lawyerData]);
 
-  if (loading) return <Loading />;
+  if (loading) return <Loader />;
 
   if (!profileData) {
     return (

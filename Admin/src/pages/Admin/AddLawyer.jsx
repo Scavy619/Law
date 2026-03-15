@@ -3,7 +3,7 @@ import { assets } from "../../assets/assets";
 import { toast } from "react-toastify";
 import { AppContext } from "../../context/AppContext";
 import api from "../../api/axiosClient";
-import Loading from "../../components/Loading";
+import Loader from "../../components/common/Loader";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png"];
 const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
@@ -107,7 +107,7 @@ const AddLawyer = () => {
   };
 
   if (loading) {
-    return <Loading />;
+    return <Loader />;
   }
 
   return (

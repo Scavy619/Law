@@ -14,7 +14,7 @@ import Appointment from "../pages/Appointment.jsx";
 import Chatbot from "../pages/Chatbot.jsx";
 import VideoCall from "../pages/VideoCall.jsx";
 
-import Loading from "../components/Loading.jsx";
+import Loader from "../components/common/Loader.jsx";
 import ProtectedRoute from "../components/ProtectedRoute.jsx";
 import Layout from "../layouts/layout.jsx";
 
@@ -61,7 +61,7 @@ const router = createBrowserRouter(
         <Route
           path="verify-email"
           element={
-            <Suspense fallback={<Loading />}>
+            <Suspense fallback={<Loader />}>
               <VerifyEmail />
             </Suspense>
           }
@@ -70,7 +70,7 @@ const router = createBrowserRouter(
         <Route
           path="about"
           element={
-            <Suspense fallback={<Loading />}>
+            <Suspense fallback={<Loader />}>
               <About />
             </Suspense>
           }
@@ -79,7 +79,7 @@ const router = createBrowserRouter(
         <Route
           path="contact"
           element={
-            <Suspense fallback={<Loading />}>
+            <Suspense fallback={<Loader />}>
               <Contact />
             </Suspense>
           }
@@ -88,7 +88,7 @@ const router = createBrowserRouter(
         <Route
           path="resources"
           element={
-            <Suspense fallback={<Loading />}>
+            <Suspense fallback={<Loader />}>
               <Resources />
             </Suspense>
           }
@@ -126,7 +126,7 @@ const router = createBrowserRouter(
         <Route
           path="privacy-policy"
           element={
-            <Suspense fallback={<Loading />}>
+            <Suspense fallback={<Loader />}>
               <PrivacyPolicy />
             </Suspense>
           }
@@ -135,7 +135,7 @@ const router = createBrowserRouter(
         <Route
           path="terms-and-conditions"
           element={
-            <Suspense fallback={<Loading />}>
+            <Suspense fallback={<Loader />}>
               <TermsAndConditions />
             </Suspense>
           }
@@ -144,7 +144,7 @@ const router = createBrowserRouter(
         <Route
           path="refund-policy"
           element={
-            <Suspense fallback={<Loading />}>
+            <Suspense fallback={<Loader />}>
               <RefundPolicy />
             </Suspense>
           }
@@ -153,7 +153,7 @@ const router = createBrowserRouter(
         <Route
           path="contact-us"
           element={
-            <Suspense fallback={<Loading />}>
+            <Suspense fallback={<Loader />}>
               <ContactUs />
             </Suspense>
           }
@@ -162,7 +162,7 @@ const router = createBrowserRouter(
         <Route
           path="verify-email/:token"
           element={
-            <Suspense fallback={<Loading />}>
+            <Suspense fallback={<Loader />}>
               <Verify />
             </Suspense>
           }
@@ -171,7 +171,7 @@ const router = createBrowserRouter(
         <Route
           path="reset-password/:token"
           element={
-            <Suspense fallback={<Loading />}>
+            <Suspense fallback={<Loader />}>
               <ResetPassword />
             </Suspense>
           }

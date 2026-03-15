@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AdminContext } from "../../context/AdminContext";
 import { AppContext } from "../../context/AppContext";
-import Loading from "../../components/Loading";
+import Loader from "../../components/common/Loader";
 
 const LawyersList = () => {
   const { lawyers, changeAvailability, getAllLawyers } =
@@ -18,7 +18,7 @@ const LawyersList = () => {
   }, [adminData]);
 
   if (loading) {
-    return <Loading />;
+    return <Loader />;
   }
 
   return (

@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { assets } from "../../assets/assets";
 import { AdminContext } from "../../context/AdminContext";
 import { AppContext } from "../../context/AppContext";
-import Loading from "../../components/Loading";
+import Loader from "../../components/common/Loader";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays, ArrowRight, X } from "lucide-react";
 
@@ -29,7 +29,7 @@ const Dashboard = () => {
   }, [adminData]);
 
   if (loading) {
-    return <Loading />;
+    return <Loader />;
   }
 
   return (

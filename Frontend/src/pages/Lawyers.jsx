@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useApp from "../context/useApp";
+import Loader from "../components/common/Loader";
 
 const Lawyers = () => {
   const { speciality } = useParams();
@@ -24,6 +25,10 @@ const Lawyers = () => {
   useEffect(() => {
     applyFilter();
   }, [lawyers, speciality]);
+
+  if (!lawyers || lawyers.length === 0) {
+    return <Loader minHeight="min-h-screen" />;
+  }
 
   return (
     <div>

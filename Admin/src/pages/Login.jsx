@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
+import Loader from "../components/common/Loader";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
@@ -147,13 +148,8 @@ const Login = () => {
     }
   };
 
-  // Show loading while checking auth
   if (authLoading) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
+    return <Loader minHeight="min-h-screen" />;
   }
 
   return (

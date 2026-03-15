@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { LawyerContext } from "../../context/LawyerContext";
 import { assets } from "../../assets/assets";
 import { AppContext } from "../../context/AppContext";
-import Loading from "../../components/Loading";
+import Loader from "../../components/common/Loader";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays, ArrowRight, X, Check } from "lucide-react";
 
@@ -30,7 +30,7 @@ const LawyerDashboard = () => {
   }, [lawyerData]);
 
   if (loading) {
-    return <Loading />;
+    return <Loader />;
   }
 
   if (!dashData) {

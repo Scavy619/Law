@@ -3,7 +3,7 @@ import { assets } from "../../assets/assets";
 import { useContext } from "react";
 import { AdminContext } from "../../context/AdminContext";
 import { AppContext } from "../../context/AppContext";
-import Loading from "../../components/Loading";
+import Loader from "../../components/common/Loader";
 import { ArrowDownAZ, ArrowUpZA, Filter } from "lucide-react";
 
 const AllAppointments = () => {
@@ -75,7 +75,7 @@ const AllAppointments = () => {
   }, [appointments, statusFilter, lawyerFilter, sortOrder]);
 
   if (loading) {
-    return <Loading />;
+    return <Loader />;
   }
 
   return (

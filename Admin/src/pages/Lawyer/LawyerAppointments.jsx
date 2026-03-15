@@ -4,7 +4,7 @@ import { Video, ArrowDownAZ, ArrowUpZA, Filter, Check, X } from "lucide-react";
 import { LawyerContext } from "../../context/LawyerContext";
 import { AppContext } from "../../context/AppContext";
 import { assets } from "../../assets/assets";
-import Loading from "../../components/Loading";
+import Loader from "../../components/common/Loader";
 import { useJoinStatus } from "../../hooks/canJoinVideo";
 
 const AppointmentActionButtons = ({
@@ -149,7 +149,7 @@ const LawyerAppointments = () => {
   }, [appointments, statusFilter, sortOrder]);
 
   if (loading) {
-    return <Loading />;
+    return <Loader />;
   }
 
   return (

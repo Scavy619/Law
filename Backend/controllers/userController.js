@@ -982,7 +982,7 @@ export const paymentRazorpay = async (req, res) => {
   }
 };
 
-// API to verify payment of razorpay
+// API to verify payment 
 export const verifyRazorpay = async (req, res) => {
   try {
     const validationResult = verifyRazorpaySchema.safeParse(req.body);
@@ -1004,36 +1004,73 @@ export const verifyRazorpay = async (req, res) => {
       });
     }
 
-    // Verify HMAC-SHA256 signature — this is the only safe way to confirm
-    // a real payment from Razorpay. Fetching order status alone can be spoofed
-    // by replaying a real order_id from a previous payment.
+    // Generate expected signature using Razorpay secret
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
-    if (expectedSignature !== razorpay_signature) {
+    // Use constant-time comparison instead of normal string comparison.
+    // Normal comparisons (=== / !==) stop when characters differ and may leak
+    // timing information. crypto.timingSafeEqual ensures the comparison time
+    // stays constant to prevent theoretical timing attacks on the HMAC signature.
+    const expectedBuffer = Buffer.from(expectedSignature);
+    const receivedBuffer = Buffer.from(razorpay_signature);
+
+    if (
+      expectedBuffer.length !== receivedBuffer.length ||
+      !crypto.timingSafeEqual(expectedBuffer, receivedBuffer)
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid payment signature",
       });
     }
 
-    // Signature is valid — fetch order to get the appointmentId from receipt
+    // Fetch order from Razorpay to confirm payment status
     const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
+
+    // Even if signature matches, we verify that Razorpay marks the order as "paid".
+    // This prevents marking unpaid or incomplete payments as successful.
+    if (orderInfo.status !== "paid") {
+      return res.status(400).json({
+        success: false,
+        message: "Payment not completed",
+      });
+    }
+
+    const appointment = await appointmentModel.findById(orderInfo.receipt);
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    // Idempotency protection:
+    // If this endpoint is called multiple times (page refresh, retry, network issues),
+    // we should not update the payment again. This ensures the operation is safe to repeat.
+    if (appointment.payment === true) {
+      return res.status(200).json({
+        success: true,
+        message: "Payment already verified",
+      });
+    }
 
     await appointmentModel.findByIdAndUpdate(orderInfo.receipt, {
       payment: true,
+      razorpayPaymentId: razorpay_payment_id,
     });
 
     res.status(200).json({ success: true, message: "Payment Successful" });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Payment verification failed" });
+    res.status(500).json({
+      success: false,
+      message: "Payment verification failed",
+    });
   }
 };
-
 // delete account routes
 
 import { generateOTP } from "../utils/generateOTP.js";

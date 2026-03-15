@@ -5,6 +5,84 @@ import { LawyerContext } from "../../context/LawyerContext";
 import { AppContext } from "../../context/AppContext";
 import { assets } from "../../assets/assets";
 import Loading from "../../components/Loading";
+import { useJoinStatus } from "../../hooks/canJoinVideo";
+
+const AppointmentActionButtons = ({
+  item,
+  handleJoinVideoCall,
+  cancelAppointment,
+  completeAppointment,
+}) => {
+  const { state, countdown } = useJoinStatus(item);
+
+  const formatCountdown = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
+  const isAppointmentCancelled =
+    item.cancelled && item.cancelled !== "Not Cancelled";
+
+  const isPaid = item.payment;
+  const isCompleted = item.isCompleted;
+
+  const canShowVideo = isPaid && !isAppointmentCancelled && !isCompleted;
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap justify-end">
+      {/* Video Call Buttons */}
+      {canShowVideo && (
+        <>
+          {state === "join" && (
+            <button
+              onClick={() => handleJoinVideoCall(item.id)}
+              className="flex items-center justify-center gap-2 px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-full text-[10px] font-bold transition-all duration-300 shadow-md hover:shadow-green-200 ring-2 ring-white"
+              title="Join Video Call"
+            >
+              <Video size={14} className="stroke-[2.5px]" />
+              JOIN CALL
+            </button>
+          )}
+
+          {state === "too_early" && (
+            <button
+              disabled
+              className="flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-200 text-gray-500 rounded-full text-[10px] font-bold transition-all duration-300 cursor-not-allowed border border-gray-300"
+            >
+              WAIT {formatCountdown(countdown)}
+            </button>
+          )}
+
+          {state === "expired" && (
+            <button
+              disabled
+              className="flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-200 text-gray-500 rounded-full text-[10px] font-bold transition-all duration-300 cursor-not-allowed border border-gray-300"
+            >
+              EXPIRED
+            </button>
+          )}
+        </>
+      )}
+
+      <button
+        onClick={() => cancelAppointment(item.id)}
+        className="p-2 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-full transition-all duration-300 group border border-red-100"
+        title="Cancel Appointment"
+      >
+        <X size={16} />
+      </button>
+
+      <button
+        onClick={() => completeAppointment(item.id)}
+        className="p-2 bg-green-50 hover:bg-green-500 text-green-600 hover:text-white rounded-full transition-all duration-300 group border border-green-100"
+        title="Complete Appointment"
+      >
+        <Check size={16} />
+      </button>
+    </div>
+  );
+};
 
 const LawyerAppointments = () => {
   const {
@@ -25,16 +103,6 @@ const LawyerAppointments = () => {
   // Handle video call
   const handleJoinVideoCall = (appointmentId) => {
     navigate(`/lawyer/video-call/${appointmentId}`);
-  };
-
-  // Check if appointment can join video
-  const canJoinVideo = (appointment) => {
-    const canJoin =
-      appointment.payment &&
-      (appointment.cancelled === "Not Cancelled" || !appointment.cancelled) &&
-      !appointment.isCompleted;
-
-    return canJoin;
   };
 
   useEffect(() => {
@@ -190,35 +258,12 @@ const LawyerAppointments = () => {
                     COMPLETED
                   </span>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    {/* Join Video Call Button */}
-                    {canJoinVideo(item) && (
-                      <button
-                        onClick={() => handleJoinVideoCall(item.id)}
-                        className="flex items-center justify-center gap-2 px-3 py-1.5 bg-green-600 text-white hover:bg-green-700 rounded-full text-[10px] font-bold transition-all duration-300 shadow-md hover:shadow-green-200 ring-2 ring-white"
-                        title="Join Video Call"
-                      >
-                        <Video size={14} className="stroke-[2.5px]" />
-                        JOIN CALL
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => cancelAppointment(item.id)}
-                      className="p-2 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-full transition-all duration-300 group border border-red-100"
-                      title="Cancel Appointment"
-                    >
-                      <X size={16} />
-                    </button>
-
-                    <button
-                      onClick={() => completeAppointment(item.id)}
-                      className="p-2 bg-green-50 hover:bg-green-500 text-green-600 hover:text-white rounded-full transition-all duration-300 group border border-green-100"
-                      title="Complete Appointment"
-                    >
-                      <Check size={16} />
-                    </button>
-                  </div>
+                  <AppointmentActionButtons
+                    item={item}
+                    handleJoinVideoCall={handleJoinVideoCall}
+                    cancelAppointment={cancelAppointment}
+                    completeAppointment={completeAppointment}
+                  />
                 )}
               </div>
             </div>

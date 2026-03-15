@@ -12,6 +12,122 @@ import {
   createRazorpayPayment,
   verifyRazorpayPayment,
 } from "../api/payment.api";
+import { useJoinStatus } from "../hooks/canJoinVideo";
+
+const AppointmentActionButtons = ({
+  item,
+  payment,
+  setPayment,
+  appointmentRazorpay,
+  handleJoinVideoCall,
+  cancelAppointment,
+  isAppointmentCancelled,
+}) => {
+  const { state, countdown } = useJoinStatus(item);
+
+  const formatCountdown = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+
+    return `${mins}m ${secs}s`;
+  };
+
+  return (
+    <div className="sm:w-48 shrink-0 flex flex-col gap-3 justify-center">
+      {!isAppointmentCancelled(item) && !item.payment && !item.isCompleted && (
+        <>
+          {payment !== item.id ? (
+            <button
+              onClick={() => setPayment(item.id)}
+              className="w-full px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                />
+              </svg>
+              Pay Online
+            </button>
+          ) : (
+            <button
+              onClick={() => appointmentRazorpay(item.id)}
+              className="w-full px-4 py-2 rounded-lg bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-colors flex items-center justify-center"
+            >
+              <img
+                className="max-h-6"
+                src={assets.razorpay_logo}
+                alt="Pay with Razorpay"
+              />
+            </button>
+          )}
+        </>
+      )}
+
+      {/* Join Video Call Button - Only show if PAID and NOT cancelled/completed */}
+      {item.payment && !isAppointmentCancelled(item) && !item.isCompleted && (
+        <>
+          {state === "join" && (
+            <button
+              onClick={() => handleJoinVideoCall(item.id)}
+              className="w-full px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 flex items-center justify-center gap-2"
+            >
+              <Video size={18} />
+              Join Video Call
+            </button>
+          )}
+
+          {state === "too_early" && (
+            <button
+              disabled
+              className="w-full px-4 py-2 rounded-lg bg-gray-300 text-gray-600 cursor-not-allowed"
+            >
+              Opens in {formatCountdown(countdown)}
+            </button>
+          )}
+
+          {state === "expired" && (
+            <button
+              disabled
+              className="w-full px-4 py-2 rounded-lg bg-gray-300 text-gray-600"
+            >
+              Meeting expired
+            </button>
+          )}
+        </>
+      )}
+
+      {!isAppointmentCancelled(item) && !item.isCompleted && (
+        <button
+          onClick={() => cancelAppointment(item.id)}
+          className="w-full px-4 py-2 rounded-lg border-2 border-red-500 text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+          Cancel
+        </button>
+      )}
+    </div>
+  );
+};
 
 const MyAppointments = () => {
   const { userData, authLoading } = useApp();
@@ -143,16 +259,6 @@ const MyAppointments = () => {
   // video calling
   const handleJoinVideoCall = (appointmentId) => {
     navigate(`/video-call/${appointmentId}`);
-  };
-
-  // Add this function to check if appointment can join video
-  const canJoinVideo = (appointment) => {
-    const canJoin =
-      appointment.payment &&
-      (appointment.cancelled === "Not Cancelled" || !appointment.cancelled) &&
-      !appointment.isCompleted;
-
-    return canJoin;
   };
 
   // Load appointments when userData is available
@@ -347,80 +453,16 @@ const MyAppointments = () => {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="sm:w-48 shrink-0 flex flex-col gap-3 justify-center">
-                  {!isAppointmentCancelled(item) &&
-                    !item.payment &&
-                    !item.isCompleted && (
-                      <>
-                        {payment !== item.id ? (
-                          <button
-                            onClick={() => setPayment(item.id)}
-                            className="w-full px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                              />
-                            </svg>
-                            Pay Online
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => appointmentRazorpay(item.id)}
-                            className="w-full px-4 py-2 rounded-lg bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-colors flex items-center justify-center"
-                          >
-                            <img
-                              className="max-h-6"
-                              src={assets.razorpay_logo}
-                              alt="Pay with Razorpay"
-                            />
-                          </button>
-                        )}
-                      </>
-                    )}
-
-                  {/* Join Video Call Button */}
-                  {canJoinVideo(item) && (
-                    <button
-                      onClick={() => handleJoinVideoCall(item.id)}
-                      className="w-full px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Video size={18} />
-                      Join Video Call
-                    </button>
-                  )}
-
-                  {!isAppointmentCancelled(item) && !item.isCompleted && (
-                    <button
-                      onClick={() => cancelAppointment(item.id)}
-                      className="w-full px-4 py-2 rounded-lg border-2 border-red-500 text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                      Cancel
-                    </button>
-                  )}
-                </div>
+                {/* Action Buttons component */}
+                <AppointmentActionButtons
+                  item={item}
+                  payment={payment}
+                  setPayment={setPayment}
+                  appointmentRazorpay={appointmentRazorpay}
+                  handleJoinVideoCall={handleJoinVideoCall}
+                  cancelAppointment={cancelAppointment}
+                  isAppointmentCancelled={isAppointmentCancelled}
+                />
               </div>
             </div>
           ))

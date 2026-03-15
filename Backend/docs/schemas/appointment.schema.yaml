@@ -1,0 +1,69 @@
+Appointment:
+  type: object
+  properties:
+    id:
+      type: string
+      example: "64f1a2b3c4d5e6f7a8b9c0d3"
+    slotDate:
+      type: string
+      example: "20_06_2025"
+    slotTime:
+      type: string
+      example: "10:00 am"
+    amount:
+      type: number
+      example: 500
+    payment:
+      type: boolean
+      example: false
+    isCompleted:
+      type: boolean
+      example: false
+    cancelled:
+      type: string
+      enum: ["Not Cancelled", "Cancelled by User", "Cancelled by Lawyer", "Cancelled by Admin"]
+      example: "Not Cancelled"
+    createdAt:
+      type: string
+      format: date-time
+    videoCall:
+      type: object
+      nullable: true
+      properties:
+        status:
+          type: string
+          enum: ["not_started", "in_progress", "completed", "missed"]
+        duration:
+          type: integer
+          example: 25
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        endedAt:
+          type: string
+          format: date-time
+          nullable: true
+    user:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        image:
+          type: string
+          nullable: true
+    lawyer:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        speciality:
+          type: string
+          nullable: true
+        image:
+          type: string
+          nullable: true

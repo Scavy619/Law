@@ -1,0 +1,80 @@
+/message/get-message:
+  post:
+    summary: Send a message to the RAG chatbot and get a response
+    description: >
+      Sends a user message to the AI legal chatbot within a session.
+      Requires available credits. Credits are decremented per request.
+      Rate limited to 30 requests per minute per user.
+    tags:
+      - Messages
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - sessionId
+              - message
+            properties:
+              sessionId:
+                type: string
+                example: "session_abc123"
+              message:
+                type: string
+                example: "What are my rights as a tenant?"
+    responses:
+      "200":
+        description: Chatbot response returned
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                response:
+                  type: object
+                  properties:
+                    role:
+                      type: string
+                      example: "assistant"
+                    content:
+                      type: string
+                      example: "As a tenant, you have the right to..."
+                creditsRemaining:
+                  type: integer
+                  example: 7
+      "400":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "402":
+        description: Insufficient credits
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "429":
+        description: Rate limit exceeded (30 messages per minute)
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'

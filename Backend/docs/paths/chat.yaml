@@ -1,0 +1,293 @@
+/chat/create:
+  post:
+    summary: Create a new chat session
+    tags:
+      - Chat
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - sessionId
+            properties:
+              sessionId:
+                type: string
+                example: "session_abc123"
+    responses:
+      "201":
+        description: Chat session created
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: "Chat created"
+                chatId:
+                  type: string
+                  example: "64f1a2b3c4d5e6f7a8b9c0d4"
+      "400":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "429":
+        description: Rate limit exceeded (10 sessions per hour)
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/chat/get/{sessionId}:
+  get:
+    summary: Get a chat session by sessionId
+    tags:
+      - Chat
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: sessionId
+        required: true
+        schema:
+          type: string
+        description: The unique session identifier
+    responses:
+      "200":
+        description: Chat session data
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                chats:
+                  type: object
+                  properties:
+                    sessionId:
+                      type: string
+                    title:
+                      type: string
+                      nullable: true
+                    messages:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          role:
+                            type: string
+                            enum: ["user", "assistant"]
+                          content:
+                            type: string
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/chat/sessions:
+  get:
+    summary: Get all chat sessions for the authenticated user
+    tags:
+      - Chat
+    security:
+      - bearerAuth: []
+    responses:
+      "200":
+        description: List of user chat sessions
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                sessions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      sessionId:
+                        type: string
+                      title:
+                        type: string
+                        nullable: true
+                      lastMessage:
+                        type: string
+                      messageCount:
+                        type: integer
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/chat/update-title:
+  put:
+    summary: Update the title of a chat session
+    tags:
+      - Chat
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - sessionId
+              - title
+            properties:
+              sessionId:
+                type: string
+                example: "session_abc123"
+              title:
+                type: string
+                example: "My Legal Query"
+    responses:
+      "200":
+        description: Chat title updated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: "Chat title updated"
+      "400":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "404":
+        description: Chat not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "429":
+        description: Rate limit exceeded (30 updates per minute)
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/chat/delete:
+  delete:
+    summary: Delete a chat session by sessionId
+    tags:
+      - Chat
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - sessionId
+            properties:
+              sessionId:
+                type: string
+                example: "session_abc123"
+    responses:
+      "200":
+        description: Chat deleted
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: "Chat deleted"
+      "400":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "429":
+        description: Rate limit exceeded (20 deletes per hour)
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'

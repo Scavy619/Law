@@ -1,0 +1,238 @@
+/video/get-token:
+  post:
+    summary: Get Stream video token and call details for an appointment
+    description: >
+      Generates a Stream.io token for joining a video call.
+      Accessible by both the user and lawyer of the appointment.
+      Requires a paid, non-cancelled appointment within the valid join window
+      (15 minutes before slot start up to 10 minutes after slot end).
+      Rate limited to 5 requests per 5 minutes per user.
+    tags:
+      - Video
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - appointmentId
+            properties:
+              appointmentId:
+                type: string
+                example: "64f1a2b3c4d5e6f7a8b9c0d3"
+    responses:
+      "200":
+        description: Stream token and call details returned
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                token:
+                  type: string
+                  description: Stream.io user token
+                callId:
+                  type: string
+                  example: "appointment_64f1a2b3c4d5e6f7a8b9c0d3"
+                apiKey:
+                  type: string
+                  description: Stream.io API key
+                userId:
+                  type: string
+      "400":
+        description: Appointment cancelled or validation error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized or token invalid
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "403":
+        description: Not a participant, unpaid, call ended, or outside join window
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "404":
+        description: Appointment not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "429":
+        description: Rate limit exceeded
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/video/update-status:
+  post:
+    summary: Update video call status (join / leave / end)
+    description: >
+      Updates the call status for a participant action.
+      - join: marks participant as joined, starts call timer on first join
+      - leave: marks participant as left, ends call when both have left
+      - end: force-ends the call immediately
+      Rate limited to 20 requests per minute per user.
+    tags:
+      - Video
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - appointmentId
+              - action
+            properties:
+              appointmentId:
+                type: string
+                example: "64f1a2b3c4d5e6f7a8b9c0d3"
+              action:
+                type: string
+                enum: ["join", "leave", "end"]
+                example: "join"
+    responses:
+      "200":
+        description: Call status updated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: "Call status updated"
+      "400":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "404":
+        description: Appointment not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "429":
+        description: Rate limit exceeded
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/video/call-details/{appointmentId}:
+  get:
+    summary: Get video call details for an appointment
+    tags:
+      - Video
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: appointmentId
+        required: true
+        schema:
+          type: string
+        description: The appointment ID to fetch call details for
+    responses:
+      "200":
+        description: Call details returned
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                callDetails:
+                  type: object
+                  properties:
+                    callId:
+                      type: string
+                      nullable: true
+                    roomId:
+                      type: string
+                      nullable: true
+                    status:
+                      type: string
+                      enum: ["not_started", "in_progress", "completed", "missed"]
+                    startedAt:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    endedAt:
+                      type: string
+                      format: date-time
+                      nullable: true
+                    duration:
+                      type: integer
+                      example: 25
+                    userJoined:
+                      type: boolean
+                    lawyerJoined:
+                      type: boolean
+                canJoin:
+                  type: boolean
+                  example: true
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "403":
+        description: Not a participant of this appointment
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "404":
+        description: Appointment not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'

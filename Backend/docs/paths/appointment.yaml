@@ -1,0 +1,272 @@
+/user/book-appointment:
+  post:
+    summary: Book an appointment with a lawyer
+    tags:
+      - Appointments
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - lawyerId
+              - slotDate
+              - slotTime
+            properties:
+              lawyerId:
+                type: string
+                example: "64f1a2b3c4d5e6f7a8b9c0d2"
+              slotDate:
+                type: string
+                example: "20_06_2025"
+              slotTime:
+                type: string
+                example: "10:00 am"
+    responses:
+      "201":
+        description: Appointment booked successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: "Appointment Booked! Pay online to complete the booking!"
+      "400":
+        description: Slot not available or lawyer unavailable
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "404":
+        description: Lawyer not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/user/appointments:
+  get:
+    summary: List all appointments for the authenticated user
+    tags:
+      - Appointments
+    security:
+      - bearerAuth: []
+    responses:
+      "200":
+        description: List of user appointments
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                appointments:
+                  type: array
+                  items:
+                    $ref: '../schemas/appointment.schema.yaml#/Appointment'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/user/cancel-appointment:
+  post:
+    summary: Cancel a user's own appointment
+    tags:
+      - Appointments
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - appointmentId
+            properties:
+              appointmentId:
+                type: string
+                example: "64f1a2b3c4d5e6f7a8b9c0d3"
+    responses:
+      "200":
+        description: Appointment cancelled successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+      "400":
+        description: Already cancelled or validation error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "403":
+        description: Forbidden — not the appointment owner
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "404":
+        description: Appointment not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/user/payment-razorpay:
+  post:
+    summary: Create a Razorpay order for appointment payment
+    tags:
+      - Appointments
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - appointmentId
+            properties:
+              appointmentId:
+                type: string
+                example: "64f1a2b3c4d5e6f7a8b9c0d3"
+    responses:
+      "200":
+        description: Razorpay order created
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                order:
+                  type: object
+                  description: Razorpay order object
+      "400":
+        description: Appointment cancelled or not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/user/verify-razorpay:
+  post:
+    summary: Verify Razorpay payment signature and mark appointment as paid
+    tags:
+      - Appointments
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - razorpay_order_id
+              - razorpay_payment_id
+              - razorpay_signature
+            properties:
+              razorpay_order_id:
+                type: string
+              razorpay_payment_id:
+                type: string
+              razorpay_signature:
+                type: string
+    responses:
+      "200":
+        description: Payment verified successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: "Payment Successful"
+      "400":
+        description: Invalid signature or missing fields
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Payment verification failed
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'

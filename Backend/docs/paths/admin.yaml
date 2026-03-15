@@ -1,0 +1,445 @@
+/admin/login:
+  post:
+    summary: Admin login
+    tags:
+      - Admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - email
+              - password
+            properties:
+              email:
+                type: string
+                format: email
+                example: "admin@lawbridge.com"
+              password:
+                type: string
+                example: "adminpassword"
+    responses:
+      "200":
+        description: Admin logged in successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                accessToken:
+                  type: string
+                admin:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    email:
+                      type: string
+                    role:
+                      type: string
+                      example: "admin"
+                    name:
+                      type: string
+                      example: "Admin"
+      "400":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Invalid admin credentials
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/admin/refresh:
+  post:
+    summary: Refresh admin access token using cookie
+    tags:
+      - Admin
+    responses:
+      "200":
+        description: New access token issued
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                accessToken:
+                  type: string
+                admin:
+                  type: object
+      "401":
+        description: Refresh token missing or invalid
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "403":
+        description: Invalid admin token
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/admin/logout:
+  post:
+    summary: Admin logout (clears admin refresh token cookie)
+    tags:
+      - Admin
+    responses:
+      "200":
+        description: Admin logged out successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/admin/add-lawyer:
+  post:
+    summary: Add a new lawyer (admin only)
+    tags:
+      - Admin
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - name
+              - email
+              - password
+              - speciality
+              - degree
+              - experience
+              - about
+              - fees
+              - address
+              - image
+            properties:
+              name:
+                type: string
+                example: "Jane Smith"
+              email:
+                type: string
+                format: email
+              password:
+                type: string
+              speciality:
+                type: string
+                example: "Criminal Law"
+              degree:
+                type: string
+                example: "LLB"
+              experience:
+                type: string
+                example: "5 Years"
+              about:
+                type: string
+              fees:
+                type: number
+                example: 500
+              address:
+                type: string
+                description: JSON string with Location, City, State fields
+                example: '{"Location":"123 Main St","City":"Mumbai","State":"Maharashtra"}'
+              image:
+                type: string
+                format: binary
+    responses:
+      "201":
+        description: Lawyer added successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+      "400":
+        description: Validation error or duplicate email
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/admin/all-lawyers:
+  get:
+    summary: Get all lawyers (admin only)
+    tags:
+      - Admin
+    security:
+      - bearerAuth: []
+    responses:
+      "200":
+        description: List of all lawyers
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                lawyers:
+                  type: array
+                  items:
+                    $ref: '../schemas/lawyer.schema.yaml#/Lawyer'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/admin/all-appointments:
+  get:
+    summary: Get all appointments (admin only)
+    tags:
+      - Admin
+    security:
+      - bearerAuth: []
+    responses:
+      "200":
+        description: List of all appointments
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                appointments:
+                  type: array
+                  items:
+                    $ref: '../schemas/appointment.schema.yaml#/Appointment'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/admin/cancel-appointment:
+  post:
+    summary: Cancel an appointment (admin only)
+    tags:
+      - Admin
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - appointmentId
+            properties:
+              appointmentId:
+                type: string
+                example: "64f1a2b3c4d5e6f7a8b9c0d3"
+    responses:
+      "200":
+        description: Appointment cancelled successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+      "400":
+        description: Already cancelled or validation error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "404":
+        description: Appointment not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/admin/dashboard:
+  get:
+    summary: Get admin dashboard stats and latest appointments
+    tags:
+      - Admin
+    security:
+      - bearerAuth: []
+    responses:
+      "200":
+        description: Dashboard data
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                dashData:
+                  type: object
+                  properties:
+                    lawyers:
+                      type: integer
+                    appointments:
+                      type: integer
+                    patients:
+                      type: integer
+                    latestAppointments:
+                      type: array
+                      items:
+                        $ref: '../schemas/appointment.schema.yaml#/Appointment'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/admin/change-availability:
+  post:
+    summary: Toggle lawyer availability (admin only)
+    tags:
+      - Admin
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - lawyerId
+            properties:
+              lawyerId:
+                type: string
+                example: "64f1a2b3c4d5e6f7a8b9c0d2"
+    responses:
+      "200":
+        description: Availability toggled
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: "Lawyer is now available"
+      "400":
+        description: Validation error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "401":
+        description: Unauthorized
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "404":
+        description: Lawyer not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'

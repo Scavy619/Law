@@ -1,0 +1,64 @@
+/auth/logout:
+  post:
+    summary: Logout user (clears refresh token cookie)
+    tags:
+      - Auth
+    responses:
+      "200":
+        description: Logged out successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: "Logged out successfully"
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/auth/refresh:
+  post:
+    summary: Refresh user access token using refresh token cookie
+    tags:
+      - Auth
+    responses:
+      "200":
+        description: New access token issued
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                accessToken:
+                  type: string
+                user:
+                  $ref: '../schemas/user.schema.yaml#/User'
+      "401":
+        description: Refresh token missing or invalid
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "404":
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'

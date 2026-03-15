@@ -1,0 +1,48 @@
+User:
+  type: object
+  properties:
+    _id:
+      type: string
+      example: "64f1a2b3c4d5e6f7a8b9c0d1"
+    name:
+      type: string
+      example: "John Doe"
+    email:
+      type: string
+      format: email
+      example: "john@example.com"
+    image:
+      type: string
+      format: uri
+      example: "https://res.cloudinary.com/example/image.png"
+    phone:
+      type: string
+      example: "9876543210"
+    address:
+      type: object
+      properties:
+        Location:
+          type: string
+        City:
+          type: string
+        State:
+          type: string
+    gender:
+      type: string
+      example: "Male"
+    dob:
+      type: string
+      example: "1995-06-15"
+    emailVerified:
+      type: boolean
+    twoFactorEnabled:
+      type: boolean
+    credits:
+      type: object
+      properties:
+        dailyLimit:
+          type: integer
+          example: 10
+        remaining:
+          type: integer
+          example: 8

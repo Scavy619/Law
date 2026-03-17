@@ -3,6 +3,8 @@ import { getLawyersData as fetchLawyersAPI } from "../api/lawyer.api";
 import { getUserProfileData } from "../api/user.api";
 import { createChat, getChatBySession } from "../api/chat.api";
 
+
+
 export const appActions = ({
   setLawyers,
   setUserData,
@@ -33,9 +35,7 @@ export const appActions = ({
 
   // ================= CHAT =================
   createNewChat: async () => {
-    const session = `session-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}`;
+    const session = crypto.randomUUID();
 
     setSessionId(session);
 

@@ -150,7 +150,7 @@ const MyProfile = () => {
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
       {/* ================= HEADER ================= */}
       <div className="flex items-center justify-between">
-        <h1 className="text-4xl font-bold text-gray-800">My Profile</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-800">My Profile</h1>
         {isEdit ? (
           <div className="flex gap-3">
             <button

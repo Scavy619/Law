@@ -1,43 +1,63 @@
-import { Clock, ExternalLink, User } from "lucide-react";
+import { Clock, ExternalLink, BookOpen } from "lucide-react";
 
-export default function ArticleCard({ article }) {
+export default function ArticleCard({ article, categoryColors }) {
+  const color = categoryColors?.[article.category];
+
   return (
     <div
       onClick={() => window.open(article.url, "_blank")}
-      className="group bg-white rounded-3xl border-2 border-gray-300 overflow-hidden hover:shadow-xl hover:border-blue-500 hover:-translate-y-2 transition-all duration-300 cursor-pointer"
+      className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col"
     >
-      <div className="relative h-48">
+      {/* Thumbnail */}
+      <div className="relative h-44 overflow-hidden shrink-0">
         <img
           src={article.image}
           alt={article.title}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 border-b-2 border-gray-200"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
         />
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
-        <span className="absolute top-3 left-3 px-3 py-1 bg-white text-xs font-bold rounded-full">
-          {article.category}
-        </span>
+        {/* Category badge */}
+        {color && (
+          <span
+            className={`absolute top-3 left-3 flex items-center gap-1.5 px-3 py-1 ${color.bg} ${color.text} text-xs font-semibold rounded-full border ${color.border} backdrop-blur-sm`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${color.dot}`} />
+            {article.category}
+          </span>
+        )}
 
-        <span className="absolute top-3 right-3 px-2 py-1 bg-black/70 text-white text-xs rounded-full flex items-center gap-1">
+        {/* Read time badge */}
+        <span className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 bg-black/60 text-white text-xs rounded-full backdrop-blur-sm">
           <Clock className="w-3 h-3" />
           {article.readTime}
         </span>
       </div>
 
-      <div className="p-6">
-        <h3 className="text-xl font-bold mb-3 group-hover:text-blue-600">
+      {/* Body */}
+      <div className="flex flex-col flex-1 p-5">
+        <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug group-hover:text-[#5f6FFF] transition-colors duration-200 line-clamp-2">
           {article.title}
         </h3>
+        <p className="text-gray-500 text-sm leading-relaxed line-clamp-3 flex-1">
+          {article.description}
+        </p>
 
-        <p className="text-gray-600 mb-4 line-clamp-3">{article.description}</p>
-
-        <div className="flex justify-between items-center pt-3 border-t">
-          <div className="flex items-center gap-2 text-gray-500">
-            <User className="w-4 h-4" />
-            <span className="text-sm">{article.source}</span>
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
+          <div className="flex items-center gap-2 text-gray-400">
+            <BookOpen className="w-4 h-4" />
+            <span className="text-xs font-medium text-gray-500">
+              {article.source}
+            </span>
           </div>
 
-          <ExternalLink className="w-4 h-4 text-blue-600" />
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-[#5f6FFF] opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0 transition-all duration-200">
+            Read more
+            <ExternalLink className="w-3.5 h-3.5" />
+          </span>
         </div>
       </div>
     </div>

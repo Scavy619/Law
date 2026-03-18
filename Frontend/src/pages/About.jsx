@@ -4,9 +4,12 @@ import { assets } from '../assets/assets'
 const About = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center py-12 md:py-16">
+      <div className="text-center py-8 md:py-10">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">About Us</h1>
-        <div className="w-20 h-1 bg-primary mx-auto rounded-full"></div>
+        <div className="w-20 h-1 bg-primary mx-auto rounded-full mb-4"></div>
+        <p className="text-gray-500 text-sm md:text-base max-w-xl mx-auto">
+          Learn about our mission to make legal services accessible and affordable for everyone.
+        </p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-12 items-center mb-20">
@@ -20,16 +23,16 @@ const About = () => {
         </div>
         <div className="flex flex-col gap-6">
           <div className="space-y-6 text-gray-600 leading-relaxed">
-            <p className="text-lg">
+            <p className="text-base md:text-lg">
               Welcome to LawBridge, your reliable partner for seamless legal assistance.
               We understand the challenges individuals face when navigating legal processes, managing documents, or seeking the right legal guidance. LawBridge is designed to simplify these complexities by providing a streamlined, intuitive platform that empowers you to manage your legal needs with confidence.
             </p>
-            <p className="text-lg">
+            <p className="text-base md:text-lg">
               At LawBridge, we are dedicated to excellence in legal technology. Our team continuously enhances the platform, integrating modern tools and innovations to elevate user experience, strengthen reliability, and ensure complete transparency.
             </p>
             <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
               <h3 className="text-xl font-semibold text-gray-800 mb-3">Our Vision</h3>
-              <p className="text-lg text-gray-600">
+              <p className="text-base md:text-lg text-gray-600">
                 Our mission is clear: to create a smooth legal journey for every individual by bridging the gap between clients and legal professionals. With LawBridge, accessing expert legal support whenever you need it becomes effortless, efficient, and dependable.              </p>
             </div>
           </div>

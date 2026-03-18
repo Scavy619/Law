@@ -3,9 +3,12 @@ import React from 'react'
 const PrivacyPolicy = () => {
   return (
     <div className='max-w-4xl mx-auto px-4 py-12'>
-      <div className="text-center mb-12">
+      <div className="text-center pt-8 md:pt-10 mb-8">
         <h1 className='text-3xl md:text-4xl font-bold text-gray-800 mb-4'>Privacy Policy</h1>
-        <div className="w-20 h-1 bg-primary mx-auto rounded-full"></div>
+        <div className="w-20 h-1 bg-primary mx-auto rounded-full mb-4"></div>
+        <p className="text-gray-500 text-sm md:text-base max-w-xl mx-auto">
+          Learn how we collect, use, and protect your personal information.
+        </p>
       </div>
       
       <div className='space-y-8 text-gray-700'>
@@ -20,11 +23,11 @@ const PrivacyPolicy = () => {
             Information We Collect
           </h2>
 
-          <p className='mb-4'>
+          <p className='mb-4 text-sm md:text-base leading-relaxed'>
             At LawBridge, we collect information that you provide directly to us, such as when you create an account, 
             book a legal consultation, or reach out to our support team. This may include:
           </p>
-          <ul className='list-disc pl-6 space-y-2'>
+          <ul className='list-disc pl-6 space-y-2 text-sm md:text-base'>
             <li>Personal information (name, email address, phone number, identification details)</li>
             <li>Case-related information shared for consultation purposes</li>
             <li>Payment information for legal service bookings</li>
@@ -43,8 +46,8 @@ const PrivacyPolicy = () => {
             How We Use Your Information
           </h2>
 
-          <p className='mb-4'>We use the information we collect to:</p>
-          <ul className='list-disc pl-6 space-y-2'>
+          <p className='mb-4 text-sm md:text-base leading-relaxed'>We use the information we collect to:</p>
+          <ul className='list-disc pl-6 space-y-2 text-sm md:text-base'>
             <li>Provide, maintain, and improve our legal consultation services</li>
             <li>Facilitate communication between you and legal professionals</li>
             <li>Send confirmations, updates, and notifications</li>
@@ -64,11 +67,11 @@ const PrivacyPolicy = () => {
             Information Sharing
           </h2>
 
-          <p className='mb-4'>
+          <p className='mb-4 text-sm md:text-base leading-relaxed'>
             We do not sell or rent your personal information. We only share your data under these conditions:
           </p>
 
-          <ul className='list-disc pl-6 space-y-2'>
+          <ul className='list-disc pl-6 space-y-2 text-sm md:text-base'>
             <li>With legal professionals for consultations or case-related activities</li>
             <li>With trusted service providers who support our platform</li>
             <li>When required by law, court orders, or safety concerns</li>
@@ -88,7 +91,7 @@ const PrivacyPolicy = () => {
             Data Security
           </h2>
 
-          <p className='mb-4'>
+          <p className='mb-4 text-sm md:text-base leading-relaxed'>
             We use modern security practices such as encryption, secure servers, and periodic audits 
             to protect your personal information and maintain data integrity.
           </p>
@@ -105,9 +108,9 @@ const PrivacyPolicy = () => {
             Your Rights
           </h2>
 
-          <p className='mb-4'>You have the right to:</p>
+          <p className='mb-4 text-sm md:text-base leading-relaxed'>You have the right to:</p>
 
-          <ul className='list-disc pl-6 space-y-2'>
+          <ul className='list-disc pl-6 space-y-2 text-sm md:text-base'>
             <li>Access and update your personal information</li>
             <li>Request deletion of your account and personal data</li>
             <li>Opt-out of marketing communications</li>
@@ -126,7 +129,7 @@ const PrivacyPolicy = () => {
             Contact Us
           </h2>
 
-          <p className='mb-4'>
+          <p className='mb-4 text-sm md:text-base leading-relaxed'>
             If you have any questions or concerns about this Privacy Policy, you can contact us at 
             privacy@lawbridge.com or via the support options listed on our platform.
           </p>

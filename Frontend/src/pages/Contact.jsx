@@ -10,10 +10,10 @@ const Contact = () => {
       {/* Header Section */}
       <div className="text-center py-12 md:py-16">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Contact Us</h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+        <div className="w-20 h-1 bg-primary mx-auto rounded-full mb-4"></div>
+        <p className="text-gray-500 text-sm md:text-base max-w-xl mx-auto">
           We're here to help you with your legal needs. Get in touch with us through any of the channels below.
         </p>
-        <div className="w-20 h-1 bg-primary mx-auto rounded-full mt-6"></div>
       </div>
 
       {/* Contact Information Cards */}

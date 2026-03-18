@@ -3,9 +3,12 @@ import React from 'react'
 const RefundPolicy = () => {
   return (
     <div className='max-w-4xl mx-auto px-4 py-12'>
-      <div className="text-center mb-12">
+      <div className="text-center pt-8 md:pt-10 mb-8">
         <h1 className='text-3xl md:text-4xl font-bold text-gray-800 mb-4'>Refund Policy</h1>
-        <div className="w-20 h-1 bg-primary mx-auto rounded-full"></div>
+        <div className="w-20 h-1 bg-primary mx-auto rounded-full mb-4"></div>
+        <p className="text-gray-500 text-sm md:text-base max-w-xl mx-auto">
+          Understand our refund and cancellation policy for appointments.
+        </p>
       </div>
 
       <div className='space-y-8 text-gray-700'>

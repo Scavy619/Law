@@ -22,9 +22,9 @@ export const signupUser = async (name, email, password) => {
 
 // google login
 export const loginWithGoogle = () => {
-  window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/user/google`;
+  const baseUrl = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/+$/, "");
+  window.location.href = `${baseUrl}/api/user/google`;
 };
-
 
 // login
 export const loginUser = async (payload) => {

@@ -5,7 +5,7 @@ import {
   updatePatchRequestBodySchemaForLawyer,
   lawyerAppointmentSchema,
 } from "../validations/lawyerValidation.js";
-import { verifyPassword } from "../utils/hash.js";
+import { verifyPassword, hashToken } from "../utils/hash.js";
 import mongoose from "mongoose";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import { refreshCookieOptions } from "../utils/cookies.js";
@@ -102,6 +102,10 @@ export const lawyerLogin = async (req, res) => {
     const refreshToken = generateRefreshToken({
       id: lawyer._id.toString(),
     });
+
+    // store the hashed refresh token in DB
+    lawyer.refreshToken = hashToken(refreshToken);
+    await lawyer.save({ validateBeforeSave: false });
 
     // set refresh token cookie
     res.cookie("lawyerRefreshToken", refreshToken, refreshCookieOptions);
@@ -552,6 +556,26 @@ export const refreshLawyerAccessToken = async (req, res) => {
       });
     }
 
+    // Verify the incoming token matches the hashed one stored in DB
+    if (
+      !lawyer.refreshToken ||
+      hashToken(refreshToken) !== lawyer.refreshToken
+    ) {
+      res.clearCookie("lawyerRefreshToken", { ...refreshCookieOptions });
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token revoked or invalid",
+      });
+    }
+
+    // Refresh token rotation
+    const newRefreshToken = generateRefreshToken({ id: decoded.id });
+    lawyer.refreshToken = hashToken(newRefreshToken);
+    await lawyer.save({ validateBeforeSave: false });
+
+    // Set new refresh token cookie
+    res.cookie("lawyerRefreshToken", newRefreshToken, refreshCookieOptions);
+
     // lawyer profile data
     const lawyerProfile = {
       _id: lawyer._id,
@@ -584,6 +608,21 @@ export const refreshLawyerAccessToken = async (req, res) => {
 // Lawyer logout endpoint
 export const logoutLawyer = async (req, res) => {
   try {
+    const refreshToken = req.cookies?.lawyerRefreshToken;
+
+    // Invalidate the refresh token in the DB
+    if (refreshToken) {
+      try {
+        const decoded = jwt.verify(
+          refreshToken,
+          process.env.REFRESH_TOKEN_SECRET,
+        );
+        await lawyerModel.findByIdAndUpdate(decoded.id, { refreshToken: null });
+      } catch (_) {
+        // Token already expired or invalid
+      }
+    }
+
     res.clearCookie("lawyerRefreshToken", {
       ...refreshCookieOptions,
     });

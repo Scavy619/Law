@@ -1265,12 +1265,6 @@ export const refreshAccessToken = async (req, res) => {
       });
     }
 
-    // Set the cookie if it was passed via body (e.g., from the OAuthCallback component)
-    // so subsequent page reloads work seamlessly without the URL fragment.
-    if (!req.cookies?.refreshToken && req.body?.refreshToken) {
-      res.cookie("refreshToken", refreshToken, refreshCookieOptions);
-    }
-
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
@@ -1316,6 +1310,14 @@ export const refreshAccessToken = async (req, res) => {
     };
 
     const newAccessToken = generateAccessToken(payload);
+
+    // Refresh token rotation
+    const newRefreshToken = generateRefreshToken({ id: decoded.id });
+    user.refreshToken = hashToken(newRefreshToken);
+    await user.save({ validateBeforeSave: false });
+
+    // Set new refresh token cookie
+    res.cookie("refreshToken", newRefreshToken, refreshCookieOptions);
 
     return res.status(200).json({
       success: true,

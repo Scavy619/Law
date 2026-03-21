@@ -456,6 +456,10 @@ export const refreshAdminAccessToken = async (req, res) => {
 
     const newAccessToken = generateAccessToken(payload);
 
+    // Refresh token rotation
+    const newRefreshToken = generateRefreshToken(payload);
+    res.cookie("adminRefreshToken", newRefreshToken, refreshCookieOptions);
+
     // admin profile data
     const adminProfile = {
       id: decoded.id,

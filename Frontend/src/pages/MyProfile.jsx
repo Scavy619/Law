@@ -150,7 +150,9 @@ const MyProfile = () => {
     <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
       {/* ================= HEADER ================= */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-800">My Profile</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
+          My Profile
+        </h1>
         {isEdit ? (
           <div className="flex gap-3">
             <button
@@ -351,21 +353,56 @@ const MyProfile = () => {
         </h2>
 
         {/* Password Reset */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gray-50 rounded-xl p-6 mb-6">
-          <div>
-            <p className="text-lg font-medium">Password Reset</p>
-            <p className="text-sm text-gray-500">
-              Reset your password via email verification
-            </p>
+        {userData.authProvider !== "google" ? (
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gray-50 rounded-xl p-6 mb-6">
+            <div>
+              <p className="text-lg font-medium">Password Reset</p>
+              <p className="text-sm text-gray-500">
+                Reset your password via email verification
+              </p>
+            </div>
+            <button
+              onClick={handlePasswordReset}
+              disabled={resetLoading}
+              className="px-8 py-3 rounded-lg bg-primary text-white font-medium disabled:opacity-60"
+            >
+              {resetLoading ? "Sending..." : "Reset Password"}
+            </button>
           </div>
-          <button
-            onClick={handlePasswordReset}
-            disabled={resetLoading}
-            className="px-8 py-3 rounded-lg bg-primary text-white font-medium disabled:opacity-60"
-          >
-            {resetLoading ? "Sending..." : "Reset Password"}
-          </button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+            <svg
+              className="w-5 h-5 text-blue-500 flex-shrink-0"
+              viewBox="0 0 48 48"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fill="#EA4335"
+                d="M24 9.5c3.14 0 5.95 1.08 8.17 2.84l6.08-6.08C34.5 3.1 29.56 1 24 1 14.82 1 7.02 6.48 3.44 14.26l7.08 5.5C12.3 13.62 17.7 9.5 24 9.5z"
+              />
+              <path
+                fill="#4285F4"
+                d="M46.5 24.5c0-1.56-.14-3.08-.4-4.5H24v9h12.67c-.55 2.96-2.2 5.48-4.67 7.17l7.17 5.57C43.5 38.1 46.5 31.8 46.5 24.5z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M10.52 28.76A14.6 14.6 0 0 1 9.5 24c0-1.66.29-3.26.8-4.76l-7.08-5.5A23.9 23.9 0 0 0 1 24c0 3.86.92 7.5 2.56 10.72l6.96-5.96z"
+              />
+              <path
+                fill="#34A853"
+                d="M24 47c5.56 0 10.22-1.84 13.63-5l-7.17-5.57C28.78 37.7 26.52 38.5 24 38.5c-6.3 0-11.65-4.12-13.48-9.74l-6.96 5.96C7.06 42.56 14.84 47 24 47z"
+              />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold text-blue-800">
+                Signed in with Google
+              </p>
+              <p className="text-xs text-blue-600 mt-0.5">
+                Password management is handled by your Google account.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Two-Factor Authentication */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gray-50 rounded-xl p-6">
@@ -439,6 +476,7 @@ const MyProfile = () => {
         <Disable2FAModal
           onDisable={handleDisable2FA}
           onClose={() => setShowDisable2FA(false)}
+          isGoogleUser={userData.authProvider === "google"}
         />
       )}
     </div>

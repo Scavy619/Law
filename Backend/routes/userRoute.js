@@ -22,6 +22,7 @@ import {
   disable2FA,
 } from "../controllers/userController.js";
 import { rateLimiter, routeLimiter } from "../middleware/rateLimiter.js";
+import { startGoogleAuth, googleCallback } from "../controllers/googleAuthController.js";
 
 const userRouter = express.Router();
 
@@ -53,6 +54,11 @@ userRouter.post(
   routeLimiter(3, 60 * 60),
   resendVerificationEmail,
 );
+
+// Oauth2 + OIDC
+
+userRouter.get("/google", routeLimiter(10, 60), startGoogleAuth);
+userRouter.get("/google/callback", routeLimiter(10, 60), googleCallback);
 
 // Account deletion
 userRouter.post("/delete-account/request", authUser, requestDeleteAccountOtp);

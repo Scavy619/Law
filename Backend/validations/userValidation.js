@@ -99,7 +99,7 @@ export const verifyRazorpaySchema = z.object({
 });
 
 export const disable2FASchema = z.object({
-  password: z.string().min(1, "Password is required"),
+  password: z.string().min(1, "Password is required").optional(),
   twoFactorCode: z
     .string()
     .length(6, "2FA code must be exactly 6 digits")

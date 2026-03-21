@@ -18,7 +18,24 @@ const userSchema = new mongoose.Schema({
   address: { type: Object, default: { Location: "", City: "", State: "" } },
   gender: { type: String, default: "Not Selected" },
   dob: { type: String, default: "Not Selected" },
-  password: { type: String, required: true },
+  password: {
+    type: String,
+    required: function () {
+      return this.authProvider === "local";
+    },
+  },
+
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true,
+  },
+
+  authProvider: {
+    type: String,
+    enum: ["local", "google"],
+    default: "local",
+  },
 
   // email verification things
   emailVerified: { type: Boolean, default: false },

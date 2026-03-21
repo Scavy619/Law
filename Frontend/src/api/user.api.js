@@ -20,6 +20,12 @@ export const signupUser = async (name, email, password) => {
   return api.post("/api/user/signup", { name, email, password });
 };
 
+// google login
+export const loginWithGoogle = () => {
+  window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/user/google`;
+};
+
+
 // login
 export const loginUser = async (payload) => {
   return api.post("/api/user/login", payload);

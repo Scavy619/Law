@@ -213,6 +213,15 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    // BLOCK: Google users cannot use password login
+    if (existingUser.authProvider === "google") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "This account was created using Google. Please login with Google.",
+      });
+    }
+
     // email verified pe ae kaam chlega
     if (!existingUser.emailVerified) {
       return res.status(403).json({
@@ -311,6 +320,7 @@ export const loginUser = async (req, res) => {
           dob: existingUser.dob,
           emailVerified: existingUser.emailVerified,
           twoFactorEnabled: existingUser.twoFactorEnabled,
+          authProvider: existingUser.authProvider,
         },
       });
   } catch (error) {
@@ -454,6 +464,7 @@ export const getUserProfile = async (req, res) => {
       dob: user.dob,
       emailVerified: user.emailVerified,
       twoFactorEnabled: user.twoFactorEnabled,
+      authProvider: user.authProvider,
       credits: {
         dailyLimit: user.credits?.dailyLimit,
         remaining: user.credits?.remaining,
@@ -493,6 +504,15 @@ export const forgotPassword = async (req, res) => {
         success: true,
         message:
           "If an account with this email exists, a reset link has been sent.",
+      });
+    }
+
+    // Google users sign in via OAuth and have no password to reset
+    if (user.authProvider === "google") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "This account uses Google Sign-In. Password reset is not available.",
       });
     }
 
@@ -982,7 +1002,7 @@ export const paymentRazorpay = async (req, res) => {
   }
 };
 
-// API to verify payment 
+// API to verify payment
 export const verifyRazorpay = async (req, res) => {
   try {
     const validationResult = verifyRazorpaySchema.safeParse(req.body);
@@ -1198,11 +1218,26 @@ export const verifyDeleteAccountOtp = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
+    const refreshToken = req.cookies?.refreshToken;
+
+    // Invalidate the refresh token in the DB so it can't be reused
+    // even if someone had captured it before logout
+    if (refreshToken) {
+      try {
+        const decoded = jwt.verify(
+          refreshToken,
+          process.env.REFRESH_TOKEN_SECRET,
+        );
+        await userModel.findByIdAndUpdate(decoded.id, { refreshToken: null });
+      } catch (_) {
+        // Token already expired or invalid — no need to clear from DB,
+        // just proceed with clearing the cookie
+      }
+    }
+
     res.clearCookie("refreshToken", {
       ...refreshCookieOptions,
     });
-
-    // console.log("Cleared refresh Token!");
 
     return res.status(200).json({
       success: true,
@@ -1237,20 +1272,13 @@ export const refreshAccessToken = async (req, res) => {
       });
     }
 
-    // minimal payload only
-    const payload = {
-      id: decoded.id,
-      // role: decoded.role,
-    };
-
-    const newAccessToken = generateAccessToken(payload);
-
-    // Fetch only the fields needed for the client — explicit allowlist so no
-    // internal tokens, secrets, or OTP hashes ever travel over the wire.
+    // Fetch user — include refreshToken field so we can verify against the DB hash.
+    // This is what makes the stored hash actually useful: a logged-out or
+    // revoked token will fail here even if the JWT signature is still valid.
     const user = await userModel
       .findById(decoded.id)
       .select(
-        "_id name email image phone address gender dob emailVerified twoFactorEnabled credits",
+        "_id name email image phone address gender dob emailVerified twoFactorEnabled credits refreshToken authProvider",
       );
 
     if (!user) {
@@ -1259,6 +1287,26 @@ export const refreshAccessToken = async (req, res) => {
         message: "User not found",
       });
     }
+
+    // Verify the incoming token matches the hashed one stored in DB.
+    // If the user has logged out (or their token was revoked), user.refreshToken
+    // will be null and this check will correctly reject the request.
+    if (!user.refreshToken || hashToken(refreshToken) !== user.refreshToken) {
+      // Clear the stale cookie so the client doesn't keep retrying
+      res.clearCookie("refreshToken", { ...refreshCookieOptions });
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token revoked or invalid",
+      });
+    }
+
+    // minimal payload only
+    const payload = {
+      id: decoded.id,
+      // role: decoded.role,
+    };
+
+    const newAccessToken = generateAccessToken(payload);
 
     return res.status(200).json({
       success: true,
@@ -1274,6 +1322,7 @@ export const refreshAccessToken = async (req, res) => {
         dob: user.dob,
         emailVerified: user.emailVerified,
         twoFactorEnabled: user.twoFactorEnabled,
+        authProvider: user.authProvider,
       },
     });
   } catch (error) {
@@ -1396,19 +1445,28 @@ export const disable2FA = async (req, res) => {
       });
     }
 
-    if (!password || !twoFactorCode) {
+    if (!twoFactorCode) {
       return res.status(400).json({
         success: false,
-        message: "Password and 2FA code are required",
+        message: "2FA code is required",
       });
     }
 
-    const isPasswordValid = await verifyPassword(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid password",
-      });
+    // Local users must also verify their password; Google users have none
+    if (user.authProvider !== "google") {
+      if (!password) {
+        return res.status(400).json({
+          success: false,
+          message: "Password is required",
+        });
+      }
+      const isPasswordValid = await verifyPassword(password, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid password",
+        });
+      }
     }
 
     const totp = createTOTP(user.twoFactorSecret);

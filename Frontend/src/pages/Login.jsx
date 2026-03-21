@@ -1,17 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import useApp from "../context/useApp.jsx";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   resendVerification,
   signupUser,
   loginUser,
   forgotPassword,
+  loginWithGoogle,
 } from "../api/user.api.js";
 import { setAccessToken } from "../context/auth.tokens.js";
 
 const Login = () => {
   const [state, setState] = useState("Sign Up");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Show error toast if redirected back from Google OAuth with an error
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error === "local_account_exists") {
+      toast.error(
+        "An account with this email already exists. Please log in with your email and password.",
+      );
+      // Clean up the query param from the URL without triggering a navigation
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -381,6 +395,47 @@ const Login = () => {
                   ? "Create account"
                   : "Login"}
         </button>
+
+        {/* GOOGLE SIGN IN */}
+        {!requires2FA && (
+          <div className="w-full">
+            <div className="flex items-center gap-2 my-1">
+              <hr className="flex-1 border-[#DADADA]" />
+              <span className="text-xs text-gray-400">or</span>
+              <hr className="flex-1 border-[#DADADA]" />
+            </div>
+            <button
+              type="button"
+              onClick={loginWithGoogle}
+              className="w-full flex items-center justify-center gap-3 border border-[#DADADA] rounded-md py-2 px-4 text-sm text-[#5E5E5E] hover:bg-gray-50 transition-colors"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 48 48"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fill="#EA4335"
+                  d="M24 9.5c3.14 0 5.95 1.08 8.17 2.84l6.08-6.08C34.5 3.1 29.56 1 24 1 14.82 1 7.02 6.48 3.44 14.26l7.08 5.5C12.3 13.62 17.7 9.5 24 9.5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M46.5 24.5c0-1.56-.14-3.08-.4-4.5H24v9h12.67c-.55 2.96-2.2 5.48-4.67 7.17l7.17 5.57C43.5 38.1 46.5 31.8 46.5 24.5z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M10.52 28.76A14.6 14.6 0 0 1 9.5 24c0-1.66.29-3.26.8-4.76l-7.08-5.5A23.9 23.9 0 0 0 1 24c0 3.86.92 7.5 2.56 10.72l6.96-5.96z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M24 47c5.56 0 10.22-1.84 13.63-5l-7.17-5.57C28.78 37.7 26.52 38.5 24 38.5c-6.3 0-11.65-4.12-13.48-9.74l-6.96 5.96C7.06 42.56 14.84 47 24 47z"
+                />
+              </svg>
+              Continue with Google
+            </button>
+          </div>
+        )}
 
         {/* FORGOT PASSWORD */}
         {state === "Login" && !requires2FA && (

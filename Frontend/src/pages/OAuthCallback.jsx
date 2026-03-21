@@ -14,7 +14,25 @@ const OAuthCallback = () => {
 
     const finalizeLogin = async () => {
       try {
-        const { data } = await api.post("/api/auth/refresh");
+        // Extract refreshToken from URL hash if present
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1),
+        );
+        const urlToken = hashParams.get("refreshToken");
+
+        // Clear hash from URL for security/cleanliness
+        if (urlToken) {
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname + window.location.search,
+          );
+        }
+
+        // Pass token in body to bypass Brave/Safari 3rd party cookie blocking
+        const { data } = await api.post("/api/auth/refresh", {
+          refreshToken: urlToken,
+        });
 
         if (!isMounted) return;
 

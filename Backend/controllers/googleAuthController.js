@@ -110,11 +110,12 @@ export const googleCallback = async (req, res) => {
     user.refreshToken = hashToken(refreshToken);
     await user.save({ validateBeforeSave: false });
 
-    // Set refresh token cookie
-    res.cookie("refreshToken", refreshToken, refreshCookieOptions);
-
-    // Redirect to frontend OAuth handler (access token will be fetched via /refresh)
-    return res.redirect(`${process.env.FRONTEND_URL}/oauth/callback`);
+    // Redirect to frontend OAuth handler and pass the refresh token in the URL fragment
+    // This bypasses third-party cookie blocking in Brave/Safari since the frontend
+    // will read the token from the URL and then store it locally or attach it directly.
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/oauth/callback#refreshToken=${refreshToken}`,
+    );
   } catch (error) {
     console.error("Google OAuth Error:", error);
     return res.status(500).send("Google authentication failed");

@@ -8,6 +8,7 @@ import {
 import Home from "../pages/Home.jsx";
 import Lawyers from "../pages/Lawyers.jsx";
 import Login from "../pages/Login.jsx";
+import OAuthCallback from "../pages/OAuthCallback.jsx";
 import MyProfile from "../pages/MyProfile.jsx";
 import MyAppointments from "../pages/MyAppointments.jsx";
 import Appointment from "../pages/Appointment.jsx";
@@ -21,14 +22,15 @@ import Layout from "../layouts/layout.jsx";
 const About = lazy(() => import("../pages/About.jsx"));
 const Contact = lazy(() => import("../pages/Contact.jsx"));
 const PrivacyPolicy = lazy(() => import("../pages/PrivacyPolicy.jsx"));
-const TermsAndConditions = lazy(() => import("../pages/TermsAndConditions.jsx"));
+const TermsAndConditions = lazy(
+  () => import("../pages/TermsAndConditions.jsx"),
+);
 const RefundPolicy = lazy(() => import("../pages/RefundPolicy.jsx"));
 const ContactUs = lazy(() => import("../pages/ContactUs.jsx"));
 const Resources = lazy(() => import("../pages/Resources.jsx"));
 const ResetPassword = lazy(() => import("../pages/ResetPassword.jsx"));
 const Verify = lazy(() => import("../pages/Verify.jsx"));
 const VerifyEmail = lazy(() => import("../pages/VerifyEmail.jsx"));
-
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -57,6 +59,7 @@ const router = createBrowserRouter(
         <Route path="lawyers/:speciality" element={<Lawyers />} />
 
         <Route path="login" element={<Login />} />
+        <Route path="oauth/callback" element={<OAuthCallback />} />
 
         <Route
           path="verify-email"
@@ -177,8 +180,8 @@ const router = createBrowserRouter(
           }
         />
       </Route>
-    </>
-  )
+    </>,
+  ),
 );
 
 export default router;

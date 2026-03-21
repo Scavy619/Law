@@ -113,8 +113,8 @@ export const googleCallback = async (req, res) => {
     // Set refresh token cookie
     res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
-    // Redirect to frontend (access token will be fetched via /refresh)
-    return res.redirect(`${process.env.FRONTEND_URL}/`);
+    // Redirect to frontend OAuth handler (access token will be fetched via /refresh)
+    return res.redirect(`${process.env.FRONTEND_URL}/oauth/callback`);
   } catch (error) {
     console.error("Google OAuth Error:", error);
     return res.status(500).send("Google authentication failed");

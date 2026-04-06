@@ -1253,10 +1253,7 @@ export const logout = async (req, res) => {
 
 export const refreshAccessToken = async (req, res) => {
   try {
-    // Check for refresh token in both cookies AND the request body.
-    // The body check is necessary to bypass third-party cookie blocking in Brave/Safari
-    // during the Google OAuth redirect flow.
-    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    const refreshToken = req.cookies?.refreshToken;
 
     if (!refreshToken) {
       return res.status(401).json({

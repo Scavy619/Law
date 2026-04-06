@@ -11,15 +11,25 @@ export const startGoogleAuth = async (req, res) => {
     // Generate random state for CSRF protection
     const state = crypto.randomBytes(32).toString("hex");
 
-    // Store state in cookie
-    res.cookie("oauth_state", state, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 5 * 60 * 1000, // 5 minutes
-    });
+    // Generate PKCE code verifier and challenge
+    const codeVerifier = crypto.randomBytes(32).toString("hex");
+    const codeChallenge = crypto
+      .createHash("sha256")
+      .update(codeVerifier)
+      .digest("base64url");
 
-    // Build Google OAuth URL
+    const cookieOptions = {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 10 * 60 * 1000, // 10 minutes
+    };
+
+    // Store state and verifier in secure cookies
+    res.cookie("oauth_state", state, cookieOptions);
+    res.cookie("oauth_pkce_verifier", codeVerifier, cookieOptions);
+
+    // Build Google OAuth URL with PKCE
     const authUrl =
       "https://accounts.google.com/o/oauth2/v2/auth?" +
       new URLSearchParams({
@@ -30,6 +40,8 @@ export const startGoogleAuth = async (req, res) => {
         state: state,
         access_type: "offline",
         prompt: "consent",
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256",
       }).toString();
 
     // Redirect user to Google
@@ -51,21 +63,33 @@ export const googleCallback = async (req, res) => {
 
     // Validate state to prevent CSRF
     const storedState = req.cookies.oauth_state;
+    const codeVerifier = req.cookies.oauth_pkce_verifier;
 
     if (!state || state !== storedState) {
       return res.status(400).send("Invalid or expired OAuth state");
     }
 
-    // Clear state cookie after validation
-    res.clearCookie("oauth_state");
+    if (!codeVerifier) {
+      return res.status(400).send("PKCE verifier missing or expired");
+    }
 
-    // Exchange authorization code for tokens
+    // Clear OAuth security cookies
+    const cookieClearOptions = {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    };
+    res.clearCookie("oauth_state", cookieClearOptions);
+    res.clearCookie("oauth_pkce_verifier", cookieClearOptions);
+
+    // Exchange authorization code for tokens using PKCE verifier
     const tokenRes = await axios.post("https://oauth2.googleapis.com/token", {
       code,
       client_id: process.env.GOOGLE_CLIENT_ID,
       client_secret: process.env.GOOGLE_CLIENT_SECRET,
       redirect_uri: process.env.GOOGLE_REDIRECT_URI,
       grant_type: "authorization_code",
+      code_verifier: codeVerifier,
     });
 
     const { id_token } = tokenRes.data;
@@ -110,12 +134,11 @@ export const googleCallback = async (req, res) => {
     user.refreshToken = hashToken(refreshToken);
     await user.save({ validateBeforeSave: false });
 
-    // Redirect to frontend OAuth handler and pass the refresh token in the URL fragment
-    // This bypasses third-party cookie blocking in Brave/Safari since the frontend
-    // will read the token from the URL and then store it locally or attach it directly.
-    return res.redirect(
-      `${process.env.FRONTEND_URL}/oauth/callback#refreshToken=${refreshToken}`,
-    );
+    // Set secure HTTP-only refresh token cookie natively
+    res.cookie("refreshToken", refreshToken, refreshCookieOptions);
+
+    // Redirect to frontend OAuth handler to bootstrap frontend state
+    return res.redirect(`${process.env.FRONTEND_URL}/oauth/callback`);
   } catch (error) {
     console.error("Google OAuth Error:", error);
     return res.status(500).send("Google authentication failed");

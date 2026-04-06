@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../api/axiosClient";
 import useApp from "../context/useApp.jsx";
@@ -7,6 +7,7 @@ import { setAccessToken } from "../context/auth.tokens.js";
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUserData } = useApp();
 
   useEffect(() => {
@@ -14,7 +15,14 @@ const OAuthCallback = () => {
 
     const finalizeLogin = async () => {
       try {
-        const { data } = await api.post("/api/auth/refresh");
+        const params = new URLSearchParams(location.search);
+        const code = params.get("code");
+
+        if (!code) {
+          throw new Error("No authorization code found in URL");
+        }
+
+        const { data } = await api.post("/api/auth/exchange", { code });
 
         if (!isMounted) return;
 

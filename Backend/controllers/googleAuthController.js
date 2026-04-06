@@ -5,6 +5,7 @@ import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 import { hashToken } from "../utils/hash.js";
 import { refreshCookieOptions } from "../utils/cookies.js";
 import crypto from "crypto";
+import redis from "../config/redis.js";
 
 export const startGoogleAuth = async (req, res) => {
   try {
@@ -12,7 +13,7 @@ export const startGoogleAuth = async (req, res) => {
     const state = crypto.randomBytes(32).toString("hex");
 
     // Generate PKCE code verifier and challenge
-    const codeVerifier = crypto.randomBytes(32).toString("hex");
+    const codeVerifier = crypto.randomBytes(32).toString("base64url");
     const codeChallenge = crypto
       .createHash("sha256")
       .update(codeVerifier)
@@ -125,22 +126,95 @@ export const googleCallback = async (req, res) => {
       });
     }
 
-    // Generate refresh token
+    // --- ONE-TIME CODE EXCHANGE FLOW ---
+    // Why use a one-time code? To avoid sending sensitive tokens in URLs
+    // or relying on third-party cookies which are often blocked (e.g., in Brave/Safari).
+
+    // 1. Generate a secure, random one-time code
+    const oneTimeCode = crypto.randomBytes(32).toString("hex");
+
+    // 2. Store the code temporarily (short-lived, 60 seconds expiry)
+    await redis.set(
+      oneTimeCode,
+      JSON.stringify({ userId: user._id.toString() }),
+      "EX",
+      60,
+    );
+
+    // 3. Redirect to frontend with the one-time code in the URL
+    // The frontend will exchange this code for actual tokens via a POST request.
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/oauth/callback?code=${oneTimeCode}`,
+    );
+  } catch (error) {
+    console.error("Google OAuth Error:", error);
+    return res.status(500).send("Google authentication failed");
+  }
+};
+
+export const exchangeOneTimeCode = async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ message: "One-time code is required" });
+    }
+
+    // 1. Check if the code exists in our temporary store
+    // Also enforce single-use by deleting it immediately upon read
+    const storeDataRaw = await redis.get(code);
+    if (storeDataRaw) {
+      await redis.del(code);
+    }
+
+    if (!storeDataRaw) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or already used one-time code" });
+    }
+
+    const storeData = JSON.parse(storeDataRaw);
+
+    // 4. Find the user associated with this code
+    const user = await userModel.findById(storeData.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 5. Generate actual access and refresh tokens now that we are in a secure POST request
+    const accessToken = generateAccessToken({
+      id: user._id,
+      role: user.role,
+    });
+
     const refreshToken = generateRefreshToken({
       id: user._id,
     });
 
-    // Store hashed refresh token in database
+    // 6. Store hashed refresh token in the database
     user.refreshToken = hashToken(refreshToken);
     await user.save({ validateBeforeSave: false });
 
-    // Set secure HTTP-only refresh token cookie natively
+    // 7. Store refresh token in secure HttpOnly cookie
     res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
-    // Redirect to frontend OAuth handler to bootstrap frontend state
-    return res.redirect(`${process.env.FRONTEND_URL}/oauth/callback`);
+    // 8. Return access token securely in the JSON response
+    // The frontend can now store these tokens in memory or secure storage.
+    return res.status(200).json({
+      success: true,
+      accessToken,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        image: user.image,
+      },
+    });
   } catch (error) {
-    console.error("Google OAuth Error:", error);
-    return res.status(500).send("Google authentication failed");
+    console.error("Error exchanging one-time code:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to exchange one-time code" });
   }
 };

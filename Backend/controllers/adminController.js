@@ -403,10 +403,51 @@ export const adminDashboard = async (req, res) => {
     let pending = 0;
     const specialityMap = {};
 
+    // Last 7 days earnings map
+    const earningsMap = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+      });
+      earningsMap[key] = 0;
+    }
+
+    // Last 12 months earnings map
+    const monthlyEarningsMap = {};
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const key = d.toLocaleDateString("en-IN", {
+        month: "short",
+        year: "2-digit",
+      });
+      monthlyEarningsMap[key] = 0;
+    }
+
     for (const appt of allAppointments) {
       // Revenue
       if (appt.isCompleted && appt.payment) {
         totalRevenue += appt.amount || 0;
+
+        const apptDate = new Date(appt.createdAt);
+        const dayKey = apptDate.toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+        });
+        if (earningsMap.hasOwnProperty(dayKey)) {
+          earningsMap[dayKey] += appt.amount || 0;
+        }
+
+        const monthKey = apptDate.toLocaleDateString("en-IN", {
+          month: "short",
+          year: "2-digit",
+        });
+        if (monthlyEarningsMap.hasOwnProperty(monthKey)) {
+          monthlyEarningsMap[monthKey] += appt.amount || 0;
+        }
       }
 
       // Status breakdown
@@ -426,6 +467,18 @@ export const adminDashboard = async (req, res) => {
     // Shape speciality data for chart
     const specialityBreakdown = Object.entries(specialityMap).map(
       ([name, count]) => ({ name, count }),
+    );
+
+    const earningsTrend = Object.entries(earningsMap).map(([date, amount]) => ({
+      date,
+      amount,
+    }));
+
+    const monthlyEarningsTrend = Object.entries(monthlyEarningsMap).map(
+      ([date, amount]) => ({
+        date,
+        amount,
+      }),
     );
 
     // Shape latest appointments
@@ -472,6 +525,8 @@ export const adminDashboard = async (req, res) => {
         totalRevenue,
         statusBreakdown: { completed, cancelled, pending },
         specialityBreakdown,
+        earningsTrend,
+        monthlyEarningsTrend,
         latestAppointments,
       },
     });

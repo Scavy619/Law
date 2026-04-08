@@ -508,6 +508,18 @@ export const lawyerDashboard = async (req, res) => {
       earningsMap[key] = 0;
     }
 
+    // Last 12 months earnings map
+    const monthlyEarningsMap = {};
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const key = d.toLocaleDateString("en-IN", {
+        month: "short",
+        year: "2-digit",
+      });
+      monthlyEarningsMap[key] = 0;
+    }
+
     for (const appt of allAppointments) {
       if (appt.isCompleted && appt.payment) {
         totalEarnings += appt.amount || 0;
@@ -520,6 +532,15 @@ export const lawyerDashboard = async (req, res) => {
         });
         if (earningsMap.hasOwnProperty(key)) {
           earningsMap[key] += appt.amount || 0;
+        }
+
+        // Monthly earnings
+        const monthKey = apptDate.toLocaleDateString("en-IN", {
+          month: "short",
+          year: "2-digit",
+        });
+        if (monthlyEarningsMap.hasOwnProperty(monthKey)) {
+          monthlyEarningsMap[monthKey] += appt.amount || 0;
         }
       }
 
@@ -542,6 +563,13 @@ export const lawyerDashboard = async (req, res) => {
       date,
       amount,
     }));
+
+    const monthlyEarningsTrend = Object.entries(monthlyEarningsMap).map(
+      ([date, amount]) => ({
+        date,
+        amount,
+      }),
+    );
 
     // Completion rate
     const completionRate =
@@ -590,6 +618,7 @@ export const lawyerDashboard = async (req, res) => {
         completionRate,
         statusBreakdown: { completed, cancelled, pending },
         earningsTrend,
+        monthlyEarningsTrend,
         latestAppointments,
       },
     });

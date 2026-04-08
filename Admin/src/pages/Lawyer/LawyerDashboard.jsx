@@ -177,41 +177,9 @@ const LawyerDashboard = () => {
         </div>
       </div>
 
-      {/* Charts Row */}
+      {/* Earnings Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-        {/* Pie Chart - Appointment Status */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 min-w-0">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">
-            Appointment Status
-          </h2>
-          {dashData.appointments === 0 ? (
-            <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
-              No data yet
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={index} fill={COLORS_PIE[index]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value, name) => [value, name]} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* Bar Chart - Earnings Trend */}
+        {/* Weekly Earnings Trend */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 min-w-0">
           <h2 className="text-lg font-bold text-gray-800 mb-4">
             Earnings - Last 7 Days
@@ -254,6 +222,89 @@ const LawyerDashboard = () => {
                   name="Amount"
                 />
               </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Monthly Earnings Trend */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 min-w-0">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">
+            Earnings - Last 12 Months
+          </h2>
+          {!dashData.monthlyEarningsTrend ||
+          dashData.monthlyEarningsTrend.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+              No data yet
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart
+                data={dashData.monthlyEarningsTrend}
+                margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#f0f0f0"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12, fill: "#6b7280" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: "#6b7280" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(val) => `₹${val}`}
+                />
+                <Tooltip
+                  formatter={(value) => [`₹${value}`, "Amount"]}
+                  cursor={{ fill: "transparent" }}
+                />
+                <Bar
+                  dataKey="amount"
+                  fill={COLORS_BAR}
+                  radius={[4, 4, 0, 0]}
+                  name="Amount"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        {/* Pie Chart - Appointment Status */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 min-w-0">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">
+            Appointment Status
+          </h2>
+          {dashData.appointments === 0 ? (
+            <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
+              No data yet
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {statusData.map((entry, index) => (
+                    <Cell key={index} fill={COLORS_PIE[index]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value, name) => [value, name]} />
+                <Legend />
+              </PieChart>
             </ResponsiveContainer>
           )}
         </div>

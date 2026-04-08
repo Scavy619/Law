@@ -46,7 +46,7 @@ const Navbar = ({ isSidebarOpen, setIsSidebarOpen }) => {
   return (
     <div className="flex justify-between items-center px-4 sm:px-10 py-3 sm:py-4 border-b border-gray-100 bg-white shadow-sm transition-all">
       <div className="flex items-center gap-2 sm:gap-3">
-        <button 
+        <button
           onClick={() => setIsSidebarOpen && setIsSidebarOpen(!isSidebarOpen)}
           className="md:hidden p-1.5 -ml-1.5 text-gray-500 hover:text-primary transition-colors hover:bg-gray-50 rounded-lg active:scale-95 flex items-center justify-center mr-1"
           aria-label="Toggle Sidebar"
@@ -54,7 +54,9 @@ const Navbar = ({ isSidebarOpen, setIsSidebarOpen }) => {
           <Menu size={22} />
         </button>
         <img
-          onClick={() => navigate("/")}
+          onClick={() =>
+            navigate(adminData ? "/admin-dashboard" : "/lawyer-dashboard")
+          }
           className="w-28 sm:w-44 lg:w-48 cursor-pointer hover:opacity-90 transition-opacity shrink min-w-24"
           src={assets.legallogo}
           alt="Legal Logo"

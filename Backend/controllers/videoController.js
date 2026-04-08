@@ -201,7 +201,7 @@ export const updateCallStatus = async (req, res) => {
         }
         break;
 
-      case "leave":
+      case "leave": {
         if (isUser) appointment.videoCall.userJoined = false;
         if (isLawyer) appointment.videoCall.lawyerJoined = false;
 
@@ -225,8 +225,9 @@ export const updateCallStatus = async (req, res) => {
           await cancelCallEndJob(appointmentId);
         }
         break;
+      }
 
-      case "end":
+      case "end": {
         appointment.videoCall.endedAt = new Date();
         appointment.videoCall.status = "completed";
         appointment.videoCall.userJoined = false;
@@ -241,6 +242,7 @@ export const updateCallStatus = async (req, res) => {
         await endVideoCall(appointment.videoCall.callId);
         await cancelCallEndJob(appointmentId);
         break;
+      }
     }
 
     await appointment.save();

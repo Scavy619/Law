@@ -15,12 +15,11 @@ import { connectCloudinary } from "./config/cloudinary.js";
 import cookieParser from "cookie-parser";
 import { rateLimiter } from "./middleware/rateLimiter.js";
 import { setupSwagger } from "./config/swagger.js";
-
+import "./bullmq/workers/videoWorker.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 setupSwagger(app);
-
 
 // for development
 // app.use(cors({
@@ -35,7 +34,6 @@ const allowedOrigins =
 app.use(
   cors({
     origin: function (origin, callback) {
-
       // Allow requests with no origin (OAuth redirects, mobile apps, Postman)
       if (!origin) {
         return callback(null, true);

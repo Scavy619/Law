@@ -3,10 +3,12 @@ import { Worker } from "bullmq";
 import redis from "../../config/redis.js";
 import Appointment from "../../models/appointmentModel.js";
 import streamClient from "../../config/streamService.js";
-import { connectMongoDB } from "../../config/mongodb.js";
 
-await connectMongoDB(process.env.MONGODB_URI);
-console.log("Mongo DB Connected in worker!!");
+// import { connectMongoDB } from "../../config/mongodb.js";
+
+// await connectMongoDB(process.env.MONGODB_URI);
+// console.log("Mongo DB Connected in worker!!");
+
 
 const worker = new Worker(
   "video-call",
@@ -92,7 +94,7 @@ const worker = new Worker(
     concurrency: 5,
     // 3. Retry handling and 4. Clean up jobs safely
     removeOnComplete: true,
-    removeOnFail: true,
+    removeOnFail: { count: 50 },
     attempts: 3,
     backoff: {
       type: "exponential",

@@ -4,8 +4,6 @@
 // slotStart - 15min → slotEnd + 10min → join
 // after slotEnd + 10min → expired
 
-
-
 import { useEffect, useState } from "react";
 
 const getAppointmentDateTime = (appointment) => {
@@ -54,4 +52,3 @@ export const useJoinStatus = (appointment) => {
 
   return status;
 };
-

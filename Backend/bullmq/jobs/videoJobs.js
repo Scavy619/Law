@@ -7,7 +7,7 @@ export const scheduleCallEndJob = async (appointment) => {
   if (!appointment.videoCall?.startedAt) return;
 
   const [day, month, year] = appointment.slotDate.split("_");
-  const dateTimeString = `${year}-${month}-${day} ${appointment.slotTime}`;
+  const dateTimeString = `${year}-${month}-${day}T${appointment.slotTime}:00+05:30`;
   const slotStart = new Date(dateTimeString);
   const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
 

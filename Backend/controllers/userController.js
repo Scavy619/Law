@@ -31,7 +31,8 @@ import {
   verifyPassword,
   hashToken,
 } from "../utils/hash.js";
-import { createToken } from "../utils/token.js";
+import { encrypt, decrypt } from "../utils/encryption.js";
+import { generateOTP } from "../utils/generateOTP.js";
 import { v2 as cloudinary } from "cloudinary";
 import razorpay from "razorpay";
 import conversationModel from "../models/conversationModel.js";
@@ -40,6 +41,7 @@ import { refreshCookieOptions } from "../utils/cookies.js";
 import jwt from "jsonwebtoken";
 import QRCode from "qrcode";
 import { TOTP, Secret } from "otpauth";
+
 
 // creating user controller for signup
 
@@ -165,8 +167,8 @@ export const setup2FA = async (req, res) => {
     // Generate otpauth URI
     const otpauthUrl = totp.toString();
 
-    // Save secret in DB
-    user.twoFactorSecret = base32Secret;
+    // Save secret in DB in encrypted form 
+    user.twoFactorSecret = encrypt(base32Secret);
     await user.save();
 
     // Generate QR
@@ -271,7 +273,7 @@ export const loginUser = async (req, res) => {
         });
       }
 
-      const totp = createTOTP(existingUser.twoFactorSecret);
+      const totp = createTOTP(decrypt(existingUser.twoFactorSecret));
       const delta = totp.validate({ token: twoFactorCode, window: 1 });
 
       if (delta === null) {
@@ -1288,8 +1290,6 @@ export const verifyPaymentAndCreateAppointment = async (req, res) => {
 
 // delete account routes
 
-import { generateOTP } from "../utils/generateOTP.js";
-
 export const requestDeleteAccountOtp = async (req, res) => {
   try {
     // user identity ONLY from auth middleware
@@ -1582,7 +1582,7 @@ export const verify2FA = async (req, res) => {
       });
     }
 
-    const totp = createTOTP(user.twoFactorSecret);
+    const totp = createTOTP(decrypt(user.twoFactorSecret));
 
     // otpauth returns delta (0 = valid, null = invalid)
     const delta = totp.validate({ token: code, window: 1 });
@@ -1672,7 +1672,7 @@ export const disable2FA = async (req, res) => {
       }
     }
 
-    const totp = createTOTP(user.twoFactorSecret);
+    const totp = createTOTP(decrypt(user.twoFactorSecret));
     const delta = totp.validate({ token: twoFactorCode, window: 1 });
 
     if (delta === null) {

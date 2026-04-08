@@ -168,7 +168,7 @@ const Navbar = () => {
             >
               <div className="relative">
                 <img
-                  className="w-auto h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-200 shadow-sm hover:border-primary transition-all duration-300 hover:shadow-md"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-200 shadow-sm hover:border-primary transition-all duration-300 hover:shadow-md"
                   src={
                     userData.image && userData.image.startsWith("http")
                       ? userData.image
@@ -197,13 +197,13 @@ const Navbar = () => {
               <div className="min-w-48 bg-white border border-gray-200 rounded flex flex-col gap-4 p-4 shadow-xl">
                 <p
                   onClick={() => navigate("/my-profile")}
-                  className="hover:text-black cursor-pointer"
+                  className={`hover:text-black cursor-pointer ${activeLink === "/my-profile" ? "text-primary font-semibold" : ""}`}
                 >
                   My Profile
                 </p>
                 <p
                   onClick={() => navigate("/my-appointments")}
-                  className="hover:text-black cursor-pointer"
+                  className={`hover:text-black cursor-pointer ${activeLink === "/my-appointments" ? "text-primary font-semibold" : ""}`}
                 >
                   My Appointments
                 </p>
@@ -223,7 +223,7 @@ const Navbar = () => {
                     navigate("/my-profile");
                     setShowMobileDropdown(false);
                   }}
-                  className="hover:text-black cursor-pointer"
+                  className={`hover:text-black cursor-pointer ${activeLink === "/my-profile" ? "text-primary font-semibold" : ""}`}
                 >
                   My Profile
                 </p>
@@ -232,7 +232,7 @@ const Navbar = () => {
                     navigate("/my-appointments");
                     setShowMobileDropdown(false);
                   }}
-                  className="hover:text-black cursor-pointer"
+                  className={`hover:text-black cursor-pointer ${activeLink === "/my-appointments" ? "text-primary font-semibold" : ""}`}
                 >
                   My Appointments
                 </p>

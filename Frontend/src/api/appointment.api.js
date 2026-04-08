@@ -1,8 +1,10 @@
 import api from "./axiosClient";
 
 // GET user appointments
-export const getUserAppointments = async (page = 1, limit = 7) => {
-  return api.get(`/api/user/appointments?page=${page}&limit=${limit}`);
+export const getUserAppointments = async (page = 1, limit = 7, status = "") => {
+  let url = `/api/user/appointments?page=${page}&limit=${limit}`;
+  if (status) url += `&status=${status}`;
+  return api.get(url);
 };
 
 // CANCEL appointment

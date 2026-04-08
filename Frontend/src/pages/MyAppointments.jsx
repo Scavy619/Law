@@ -143,6 +143,8 @@ const MyAppointments = () => {
   const [payment, setPayment] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(false);
 
   // Months array for date formatting
   const months = [
@@ -177,13 +179,18 @@ const MyAppointments = () => {
   // Getting User Appointments Data Using API
   const getUserAppointments = async () => {
     try {
+      setLoading(true);
       if (!userData) {
         toast.error("Please login to view appointments");
         navigate("/login");
         return;
       }
 
-      const { data } = await userAppointments(page, 7);
+      const { data } = await userAppointments(
+        page,
+        7,
+        filter === "all" ? "" : filter,
+      );
 
       if (data.success) {
         setAppointments(data.appointments);
@@ -201,6 +208,8 @@ const MyAppointments = () => {
       if (error.response?.status === 401) {
         navigate("/login");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -255,7 +264,12 @@ const MyAppointments = () => {
     if (userData) {
       getUserAppointments();
     }
-  }, [page, userData]);
+  }, [page, filter, userData]);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
 
   // Function to make payment using razorpay
   const appointmentRazorpay = async (appointmentId) => {
@@ -278,13 +292,6 @@ const MyAppointments = () => {
     navigate(`/video-call/${appointmentId}`);
   };
 
-  // Load appointments when userData is available
-  useEffect(() => {
-    if (userData) {
-      getUserAppointments();
-    }
-  }, [userData]);
-
   if (authLoading) {
     return <Loader minHeight="min-h-screen" />;
   }
@@ -298,8 +305,31 @@ const MyAppointments = () => {
         <div className="w-20 h-1 bg-primary mx-auto rounded-full"></div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex justify-center mb-8">
+        <div className="inline-flex bg-gray-100 p-1 rounded-lg overflow-x-auto max-w-full">
+          {["all", "upcoming", "completed", "cancelled"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                filter === f
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-6">
-        {appointments.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        ) : appointments.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-2xl">
             <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
               <svg
@@ -485,7 +515,7 @@ const MyAppointments = () => {
               setPage((p) => Math.max(1, p - 1));
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            disabled={page === 1}
+            disabled={page === 1 || loading}
             className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors bg-white text-gray-700 font-medium shadow-sm"
           >
             Previous
@@ -498,7 +528,7 @@ const MyAppointments = () => {
               setPage((p) => Math.min(totalPages, p + 1));
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-            disabled={page === totalPages}
+            disabled={page === totalPages || loading}
             className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors bg-white text-gray-700 font-medium shadow-sm"
           >
             Next

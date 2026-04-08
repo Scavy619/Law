@@ -826,15 +826,29 @@ export const listAppointment = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 7;
     const skip = (page - 1) * limit;
+    const status = req.query.status;
+
+    const query = { userId };
+
+    if (status) {
+      if (status === "cancelled") {
+        query.cancelled = { $nin: ["Not Cancelled", false, null] };
+      } else if (status === "completed") {
+        query.isCompleted = true;
+      } else if (status === "upcoming") {
+        query.isCompleted = false;
+        query.cancelled = { $in: ["Not Cancelled", false, null] };
+      }
+    }
 
     const [total, appointments] = await Promise.all([
-      appointmentModel.countDocuments({ userId }),
+      appointmentModel.countDocuments(query),
       appointmentModel
-        .find({ userId })
+        .find(query)
         .select(
           "slotDate slotTime amount payment isCompleted cancelled createdAt lawyerId lawyerData videoCall",
         )
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: -1 }) // Sorts by latest booked
         .skip(skip)
         .limit(limit)
         .lean(),

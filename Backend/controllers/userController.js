@@ -42,7 +42,6 @@ import jwt from "jsonwebtoken";
 import QRCode from "qrcode";
 import { TOTP, Secret } from "otpauth";
 
-
 // creating user controller for signup
 
 export const signupUser = async (req, res) => {
@@ -167,7 +166,7 @@ export const setup2FA = async (req, res) => {
     // Generate otpauth URI
     const otpauthUrl = totp.toString();
 
-    // Save secret in DB in encrypted form 
+    // Save secret in DB in encrypted form
     user.twoFactorSecret = encrypt(base32Secret);
     await user.save();
 
@@ -824,14 +823,22 @@ export const listAppointment = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Fetch only the fields we need — no userData, no internal fields
-    const appointments = await appointmentModel
-      .find({ userId })
-      .select(
-        "slotDate slotTime amount payment isCompleted cancelled createdAt lawyerId lawyerData videoCall",
-      )
-      .sort({ createdAt: -1 })
-      .lean();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 7;
+    const skip = (page - 1) * limit;
+
+    const [total, appointments] = await Promise.all([
+      appointmentModel.countDocuments({ userId }),
+      appointmentModel
+        .find({ userId })
+        .select(
+          "slotDate slotTime amount payment isCompleted cancelled createdAt lawyerId lawyerData videoCall",
+        )
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
     // Shape each appointment — expose only safe, required fields
     const shaped = appointments.map((appt) => {
@@ -872,6 +879,12 @@ export const listAppointment = async (req, res) => {
     return res.status(200).json({
       success: true,
       appointments: shaped,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     return res.status(500).json({

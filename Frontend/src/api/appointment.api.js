@@ -1,8 +1,8 @@
 import api from "./axiosClient";
 
 // GET user appointments
-export const getUserAppointments = async () => {
-  return api.get("/api/user/appointments");
+export const getUserAppointments = async (page = 1, limit = 7) => {
+  return api.get(`/api/user/appointments?page=${page}&limit=${limit}`);
 };
 
 // CANCEL appointment

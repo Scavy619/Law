@@ -141,6 +141,8 @@ const MyAppointments = () => {
 
   const [appointments, setAppointments] = useState([]);
   const [payment, setPayment] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Months array for date formatting
   const months = [
@@ -181,10 +183,13 @@ const MyAppointments = () => {
         return;
       }
 
-      const { data } = await userAppointments();
+      const { data } = await userAppointments(page, 7);
 
       if (data.success) {
         setAppointments(data.appointments);
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+        }
       } else {
         toast.error(data.message || "Failed to fetch appointments");
       }
@@ -245,6 +250,12 @@ const MyAppointments = () => {
     const rzp = new window.Razorpay(options);
     rzp.open();
   };
+
+  useEffect(() => {
+    if (userData) {
+      getUserAppointments();
+    }
+  }, [page, userData]);
 
   // Function to make payment using razorpay
   const appointmentRazorpay = async (appointmentId) => {
@@ -466,6 +477,34 @@ const MyAppointments = () => {
           ))
         )}
       </div>
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-8 mb-4 pb-8 w-full">
+          <button
+            onClick={() => {
+              setPage((p) => Math.max(1, p - 1));
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            disabled={page === 1}
+            className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors bg-white text-gray-700 font-medium shadow-sm"
+          >
+            Previous
+          </button>
+          <span className="text-gray-600 font-medium">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => {
+              setPage((p) => Math.min(totalPages, p + 1));
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            disabled={page === totalPages}
+            className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors bg-white text-gray-700 font-medium shadow-sm"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 };

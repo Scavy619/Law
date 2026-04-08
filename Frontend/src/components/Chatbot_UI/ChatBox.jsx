@@ -3,13 +3,15 @@ import { AppContext } from "../../context/AppContext";
 import { assets } from "../../assets/assets";
 import Message from "./Message";
 import { toast } from "react-toastify";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axiosClient";
 
 const ChatBox = () => {
   const containerRef = useRef(null);
   const { sessionId } = useParams();
+  const navigate = useNavigate();
 
+  
   const {
     userData,
     sessionId: contextSessionId,
@@ -23,6 +25,7 @@ const ChatBox = () => {
     creditsExhausted,
     creditsRemaining,
     setCreditsRemaining,
+    createNewChat
   } = useContext(AppContext);
 
   const [prompt, setPrompt] = useState("");
@@ -31,56 +34,58 @@ const ChatBox = () => {
   // Track the last failed prompt so we can offer a retry
   const [failedPrompt, setFailedPrompt] = useState(null);
 
-  // ── helpers ────────────────────────────────────────────────────────────────
 
   const isInputDisabled =
     loadingResponse || rateLimitCooldown || creditsExhausted;
 
-  // ── send logic ─────────────────────────────────────────────────────────────
-
+  // send logic 
   const sendMessage = async (text) => {
     if (!text.trim()) return;
-
+  
     if (!userData) {
       toast.error("Login to send message");
       return;
     }
-
-    if (!contextSessionId) {
-      toast.error("No active chat session");
-      return;
+  
+    // Session nahi hai toh pehle banao
+    let activeSessionId = contextSessionId;
+    if (!activeSessionId) {
+      activeSessionId = await createNewChat();
+      if (!activeSessionId) {
+        toast.error("Could not create chat session");
+        return;
+      }
+      navigate(`/chatbot/${activeSessionId}`);
     }
-
+  
     setFailedPrompt(null);
     setLoadingResponse(true);
-
+  
     const userMessage = {
       role: "user",
       content: text,
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMessage]);
-
+  
     try {
       const { data } = await api.post("/api/message/get-message", {
         message: text,
-        sessionId: contextSessionId,
+        sessionId: activeSessionId, // contextSessionId ki jagah
       });
-
+  
       if (data) {
         const botMessage = {
           role: "assistant",
           content: data.response.content,
           createdAt: new Date().toISOString(),
         };
-
         setMessages((prev) => [...prev, botMessage]);
-
-        // Update remaining credits from response
+  
         if (typeof data.creditsRemaining === "number") {
           setCreditsRemaining(data.creditsRemaining);
         }
-
+  
         if (currentSession) {
           setCurrentSession({
             ...currentSession,
@@ -93,16 +98,12 @@ const ChatBox = () => {
         }
       }
     } catch (error) {
-      // Remove the optimistic user message on failure
       setMessages((prev) => prev.filter((m) => m !== userMessage));
-
-      // If error was already handled by the interceptor (429 / 403), don't
-      // double-toast. Just expose retry for 429.
+  
       if (error.handled) {
         if (error.response?.status === 429) {
           setFailedPrompt(text);
         }
-        // 403 credit exhaustion: input is already disabled via context, nothing else needed
       } else {
         toast.error("Error sending message. Please try again.");
         setFailedPrompt(text);
@@ -111,7 +112,8 @@ const ChatBox = () => {
       setLoadingResponse(false);
     }
   };
-
+  
+  
   const onSubmit = async (e) => {
     e.preventDefault();
     if (isInputDisabled) return;

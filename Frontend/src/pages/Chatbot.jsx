@@ -41,17 +41,18 @@ const Chatbot = () => {
   }, [authLoading, userData, navigate]);
 
   // Create initial chat if no session exists and navigate to it
-  useEffect(() => {
-    if (userData && !sessionId && !urlSessionId) {
-      const handleInitialChat = async () => {
-        const newSessionId = await createNewChat();
-        if (newSessionId) {
-          navigate(`/chatbot/${newSessionId}`);
-        }
-      };
-      handleInitialChat();
-    }
-  }, [userData, sessionId, urlSessionId, createNewChat, navigate]);
+  // commented since it was causing issues with new empty chats bann rhi thhi even when no msg
+  // useEffect(() => {
+  //   if (userData && !sessionId && !urlSessionId) {
+  //     const handleInitialChat = async () => {
+  //       const newSessionId = await createNewChat();
+  //       if (newSessionId) {
+  //         navigate(`/chatbot/${newSessionId}`);
+  //       }
+  //     };
+  //     handleInitialChat();
+  //   }
+  // }, [userData, sessionId, urlSessionId, createNewChat, navigate]);
 
   if (authLoading) {
     return <Loader minHeight="min-h-screen" />;

@@ -67,19 +67,33 @@ const AdminContextProvider = (props) => {
   );
 
   // Getting all appointment data from Database using API
-  const getAllAppointments = useCallback(async () => {
-    try {
-      const { data } = await api.get("/api/admin/all-appointments");
-      if (data.success) {
-        setAppointments(data.appointments.reverse());
-      } else {
-        toast.error(data.message);
+  const getAllAppointments = useCallback(
+    async (
+      page = 1,
+      limit = 10,
+      status = "",
+      lawyer = "all",
+      sort = "desc",
+    ) => {
+      try {
+        const response = await api.get(
+          `/api/admin/all-appointments?page=${page}&limit=${limit}${status && status !== "all" ? `&status=${status}` : ""}${lawyer && lawyer !== "all" ? `&lawyer=${lawyer}` : ""}&sort=${sort}`,
+        );
+        const { data } = response;
+        if (data.success) {
+          setAppointments(data.appointments);
+        } else {
+          toast.error(data.message);
+        }
+        return response;
+      } catch (error) {
+        toast.error(error.message);
+        // console.log(error);
+        return { data: { success: false, message: error.message } };
       }
-    } catch (error) {
-      toast.error(error.message);
-      // console.log(error);
-    }
-  }, []);
+    },
+    [],
+  );
 
   // Function to cancel appointment using API
   const cancelAppointment = useCallback(

@@ -6,6 +6,7 @@ import { AppContext } from "../../context/AppContext";
 import { assets } from "../../assets/assets";
 import Loader from "../../components/common/Loader";
 import { useJoinStatus } from "../../hooks/canJoinVideo";
+import Pagination from "../../components/common/Pagination";
 
 const AppointmentActionButtons = ({
   item,
@@ -105,6 +106,19 @@ const LawyerAppointments = () => {
   const [sortOrder, setSortOrder] = useState("desc"); // 'asc' or 'desc'
   const [statusFilter, setStatusFilter] = useState("all");
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const fetchAppointments = async (page = 1) => {
+    setLoading(true);
+    const response = await getAppointments(page, 10, statusFilter, sortOrder);
+    if (response?.data?.pagination) {
+      setTotalPages(response.data.pagination.totalPages);
+      setCurrentPage(page);
+    }
+    setLoading(false);
+  };
+
   // Handle video call
   const handleJoinVideoCall = (appointmentId) => {
     navigate(`/lawyer/video-call/${appointmentId}`);
@@ -112,46 +126,11 @@ const LawyerAppointments = () => {
 
   useEffect(() => {
     if (lawyerData) {
-      getAppointments().finally(() => setLoading(false));
+      fetchAppointments(1);
     } else {
       setLoading(false);
     }
-  }, [lawyerData]);
-
-  // Apply Filters and Sorting
-  const filteredAppointments = useMemo(() => {
-    if (!appointments) return [];
-
-    let result = [...appointments];
-
-    // 1. Status Filter
-    if (statusFilter !== "all") {
-      result = result.filter((item) => {
-        if (statusFilter === "cancelled")
-          return item.cancelled && item.cancelled !== "Not Cancelled";
-        if (statusFilter === "completed") return item.isCompleted;
-        if (statusFilter === "upcoming")
-          return !item.cancelled && !item.isCompleted;
-        return true;
-      });
-    }
-
-    // 2. Date Sort
-    result.sort((a, b) => {
-      const parseDate = (dateStr) => {
-        if (!dateStr) return 0;
-        const [day, month, year] = dateStr.split("_").map(Number);
-        return new Date(year, month - 1, day).getTime();
-      };
-
-      const dateA = parseDate(a.slotDate);
-      const dateB = parseDate(b.slotDate);
-
-      return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
-    });
-
-    return result;
-  }, [appointments, statusFilter, sortOrder]);
+  }, [lawyerData, statusFilter, sortOrder]);
 
   if (loading) {
     return <Loader />;
@@ -215,7 +194,7 @@ const LawyerAppointments = () => {
         </div>
 
         <div className="divide-y divide-gray-50">
-          {filteredAppointments.map((item, index) => (
+          {appointments.map((item, index) => (
             <div
               className="flex flex-col sm:grid sm:grid-cols-[0.5fr_2fr_2fr_1fr_1.5fr] items-start sm:items-center py-4 px-6 gap-3 sm:gap-4 hover:bg-gray-50/60 transition-colors"
               key={index}
@@ -274,7 +253,7 @@ const LawyerAppointments = () => {
             </div>
           ))}
 
-          {(!filteredAppointments || filteredAppointments.length === 0) && (
+          {(!appointments || appointments.length === 0) && (
             <div className="py-20 text-center flex flex-col items-center justify-center">
               <div className="bg-gray-50 w-24 h-24 rounded-full flex items-center justify-center mb-4 border border-gray-100">
                 <Filter size={32} className="text-gray-400" />
@@ -285,7 +264,7 @@ const LawyerAppointments = () => {
               <p className="text-gray-500 text-sm mt-1">
                 Try adjusting your filters or search terms.
               </p>
-              {appointments.length > 0 && (
+              {statusFilter !== "all" && (
                 <button
                   onClick={() => setStatusFilter("all")}
                   className="mt-4 text-primary hover:text-primary/80 font-semibold text-sm hover:underline"
@@ -296,6 +275,12 @@ const LawyerAppointments = () => {
             </div>
           )}
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={fetchAppointments}
+        />
       </div>
     </div>
   );

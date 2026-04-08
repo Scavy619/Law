@@ -232,14 +232,43 @@ export const changeAvailability = async (req, res) => {
 
 export const getAllAppointments = async (req, res) => {
   try {
-    const raw = await appointmentModel
-      .find()
-      .select(
-        "slotDate slotTime amount payment isCompleted cancelled createdAt " +
-          "userId lawyerId userData lawyerData videoCall",
-      )
-      .sort({ createdAt: -1 })
-      .lean();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    const { status, lawyer, sort } = req.query;
+
+    if (status) {
+      if (status === "cancelled") {
+        query.cancelled = { $nin: ["Not Cancelled", false, null] };
+      } else if (status === "completed") {
+        query.isCompleted = true;
+      } else if (status === "upcoming") {
+        query.isCompleted = false;
+        query.cancelled = { $in: ["Not Cancelled", false, null] };
+      }
+    }
+
+    if (lawyer && lawyer !== "all") {
+      query["lawyerData.name"] = lawyer;
+    }
+
+    const sortOrder = sort === "asc" ? 1 : -1;
+
+    const [total, raw] = await Promise.all([
+      appointmentModel.countDocuments(query),
+      appointmentModel
+        .find(query)
+        .select(
+          "slotDate slotTime amount payment isCompleted cancelled createdAt " +
+            "userId lawyerId userData lawyerData videoCall",
+        )
+        .sort({ createdAt: sortOrder })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
     const appointments = raw.map((appt) => {
       const ud = appt.userData || {};
@@ -279,7 +308,16 @@ export const getAllAppointments = async (req, res) => {
       };
     });
 
-    return res.status(200).json({ success: true, appointments });
+    return res.status(200).json({
+      success: true,
+      appointments,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     // console.error("Error fetching appointments:", error);
     return res
@@ -444,7 +482,6 @@ export const adminDashboard = async (req, res) => {
     });
   }
 };
-
 
 // Admin refresh token endpoint
 export const refreshAdminAccessToken = async (req, res) => {

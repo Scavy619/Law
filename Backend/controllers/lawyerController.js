@@ -145,14 +145,39 @@ export const getLawyerAppointments = async (req, res) => {
   try {
     const lawyerId = req.lawyer.id;
 
-    const raw = await appointmentModel
-      .find({ lawyerId })
-      .select(
-        "slotDate slotTime amount payment isCompleted cancelled createdAt " +
-          "userId lawyerId userData lawyerData videoCall",
-      )
-      .sort({ createdAt: -1 })
-      .lean();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = { lawyerId };
+    const { status, sort } = req.query;
+
+    if (status) {
+      if (status === "cancelled") {
+        query.cancelled = { $nin: ["Not Cancelled", false, null] };
+      } else if (status === "completed") {
+        query.isCompleted = true;
+      } else if (status === "upcoming") {
+        query.isCompleted = false;
+        query.cancelled = { $in: ["Not Cancelled", false, null] };
+      }
+    }
+
+    const sortOrder = sort === "asc" ? 1 : -1;
+
+    const [total, raw] = await Promise.all([
+      appointmentModel.countDocuments(query),
+      appointmentModel
+        .find(query)
+        .select(
+          "slotDate slotTime amount payment isCompleted cancelled createdAt " +
+            "userId lawyerId userData lawyerData videoCall",
+        )
+        .sort({ createdAt: sortOrder })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
     // Manually shape — never return raw doc or embedded snapshots directly
     const appointments = raw.map((appt) => {
@@ -194,7 +219,16 @@ export const getLawyerAppointments = async (req, res) => {
       };
     });
 
-    return res.status(200).json({ success: true, appointments });
+    return res.status(200).json({
+      success: true,
+      appointments,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     return res
       .status(500)

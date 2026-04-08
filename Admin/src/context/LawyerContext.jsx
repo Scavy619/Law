@@ -10,20 +10,28 @@ const LawyerContextProvider = (props) => {
   const [profileData, setProfileData] = useState(false);
 
   // Getting Lawyer appointment data from Database using API
-  const getAppointments = useCallback(async () => {
-    try {
-      const { data } = await api.get("/api/lawyer/appointments");
+  const getAppointments = useCallback(
+    async (page = 1, limit = 10, status = "", sort = "desc") => {
+      try {
+        const response = await api.get(
+          `/api/lawyer/appointments?page=${page}&limit=${limit}${status && status !== "all" ? `&status=${status}` : ""}&sort=${sort}`,
+        );
+        const { data } = response;
 
-      if (data.success) {
-        setAppointments(data.appointments.reverse());
-      } else {
-        toast.error(data.message);
+        if (data.success) {
+          setAppointments(data.appointments);
+        } else {
+          toast.error(data.message);
+        }
+        return response;
+      } catch (error) {
+        // console.log(error);
+        toast.error(error.message);
+        return { data: { success: false, message: error.message } };
       }
-    } catch (error) {
-      // console.log(error);
-      toast.error(error.message);
-    }
-  }, []);
+    },
+    [],
+  );
 
   // Getting Lawyer profile data from Database using API
   const getProfileData = useCallback(async () => {

@@ -27,6 +27,11 @@ const AppointmentActionButtons = ({
   const { state, countdown } = useJoinStatus(item);
 
   const formatCountdown = (seconds) => {
+    if (seconds > 3600) {
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return `${hours}h ${mins}m`;
+    }
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
 

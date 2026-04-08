@@ -393,6 +393,21 @@ export const updateLawyerProfile = async (req, res) => {
     if (available !== undefined) updates.available = available;
     if (about !== undefined) updates.about = about;
 
+    if (req.file) {
+      const { v2: cloudinary } = await import("cloudinary");
+      const imageUrl = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { resource_type: "image" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result.secure_url);
+          },
+        );
+        uploadStream.end(req.file.buffer);
+      });
+      updates.image = imageUrl;
+    }
+
     const updatedLawyer = await lawyerModel.findByIdAndUpdate(
       lawyerId,
       { $set: updates },
@@ -426,44 +441,83 @@ export const lawyerDashboard = async (req, res) => {
   try {
     const lawyerId = req.lawyer.id;
 
-    // Run all queries in parallel for performance
     const [allAppointments, latestRaw] = await Promise.all([
-      // Fetch only fields needed for stats — no snapshots needed here
       appointmentModel
         .find({ lawyerId })
-        .select("isCompleted payment amount userId")
+        .select("isCompleted payment amount cancelled userId createdAt")
         .lean(),
-
-      // Fetch latest 5 with snapshot fields for shaping
       appointmentModel
         .find({ lawyerId })
         .select(
-          "slotDate slotTime amount payment isCompleted cancelled createdAt " +
-            "userId lawyerId userData lawyerData videoCall",
+          "slotDate slotTime amount payment isCompleted cancelled createdAt userId lawyerId userData lawyerData videoCall",
         )
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
     ]);
 
-    // Compute stats from the full set — no aggregate needed
     let totalEarnings = 0;
+    let completed = 0;
+    let cancelled = 0;
+    let pending = 0;
     const uniquePatientIds = new Set();
+
+    // Last 7 days earnings map
+    const earningsMap = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+      });
+      earningsMap[key] = 0;
+    }
 
     for (const appt of allAppointments) {
       if (appt.isCompleted && appt.payment) {
         totalEarnings += appt.amount || 0;
+
+        // Last 7 days earnings
+        const apptDate = new Date(appt.createdAt);
+        const key = apptDate.toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+        });
+        if (earningsMap.hasOwnProperty(key)) {
+          earningsMap[key] += appt.amount || 0;
+        }
       }
+
+      // Status breakdown
+      if (appt.cancelled && appt.cancelled !== "Not Cancelled") {
+        cancelled++;
+      } else if (appt.isCompleted) {
+        completed++;
+      } else {
+        pending++;
+      }
+
       if (appt.userId) {
         uniquePatientIds.add(appt.userId.toString());
       }
     }
 
-    // Manually shape latest appointments — never return raw docs
+    // Shape for chart
+    const earningsTrend = Object.entries(earningsMap).map(([date, amount]) => ({
+      date,
+      amount,
+    }));
+
+    // Completion rate
+    const completionRate =
+      allAppointments.length > 0
+        ? Math.round((completed / allAppointments.length) * 100)
+        : 0;
+
     const latestAppointments = latestRaw.map((appt) => {
       const ud = appt.userData || {};
       const ld = appt.lawyerData || {};
-
       return {
         id: appt._id,
         slotDate: appt.slotDate,
@@ -473,23 +527,17 @@ export const lawyerDashboard = async (req, res) => {
         isCompleted: appt.isCompleted,
         cancelled: appt.cancelled,
         createdAt: appt.createdAt,
-
-        // Always return consistent videoCall structure even if null
         videoCall: {
           status: appt.videoCall?.status ?? "not_started",
           duration: appt.videoCall?.duration ?? 0,
           startedAt: appt.videoCall?.startedAt ?? null,
           endedAt: appt.videoCall?.endedAt ?? null,
         },
-
-        // Safe user snapshot — name + URL image only, no sensitive fields
         user: {
           id: appt.userId,
           name: ud.name ?? null,
           image: ud.image && ud.image.startsWith("http") ? ud.image : null,
         },
-
-        // Safe lawyer snapshot — no password, no refreshToken, no slots_booked
         lawyer: {
           id: appt.lawyerId,
           name: ld.name ?? null,
@@ -505,18 +553,19 @@ export const lawyerDashboard = async (req, res) => {
         earnings: totalEarnings,
         appointments: allAppointments.length,
         patients: uniquePatientIds.size,
+        completionRate,
+        statusBreakdown: { completed, cancelled, pending },
+        earningsTrend,
         latestAppointments,
       },
     });
   } catch (error) {
-    // console.error("Lawyer dashboard error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
     });
   }
 };
-
 // Lawyer refresh token endpoint
 export const refreshLawyerAccessToken = async (req, res) => {
   try {

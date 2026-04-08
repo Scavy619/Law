@@ -13,25 +13,27 @@ const LawyerProfile = () => {
   const [isEdit, setIsEdit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
 
   const updateProfile = async () => {
     setSaving(true);
     try {
-      const updateData = {
-        address: profileData.address,
-        fees: profileData.fees,
-        about: profileData.about,
-        available: profileData.available,
-      };
+      const formData = new FormData();
+      formData.append("address", JSON.stringify(profileData.address));
+      formData.append("fees", profileData.fees);
+      formData.append("about", profileData.about);
+      formData.append("available", profileData.available);
 
-      const { data } = await api.patch(
-        "/api/lawyer/update-profile",
-        updateData,
-      );
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
+
+      const { data } = await api.patch("/api/lawyer/update-profile", formData);
 
       if (data.success) {
         toast.success(data.message);
         setIsEdit(false);
+        setImageFile(null);
         getProfileData();
       } else {
         toast.error(data.message);
@@ -45,6 +47,7 @@ const LawyerProfile = () => {
 
   const cancelEdit = () => {
     setIsEdit(false);
+    setImageFile(null);
     getProfileData();
   };
 
@@ -91,11 +94,32 @@ const LawyerProfile = () => {
 
       {/* ── Identity Row ── */}
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-8 text-center sm:text-left">
-        <img
-          src={profileData.image}
-          alt={profileData.name}
-          className="w-32 h-32 sm:w-40 sm:h-40 rounded-xl object-cover object-top bg-gray-100 shrink-0"
-        />
+        <div className="relative inline-block shrink-0">
+          <label htmlFor="profile-image">
+            <img
+              src={
+                imageFile ? URL.createObjectURL(imageFile) : profileData.image
+              }
+              alt={profileData.name}
+              className={`w-32 h-32 sm:w-40 sm:h-40 rounded-xl object-cover object-top bg-gray-100 ${isEdit ? "cursor-pointer opacity-80 hover:opacity-100 transition-opacity" : ""}`}
+            />
+            {isEdit && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span className="bg-black/50 text-white text-xs px-2 py-1 rounded">
+                  Change
+                </span>
+              </div>
+            )}
+          </label>
+          <input
+            type="file"
+            id="profile-image"
+            hidden
+            disabled={!isEdit}
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files[0])}
+          />
+        </div>
         <div className="min-w-0">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 break-words">
             {profileData.name}

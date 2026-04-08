@@ -340,30 +340,60 @@ export const cancelAppointmentByAdmin = async (req, res) => {
 
 export const adminDashboard = async (req, res) => {
   try {
-    // Run all counts + latest appointments fetch in parallel
-    const [lawyersCount, appointmentsCount, usersCount, latestRaw] =
+    const [lawyersCount, usersCount, allAppointments, latestRaw] =
       await Promise.all([
         lawyerModel.countDocuments(),
-        appointmentModel.countDocuments(),
         UserModel.countDocuments(),
         appointmentModel
           .find()
-          // userId and lawyerId are stored as String, not ObjectId refs,
-          // so .populate() is not available — use embedded snapshots safely
+          .select("amount payment isCompleted cancelled createdAt lawyerData")
+          .lean(),
+        appointmentModel
+          .find()
           .select(
-            "slotDate slotTime amount payment isCompleted cancelled createdAt " +
-              "userId lawyerId userData lawyerData videoCall",
+            "slotDate slotTime amount payment isCompleted cancelled createdAt userId lawyerId userData lawyerData videoCall",
           )
           .sort({ createdAt: -1 })
           .limit(5)
           .lean(),
       ]);
 
-    // Manually shape each appointment — never return raw docs
+    // Status breakdown
+    let totalRevenue = 0;
+    let completed = 0;
+    let cancelled = 0;
+    let pending = 0;
+    const specialityMap = {};
+
+    for (const appt of allAppointments) {
+      // Revenue
+      if (appt.isCompleted && appt.payment) {
+        totalRevenue += appt.amount || 0;
+      }
+
+      // Status breakdown
+      if (appt.cancelled && appt.cancelled !== "Not Cancelled") {
+        cancelled++;
+      } else if (appt.isCompleted) {
+        completed++;
+      } else {
+        pending++;
+      }
+
+      // Speciality breakdown
+      const speciality = appt.lawyerData?.speciality || "Other";
+      specialityMap[speciality] = (specialityMap[speciality] || 0) + 1;
+    }
+
+    // Shape speciality data for chart
+    const specialityBreakdown = Object.entries(specialityMap).map(
+      ([name, count]) => ({ name, count }),
+    );
+
+    // Shape latest appointments
     const latestAppointments = latestRaw.map((appt) => {
       const ud = appt.userData || {};
       const ld = appt.lawyerData || {};
-
       return {
         id: appt._id,
         slotDate: appt.slotDate,
@@ -373,7 +403,6 @@ export const adminDashboard = async (req, res) => {
         isCompleted: appt.isCompleted,
         cancelled: appt.cancelled,
         createdAt: appt.createdAt,
-
         videoCall: appt.videoCall
           ? {
               status: appt.videoCall.status ?? "not_started",
@@ -382,15 +411,11 @@ export const adminDashboard = async (req, res) => {
               endedAt: appt.videoCall.endedAt ?? null,
             }
           : null,
-
-        // Safe user snapshot — name + URL image only, nothing sensitive
         user: {
           id: appt.userId,
           name: ud.name ?? null,
           image: ud.image && ud.image.startsWith("http") ? ud.image : null,
         },
-
-        // Safe lawyer snapshot — no password, no refreshToken, no slots_booked
         lawyer: {
           id: appt.lawyerId,
           name: ld.name ?? null,
@@ -404,19 +429,22 @@ export const adminDashboard = async (req, res) => {
       success: true,
       dashData: {
         lawyers: lawyersCount,
-        appointments: appointmentsCount,
+        appointments: allAppointments.length,
         patients: usersCount,
+        totalRevenue,
+        statusBreakdown: { completed, cancelled, pending },
+        specialityBreakdown,
         latestAppointments,
       },
     });
   } catch (error) {
-    // console.error("Dashboard error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
     });
   }
 };
+
 
 // Admin refresh token endpoint
 export const refreshAdminAccessToken = async (req, res) => {

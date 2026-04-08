@@ -4,6 +4,7 @@ import DeleteAccountModal from "./DeleteAccountModal";
 import { updateUserProfile, forgotPassword } from "../api/user.api";
 import { toast } from "react-toastify";
 import { setup2FA, verify2FA, disable2FA } from "../api/user.api";
+import { exportAllChats } from "../api/chat.api";
 
 import Setup2FAModal from "../components/two_fa/Setup2FAModal";
 import Verify2FAModal from "../components/two_fa/Verify2FAModal";
@@ -24,13 +25,14 @@ const MyProfile = () => {
   const [setup2FAData, setSetup2FAData] = useState(null);
   const [showVerify2FA, setShowVerify2FA] = useState(false);
   const [showDisable2FA, setShowDisable2FA] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   /* ================= LOAD FRESH USER DATA ON MOUNT ================= */
   useEffect(() => {
     loadUserProfileData();
   }, []);
 
-  /* ================= IMAGE CHANGE HANDLER ================= */
+  // image change type
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -52,7 +54,7 @@ const MyProfile = () => {
     setImage(file);
   };
 
-  /* ================= UPDATE PROFILE ================= */
+  // profile update handler
   const updateUserProfileData = async () => {
     try {
       if (image && image.size > MAX_SIZE_BYTES) {
@@ -90,7 +92,7 @@ const MyProfile = () => {
     }
   };
 
-  /* ================= RESET PASSWORD ================= */
+  // reset password handler
   const handlePasswordReset = async () => {
     setResetLoading(true);
     try {
@@ -103,7 +105,7 @@ const MyProfile = () => {
     }
   };
 
-  /* ================= 2FA HANDLERS ================= */
+  // handlers for 2fa
 
   const handleEnable2FA = async () => {
     try {
@@ -141,6 +143,25 @@ const MyProfile = () => {
       const message = error.response?.data?.message || "Could not disable 2FA";
       toast.error(message);
       console.error("2FA Disable Error:", error.response?.data);
+    }
+  };
+
+  // handler for exporting chat
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const response = await exportAllChats();
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `lawbridge-chats-${Date.now()}.json`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export Error:", error);
+      toast.error("Failed to export chats");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -479,6 +500,29 @@ const MyProfile = () => {
           isGoogleUser={userData.authProvider === "google"}
         />
       )}
+
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-10">
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">
+          Data & Privacy
+        </h2>
+
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gray-50 rounded-xl p-6">
+          <div>
+            <p className="text-lg font-medium">Export Your Data</p>
+            <p className="text-sm text-gray-500">
+              Download all your chats in JSON format
+            </p>
+          </div>
+
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="px-8 py-3 rounded-lg bg-primary text-white font-medium shadow-lg shadow-primary/30 hover:scale-105 transition-transform disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isExporting ? "Exporting..." : "Export Chats"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

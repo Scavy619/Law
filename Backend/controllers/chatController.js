@@ -157,3 +157,49 @@ export const deleteChat = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+export const exportAllChats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const conversations = await conversationModel
+      .find({ userId })
+      .select("sessionId title messages createdAt updatedAt")
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    const filteredConversations = conversations.filter(
+      (conv) => conv.messages.length > 0
+    );
+    
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      totalConversations: filteredConversations.length,
+      conversations: filteredConversations.map((conv) => ({
+        sessionId: conv.sessionId,
+        title: conv.title || "Untitled",
+        createdAt: conv.createdAt,
+        updatedAt: conv.updatedAt,
+        totalMessages: conv.messages.length,
+        messages: conv.messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.createdAt,
+        })),
+      })),
+    };
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="lawbridge-chats-${Date.now()}.json"`,
+    );
+    res.setHeader("Content-Type", "application/json");
+
+    return res.status(200).json(exportData);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to export chats",
+    });
+  }
+};

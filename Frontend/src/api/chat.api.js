@@ -11,3 +11,8 @@ export const createChat = async (sessionId) => {
 export const getChatBySession = async (sessionId) => {
   return api.get(`/api/chat/get/${sessionId}`);
 };
+
+// get all user chats
+export const exportAllChats = async () => {
+  return api.get("/api/chat/export", { responseType: "blob" });
+};

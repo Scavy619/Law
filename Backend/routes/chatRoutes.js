@@ -6,6 +6,7 @@ import {
   deleteChat,
   getUserChats,
   updateChatTitle,
+  exportAllChats,
 } from "../controllers/chatController.js";
 import { routeLimiter } from "../middleware/rateLimiter.js";
 
@@ -33,6 +34,12 @@ chatRouter.delete(
   authUser,
   routeLimiter(20, 60 * 60, (req) => req.user.id),
   deleteChat,
+);
+chatRouter.get(
+  "/export",
+  authUser,
+  routeLimiter(5, 60 * 60, (req) => req.user.id),
+  exportAllChats,
 );
 
 export default chatRouter;

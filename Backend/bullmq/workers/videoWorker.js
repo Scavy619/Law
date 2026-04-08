@@ -1,4 +1,4 @@
-import "dotenv/config";
+// import "dotenv/config";
 import { Worker } from "bullmq";
 import redis from "../../config/redis.js";
 import Appointment from "../../models/appointmentModel.js";

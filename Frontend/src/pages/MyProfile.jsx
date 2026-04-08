@@ -25,7 +25,7 @@ const MyProfile = () => {
   const [setup2FAData, setSetup2FAData] = useState(null);
   const [showVerify2FA, setShowVerify2FA] = useState(false);
   const [showDisable2FA, setShowDisable2FA] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(null);
 
   /* ================= LOAD FRESH USER DATA ON MOUNT ================= */
   useEffect(() => {
@@ -147,21 +147,25 @@ const MyProfile = () => {
   };
 
   // handler for exporting chat
-  const handleExport = async () => {
+  const handleExport = async (format) => {
     try {
-      setIsExporting(true);
-      const response = await exportAllChats();
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      setIsExporting(format);
+      const response = await exportAllChats(format);
+      const extension = format === "pdf" ? "pdf" : "json";
+      const mimeType =
+        format === "pdf" ? "application/pdf" : "application/json";
+      const url = window.URL.createObjectURL(
+        new Blob([response.data], { type: mimeType }),
+      );
       const a = document.createElement("a");
       a.href = url;
-      a.download = `lawbridge-chats-${Date.now()}.json`;
+      a.download = `lawbridge-chats-${Date.now()}.${extension}`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Export Error:", error);
       toast.error("Failed to export chats");
     } finally {
-      setIsExporting(false);
+      setIsExporting(null);
     }
   };
 
@@ -505,22 +509,29 @@ const MyProfile = () => {
         <h2 className="text-2xl font-bold mb-6 text-gray-800">
           Data & Privacy
         </h2>
-
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-gray-50 rounded-xl p-6">
           <div>
             <p className="text-lg font-medium">Export Your Data</p>
             <p className="text-sm text-gray-500">
-              Download all your chats in JSON format
+              Download all your chats in JSON or PDF format
             </p>
           </div>
-
-          <button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="px-8 py-3 rounded-lg bg-primary text-white font-medium shadow-lg shadow-primary/30 hover:scale-105 transition-transform disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isExporting ? "Exporting..." : "Export Chats"}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <button
+              onClick={() => handleExport("json")}
+              disabled={isExporting}
+              className="w-full sm:w-auto px-8 py-3 rounded-lg bg-primary text-white font-medium shadow-lg shadow-primary/30 hover:scale-105 transition-transform disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isExporting === "json" ? "Exporting..." : "Export JSON"}
+            </button>
+            <button
+              onClick={() => handleExport("pdf")}
+              disabled={isExporting}
+              className="w-full sm:w-auto px-8 py-3 rounded-lg bg-primary text-white font-medium shadow-lg shadow-primary/30 hover:scale-105 transition-transform disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isExporting === "pdf" ? "Exporting..." : "Export PDF"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

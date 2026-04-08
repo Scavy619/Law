@@ -13,6 +13,6 @@ export const getChatBySession = async (sessionId) => {
 };
 
 // get all user chats
-export const exportAllChats = async () => {
-  return api.get("/api/chat/export", { responseType: "blob" });
+export const exportAllChats = async (format) => {
+  return api.get(`/api/chat/export?format=${format}`, { responseType: "blob" });
 };

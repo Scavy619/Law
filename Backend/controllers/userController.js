@@ -11,6 +11,8 @@ import {
   verifyRazorpaySchema,
   disable2FASchema,
   verifyDeleteAccountOtpSchema,
+  createPaymentOrderSchema,
+  verifyPaymentAndCreateAppointmentSchema,
 } from "../validations/userValidation.js";
 import redis from "../config/redis.js";
 import userModel from "../models/userModel.js";
@@ -685,6 +687,8 @@ export const updateUserProfile = async (req, res) => {
   }
 };
 
+/*
+// UNUSED IN NEW FLOW - Replaced by createPaymentOrder and verifyPaymentAndCreateAppointment
 export const bookAppointment = async (req, res) => {
   try {
     const validationResult = bookAppointmentSchema.safeParse(req.body);
@@ -810,6 +814,7 @@ export const bookAppointment = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+*/
 
 // api to list all appointments of a user
 // api to get user appointments for frontend my-appointments page
@@ -961,6 +966,8 @@ const razorpayInstance = new razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+/*
+// UNUSED IN NEW FLOW - Retained for legacy support
 export const paymentRazorpay = async (req, res) => {
   try {
     const validationResult = cancelAppointmentSchema.safeParse(req.body);
@@ -1091,6 +1098,194 @@ export const verifyRazorpay = async (req, res) => {
     });
   }
 };
+*/
+export const createPaymentOrder = async (req, res) => {
+  try {
+    const validationResult = createPaymentOrderSchema.safeParse(req.body);
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
+    const { lawyerId, slotDate, slotTime } = validationResult.data;
+
+    const lawyerData = await lawyerModel.findById(lawyerId);
+    if (!lawyerData) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Lawyer not found" });
+    }
+
+    if (!lawyerData.available) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Lawyer Not Available" });
+    }
+
+    // checking for slot availablity
+    let slots_booked = lawyerData.slots_booked;
+    if (slots_booked[slotDate] && slots_booked[slotDate].includes(slotTime)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Slot Not Available" });
+    }
+
+    // Create options for razorpay payment
+    const options = {
+      amount: lawyerData.fees * 100, // *100 to remove 2 decimal points
+      currency: process.env.CURRENCY,
+      receipt: `receipt_${Date.now()}`,
+    };
+
+    // Creation of an order
+    const order = await razorpayInstance.orders.create(options);
+
+    res.status(200).json({ success: true, order });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const verifyPaymentAndCreateAppointment = async (req, res) => {
+  try {
+    const validationResult = verifyPaymentAndCreateAppointmentSchema.safeParse(
+      req.body,
+    );
+
+    if (validationResult.error) {
+      return res.status(400).json({
+        error: validationResult.error.format(),
+        success: false,
+      });
+    }
+
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      lawyerId,
+      slotDate,
+      slotTime,
+    } = validationResult.data;
+    const userId = req.user.id;
+
+    // Verify signature
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest("hex");
+
+    const expectedBuffer = Buffer.from(expectedSignature);
+    const receivedBuffer = Buffer.from(razorpay_signature);
+
+    if (
+      expectedBuffer.length !== receivedBuffer.length ||
+      !crypto.timingSafeEqual(expectedBuffer, receivedBuffer)
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid payment signature" });
+    }
+
+    const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
+    if (orderInfo.status !== "paid") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Payment not completed" });
+    }
+
+    // Idempotency protection: Check if appointment already exists for this payment
+    const existingAppointment = await appointmentModel.findOne({
+      razorpayPaymentId: razorpay_payment_id,
+    });
+    if (existingAppointment) {
+      return res.status(200).json({
+        success: true,
+        message: "Appointment Booked Successfully!",
+      });
+    }
+
+    const lawyerData = await lawyerModel.findById(lawyerId).select("-password");
+    if (!lawyerData) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Lawyer not found" });
+    }
+
+    let slots_booked = lawyerData.slots_booked;
+    if (slots_booked[slotDate]) {
+      if (slots_booked[slotDate].includes(slotTime)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Slot Not Available" });
+      } else {
+        slots_booked[slotDate].push(slotTime);
+      }
+    } else {
+      slots_booked[slotDate] = [slotTime];
+    }
+
+    const rawUser = await userModel
+      .findById(userId)
+      .select("_id name image phone gender dob address");
+    const userData = rawUser
+      ? {
+          _id: rawUser._id,
+          name: rawUser.name,
+          image:
+            rawUser.image && rawUser.image.startsWith("http")
+              ? rawUser.image
+              : null,
+          phone: rawUser.phone,
+          gender: rawUser.gender,
+          dob: rawUser.dob,
+          address: rawUser.address,
+        }
+      : {};
+
+    const lawyerSnapshot = {
+      _id: lawyerData._id,
+      name: lawyerData.name,
+      image:
+        lawyerData.image && lawyerData.image.startsWith("http")
+          ? lawyerData.image
+          : null,
+      speciality: lawyerData.speciality,
+      degree: lawyerData.degree,
+      experience: lawyerData.experience,
+      fees: lawyerData.fees,
+      address: lawyerData.address,
+    };
+
+    const appointmentData = {
+      userId,
+      lawyerId,
+      userData,
+      lawyerData: lawyerSnapshot,
+      amount: lawyerData.fees,
+      slotTime,
+      slotDate,
+      date: Date.now(),
+      payment: true,
+      razorpayPaymentId: razorpay_payment_id,
+    };
+
+    const newAppointment = new appointmentModel(appointmentData);
+    await newAppointment.save();
+
+    await lawyerModel.findByIdAndUpdate(lawyerId, { slots_booked });
+
+    res
+      .status(201)
+      .json({ success: true, message: "Appointment Booked Successfully!" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 // delete account routes
 
 import { generateOTP } from "../utils/generateOTP.js";

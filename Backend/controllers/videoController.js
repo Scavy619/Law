@@ -10,21 +10,24 @@ import {
   videoTokenSchema,
   updateCallStatusSchema,
 } from "../validations/videoValidation.js";
+import {
+  scheduleCallEndJob,
+  cancelCallEndJob,
+} from "../bullmq/jobs/videoJobs.js";
 
 /**
  * Generate Stream token for user
  * Endpoint: POST /api/video/get-token
  */
 
- const getAppointmentDateTime = (appointment) => {
-   const [day, month, year] = appointment.slotDate.split("_");
- 
-   const dateTimeString = `${year}-${month}-${day} ${appointment.slotTime}`;
- 
-   return new Date(dateTimeString);
- };
- 
- 
+const getAppointmentDateTime = (appointment) => {
+  const [day, month, year] = appointment.slotDate.split("_");
+
+  const dateTimeString = `${year}-${month}-${day} ${appointment.slotTime}`;
+
+  return new Date(dateTimeString);
+};
+
 export const getVideoToken = async (req, res) => {
   try {
     const validationResult = videoTokenSchema.safeParse(req.body);
@@ -47,8 +50,6 @@ export const getVideoToken = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Appointment not found" });
     }
-    
-    
 
     // Verify user is part of appointment
     const isUser = appointment.userId.toString() === userId;
@@ -59,8 +60,7 @@ export const getVideoToken = async (req, res) => {
         .status(403)
         .json({ success: false, message: "Unauthorized access" });
     }
-    
-    
+
     // 3 checks - payment check -> appointment check -> Time join window check (15 minutes pehle hi join kar skta hai user appointment time ke)
     // Check if appointment is paid
     if (!appointment.payment) {
@@ -75,20 +75,19 @@ export const getVideoToken = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Appointment cancelled" });
     }
-    
-    
+
     const now = new Date();
     const slotStart = getAppointmentDateTime(appointment);
-    
+
     // can join before 15 minutes of start time
     const joinStart = new Date(slotStart.getTime() - 15 * 60 * 1000);
-    
+
     // assuming slot duration = 30 minutes
     const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
-    
+
     // meeting expires 10 minutes after slot end
     const expiryTime = new Date(slotEnd.getTime() + 10 * 60 * 1000);
-    
+
     // Prevent joining completed call
     if (appointment.videoCall?.status === "completed") {
       return res.status(403).json({
@@ -96,16 +95,16 @@ export const getVideoToken = async (req, res) => {
         message: "This call has already ended",
       });
     }
-    
-    
+
     // Too early
     if (now < joinStart) {
       return res.status(403).json({
         success: false,
-        message: "Video call can only be joined 15 minutes before the appointment",
+        message:
+          "Video call can only be joined 15 minutes before the appointment",
       });
     }
-    
+
     // Meeting expired
     if (now > expiryTime) {
       return res.status(403).json({
@@ -113,9 +112,6 @@ export const getVideoToken = async (req, res) => {
         message: "This meeting has expired",
       });
     }
-    
-    
-    
 
     // Get user name
     const userName = isUser
@@ -163,9 +159,9 @@ export const getVideoToken = async (req, res) => {
  * Update video call status (join/leave)
  * Endpoint: POST /api/video/update-status
  */
- 
- // Currently billing stops only if both participants leave.
- // So best way is to add in future -> slotEnd + 10 min → force end call which will be impleneted using BULLMQ
+
+// Currently billing stops only if both participants leave.
+// So best way is to add in future -> slotEnd + 10 min → force end call which will be impleneted using BULLMQ
 export const updateCallStatus = async (req, res) => {
   try {
     const validationResult = updateCallStatusSchema.safeParse(req.body);
@@ -200,6 +196,8 @@ export const updateCallStatus = async (req, res) => {
         if (!appointment.videoCall.startedAt) {
           appointment.videoCall.startedAt = new Date();
           appointment.videoCall.status = "in_progress";
+
+          await scheduleCallEndJob(appointment);
         }
         break;
 
@@ -224,6 +222,7 @@ export const updateCallStatus = async (req, res) => {
 
           // End call on Stream
           await endVideoCall(appointment.videoCall.callId);
+          await cancelCallEndJob(appointmentId);
         }
         break;
 
@@ -240,6 +239,7 @@ export const updateCallStatus = async (req, res) => {
         appointment.videoCall.duration = duration;
 
         await endVideoCall(appointment.videoCall.callId);
+        await cancelCallEndJob(appointmentId);
         break;
     }
 

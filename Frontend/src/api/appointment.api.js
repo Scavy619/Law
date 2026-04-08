@@ -12,15 +12,28 @@ export const cancelAppointment = async (appointmentId) => {
   });
 };
 
-// BOOK appointment
-export const bookAppointment = async (
-  lawyerId,
-  slotDate,
-  slotTime
-) => {
-  return api.post("/api/user/book-appointment", {
+// BOOK appointment - UNUSED IN NEW FLOW
+// export const bookAppointment = async (lawyerId, slotDate, slotTime) => {
+//   return api.post("/api/user/book-appointment", {
+//     lawyerId,
+//     slotDate,
+//     slotTime,
+//   });
+// };
+
+// Create Payment Order
+export const createPaymentOrder = async (lawyerId, slotDate, slotTime) => {
+  return api.post("/api/user/create-payment-order", {
     lawyerId,
     slotDate,
     slotTime,
   });
+};
+
+// Verify Payment and Create Appointment
+export const verifyPaymentAndCreateAppointment = async (paymentData) => {
+  return api.post(
+    "/api/user/verify-payment-and-create-appointment",
+    paymentData,
+  );
 };

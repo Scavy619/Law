@@ -112,3 +112,18 @@ export const verifyDeleteAccountOtpSchema = z.object({
     .length(6, "OTP must be exactly 6 digits")
     .regex(/^\d{6}$/, "OTP must contain only digits"),
 });
+
+export const createPaymentOrderSchema = z.object({
+  lawyerId: z.string().min(1, "Lawyer ID is required"),
+  slotDate: z.string().min(1, "Slot date is required"),
+  slotTime: z.string().min(1, "Slot time is required"),
+});
+
+export const verifyPaymentAndCreateAppointmentSchema = z.object({
+  razorpay_order_id: z.string().min(1, "Order ID is required"),
+  razorpay_payment_id: z.string().min(1, "Payment ID is required"),
+  razorpay_signature: z.string().min(1, "Signature is required"),
+  lawyerId: z.string().min(1, "Lawyer ID is required"),
+  slotDate: z.string().min(1, "Slot date is required"),
+  slotTime: z.string().min(1, "Slot time is required"),
+});

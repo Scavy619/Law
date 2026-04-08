@@ -4,7 +4,10 @@ import useApp from "../context/useApp";
 import { assets } from "../assets/assets";
 import RelatedLawyers from "../components/RelatedLawyers";
 import { toast } from "react-toastify";
-import { bookAppointment as bookTheAppointment } from "../api/appointment.api";
+import {
+  createPaymentOrder,
+  verifyPaymentAndCreateAppointment,
+} from "../api/appointment.api";
 import Loader from "../components/common/Loader";
 
 const Appointment = () => {
@@ -17,6 +20,8 @@ const Appointment = () => {
   const [lawyerSlots, setLawyerSlots] = useState([]);
   const [slotIndex, setSlotIndex] = useState(0);
   const [slotTime, setSlotTime] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const navigate = useNavigate();
 
@@ -92,8 +97,7 @@ const Appointment = () => {
     }
   };
 
-  const bookAppointment = async () => {
-    // checking if user is logged in or not
+  const handleOpenModal = () => {
     if (!userData) {
       toast.warning("Login to book appointment");
       return navigate("/login");
@@ -104,26 +108,77 @@ const Appointment = () => {
       return;
     }
 
-    const date = lawyerSlots[slotIndex][0].datetime;
+    setShowModal(true);
+  };
 
+  const handleConfirmAndPay = async () => {
+    setIsProcessingPayment(true);
+    const date = lawyerSlots[slotIndex][0].datetime;
     let day = date.getDate();
     let month = date.getMonth() + 1;
     let year = date.getFullYear();
-
     const slotDate = day + "_" + month + "_" + year;
 
     try {
-      const { data } = await bookTheAppointment(lawyerId, slotDate, slotTime);
-      if (data.success) {
-        toast.success(data.message);
-        getLawyersData();
-        navigate("/my-appointments");
-      } else {
-        toast.error(data.message);
+      const { data: orderData } = await createPaymentOrder(
+        lawyerId,
+        slotDate,
+        slotTime,
+      );
+
+      if (!orderData.success) {
+        toast.error(orderData.message);
+        setIsProcessingPayment(false);
+        return;
       }
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: "Appointment Payment",
+        description: `Consultation with ${lawyerInfo.name}`,
+        order_id: orderData.order.id,
+        handler: async (response) => {
+          try {
+            const paymentData = {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              lawyerId,
+              slotDate,
+              slotTime,
+            };
+
+            const { data: verifyData } =
+              await verifyPaymentAndCreateAppointment(paymentData);
+            if (verifyData.success) {
+              toast.success("Appointment Booked Successfully!");
+              setShowModal(false);
+              getLawyersData();
+              navigate("/my-appointments");
+            }
+          } catch (error) {
+            toast.error(
+              error.response?.data?.message || "Payment verification failed",
+            );
+          } finally {
+            setIsProcessingPayment(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setIsProcessingPayment(false);
+            toast.warning("Payment cancelled");
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (error) {
-      // console.log(error);
       toast.error(error.response?.data?.message || error.message);
+      setIsProcessingPayment(false);
     }
   };
 
@@ -297,7 +352,7 @@ const Appointment = () => {
           {/* Booking Button */}
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 sm:relative sm:border-0 sm:p-0 sm:bg-transparent">
             <button
-              onClick={bookAppointment}
+              onClick={handleOpenModal}
               disabled={!slotTime}
               className={`w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all ${
                 slotTime
@@ -331,6 +386,91 @@ const Appointment = () => {
           lawyerId={lawyerId}
         />
       </div>
+
+      {/* Payment Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 overflow-hidden shadow-xl">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Confirm Appointment
+            </h2>
+
+            <div className="space-y-3 mb-6 text-gray-600">
+              <div className="flex justify-between">
+                <span>Lawyer:</span>
+                <span className="font-medium text-gray-900">
+                  {lawyerInfo.name}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Date:</span>
+                <span className="font-medium text-gray-900">
+                  {lawyerSlots[slotIndex] &&
+                    lawyerSlots[slotIndex][0] &&
+                    lawyerSlots[slotIndex][0].datetime.toLocaleDateString()}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Time:</span>
+                <span className="font-medium text-gray-900">{slotTime}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Duration:</span>
+                <span className="font-medium text-gray-900">30 Mins</span>
+              </div>
+              <div className="flex justify-between pt-3 border-t">
+                <span className="font-medium">Total Amount:</span>
+                <span className="font-bold text-primary">
+                  {currencySymbol}
+                  {lawyerInfo.fees}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowModal(false)}
+                disabled={isProcessingPayment}
+                className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAndPay}
+                disabled={isProcessingPayment}
+                className="flex-1 py-3 px-4 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isProcessingPayment ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  "Confirm & Pay"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   ) : null;
 };

@@ -12,6 +12,7 @@ const appointmentSchema = new mongoose.Schema(
     date: { type: Number, required: true },
     cancelled: { type: String, default: "Not Cancelled" },
     payment: { type: Boolean, default: false },
+    razorpayPaymentId: { type: String, default: null },
     isCompleted: { type: Boolean, default: false },
     videoCall: {
       callId: { type: String, default: null }, // Unique call ID for Stream

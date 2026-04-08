@@ -8,18 +8,19 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "worker" : "node bullmq/workers/videoWorker.js"
+    "worker": "node bullmq/workers/videoWorker.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.32.1",
+  "packageManager": "pnpm@10.33.0",
   "dependencies": {
     "@getbrevo/brevo": "^4.0.1",
-    "@stream-io/node-sdk": "^0.7.51",
+    "@stream-io/node-sdk": "^0.7.52",
     "@types/cors": "^2.8.19",
-    "axios": "^1.14.0",
+    "axios": "^1.15.0",
     "bcrypt": "^6.0.0",
+    "bullmq": "^5.73.1",
     "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

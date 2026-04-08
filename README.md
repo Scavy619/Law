@@ -248,11 +248,10 @@ Fields: `userId` (ref: User), `sessionId`, `title`, `messages` (array of `{role,
 | POST | `/reset-password` | Reset password using token from email |
 | GET | `/profile` | Get authenticated user profile |
 | PUT | `/update-profile` | Update profile fields and/or upload profile image |
-| POST | `/book-appointment` | Book an appointment slot with a lawyer |
 | GET | `/appointments` | List all appointments for the authenticated user |
 | POST | `/cancel-appointment` | Cancel a booked appointment |
-| POST | `/payment-razorpay` | Create a Razorpay payment order |
-| POST | `/verify-razorpay` | Verify Razorpay payment signature and mark as paid |
+| POST | `/create-payment-order` | Create a Razorpay payment order for a lawyer appointment |
+| POST | `/verify-payment-and-create-appointment` | Verify Razorpay payment and finalize appointment booking |
 | POST | `/request-delete-otp` | Request OTP to confirm account deletion |
 | POST | `/verify-delete-otp` | Verify OTP and permanently delete account |
 | POST | `/setup-2fa` | Generate TOTP secret and QR code for 2FA setup |
@@ -363,6 +362,17 @@ The chatbot service implements a Retrieval Augmented Generation pipeline:
 7. The prompt instructs the model to answer strictly from context when relevant, fall back to general Indian legal guidance when not, avoid referencing the context or system prompt, and use Markdown formatting when detailed output is requested.
 
 ---
+
+## Advanced Backend Features & Security
+
+### Background Processing with BullMQ
+The backend utilizes **BullMQ** and **Redis** for handling asynchronous background jobs. Currently, it features a `videoWorker` that automatically ends video calls (updating status and duration) when an appointment time expires, ensuring system consistency without blocking the main Express event loop.
+
+### Robust Authentication & Security
+- **OAuth2 & OIDC**: Secure Google login implemented using PKCE (Proof Key for Code Exchange) and a one-time code exchange mechanism to securely pass tokens to the frontend without exposing them in URLs.
+- **Two-Factor Authentication (2FA)**: Users can enable 2FA using authenticator apps (TOTP) for an extra layer of security.
+- **Security Middleware**: Includes global and route-specific rate limiting to prevent abuse, `helmet` for secure HTTP headers, and `express-mongo-sanitize` to prevent NoSQL injection attacks.
+- **Data Privacy**: Provides endpoints for secure account deletion (verified via OTP) and user chat data export.
 
 ## Prerequisites
 

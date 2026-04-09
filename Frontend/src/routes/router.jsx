@@ -14,6 +14,7 @@ import MyAppointments from "../pages/MyAppointments.jsx";
 import Appointment from "../pages/Appointment.jsx";
 import Chatbot from "../pages/Chatbot.jsx";
 import VideoCall from "../pages/VideoCall.jsx";
+import NotFound from "../pages/NotFound.jsx";
 
 import Loader from "../components/common/Loader.jsx";
 import ProtectedRoute from "../components/ProtectedRoute.jsx";
@@ -179,6 +180,8 @@ const router = createBrowserRouter(
             </Suspense>
           }
         />
+
+        <Route path="*" element={<NotFound />} />
       </Route>
     </>,
   ),

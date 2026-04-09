@@ -25,6 +25,7 @@ import {
   verifyEmailTemplate,
   resetPasswordTemplate,
   deleteAccountOtpTemplate,
+  magicLinkTemplate
 } from "../services/emailTemplates.js";
 import {
   hashPasswordWithSalt,
@@ -1810,6 +1811,149 @@ export const disable2FA = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Could not disable 2FA",
+    });
+  }
+};
+
+
+// Magic Link for logging in existing user's 
+
+export const requestMagicLink = async (req, res) => {
+  try {
+    const validationResult = emailOnlySchema.safeParse(req.body);
+    if (validationResult.error) {
+      return res.status(400).json({
+        success: false,
+        error: validationResult.error.format(),
+      });
+    }
+
+    const { email } = validationResult.data;
+
+    const user = await userModel.findOne({ email });
+
+    // prevent user enumeration — same response whether user exists or not
+    if (!user || !user.emailVerified){
+      return res.status(200).json({
+        success: true,
+        message: "If an account exists, a magic link has been sent.",
+      });
+    }
+
+    // Google users should use Google login
+    if (user.authProvider === "google"){
+      return res.status(400).json({
+        success: false,
+        message: "This account uses Google Sign-In. Please login with Google.",
+      });
+    }
+
+    // Daily limit check — 2 magic links per day via Redis
+    const countKey = `magic:count:${user._id}`;
+    const currentCount = await redis.get(countKey);
+
+    if (currentCount !== null && parseInt(currentCount, 10) >= 2) {
+      return res.status(429).json({
+        success: false,
+        message: "You have reached the limit of 2 magic links per day. Please try again tomorrow.",
+      });
+    }
+
+    // Generate token
+    const { rawToken, hashedToken } = generateCryptoToken();
+
+    // Store in Redis: hashed token → userId, 15 min TTL
+    await redis.set(`magic:token:${hashedToken}`, user._id.toString(), "EX", 15 * 60);
+
+    // Increment daily counter, expire at end of day (86400s max)
+    const newCount = await redis.incr(countKey);
+    if (newCount === 1) {
+      // Set TTL to seconds remaining until midnight
+      const now = new Date();
+      const midnight = new Date();
+      midnight.setHours(24, 0, 0, 0);
+      const secondsUntilMidnight = Math.floor((midnight - now) / 1000);
+      await redis.expire(countKey, secondsUntilMidnight);
+    }
+
+    const magicLink = `${process.env.FRONTEND_URL}/verify-magic-link/${rawToken}`;
+
+    await sendEmail({
+      to: email,
+      subject: "Your Magic Login Link - LawBridge",
+      html: magicLinkTemplate(magicLink),
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "If an account exists, a magic link has been sent.",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const verifyMagicLink = async (req, res) => {
+  try {
+    const token = String(req.params.token);
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const redisKey = `magic:token:${hashedToken}`;
+    const userId = await redis.get(redisKey);
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Magic link is invalid or has expired.",
+      });
+    }
+
+    // One-time use — delete immediately
+    await redis.del(redisKey);
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    // Generate tokens — same as normal login
+    const accessToken = generateAccessToken({ id: user._id });
+    const refreshToken = generateRefreshToken({ id: user._id });
+
+    user.refreshToken = hashToken(refreshToken);
+    await user.save({ validateBeforeSave: false });
+
+    return res
+      .cookie("refreshToken", refreshToken, refreshCookieOptions)
+      .status(200)
+      .json({
+        success: true,
+        message: "Logged in successfully",
+        accessToken,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          phone: user.phone,
+          address: user.address,
+          gender: user.gender,
+          dob: user.dob,
+          emailVerified: user.emailVerified,
+          twoFactorEnabled: user.twoFactorEnabled,
+          authProvider: user.authProvider,
+        },
+      });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
     });
   }
 };

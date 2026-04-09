@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { verifyUserEmail, resendVerification } from "../api/user.api";
 import Loader from "../components/common/Loader";
 
@@ -51,59 +52,59 @@ const Verify = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 text-center">
-        {status === "loading" && (
-          <Loader minHeight="min-h-[200px]" />
-        )}
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 p-8 md:p-10 text-center relative overflow-hidden">
+        {status === "loading" && <Loader minHeight="min-h-[200px]" />}
 
         {status === "success" && (
-          <>
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <span className="text-2xl">✅</span>
+          <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-50 border-4 border-green-100">
+              <CheckCircle2 className="w-10 h-10 text-green-500" />
             </div>
-            <h2 className="text-xl font-semibold text-green-600">
-              Email Verified
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 tracking-tight">
+              Email Verified!
             </h2>
-            <p className="mt-2 text-gray-600">{message}</p>
+            <p className="text-gray-500 mb-8 max-w-xs">{message}</p>
 
             <Link
               to="/login"
-              className="mt-6 inline-block rounded-lg bg-green-600 px-6 py-2 text-white font-medium hover:bg-green-700 transition"
+              className="w-full inline-block rounded-xl bg-primary px-8 py-3.5 text-white font-semibold hover:bg-primary/90 transition-all hover:shadow-lg active:scale-[0.98]"
             >
-              Go to Login
+              Continue to Login
             </Link>
-          </>
+          </div>
         )}
 
         {status === "error" && (
-          <>
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-              <span className="text-2xl">❌</span>
+          <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-50 border-4 border-red-100">
+              <XCircle className="w-10 h-10 text-red-500" />
             </div>
-            <h2 className="text-xl font-semibold text-red-600">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 tracking-tight">
               Verification Failed
             </h2>
-            <p className="mt-2 text-gray-600">{message}</p>
+            <p className="text-gray-500 mb-8 max-w-xs">{message}</p>
 
-            <button
-              onClick={handleResend}
-              disabled={resendStatus !== "idle"}
-              className="mt-4 text-sm text-primary underline disabled:opacity-60"
-            >
-              {resendStatus === "sending"
-                ? "Sending email..."
-                : resendStatus === "sent"
-                  ? "Email already sent ✓"
-                  : "Resend verification email"}
-            </button>
+            <div className="w-full flex flex-col gap-3">
+              <button
+                onClick={handleResend}
+                disabled={resendStatus !== "idle"}
+                className="w-full rounded-xl bg-gray-50 border border-gray-200 px-8 py-3.5 text-gray-700 font-semibold hover:bg-gray-100 hover:text-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resendStatus === "sending"
+                  ? "Sending email..."
+                  : resendStatus === "sent"
+                    ? "Email Sent Successfully"
+                    : "Resend Verification Email"}
+              </button>
 
-            <Link
-              to="/login"
-              className="mt-6 block rounded-lg bg-gray-800 px-6 py-2 text-white font-medium hover:bg-gray-900 transition"
-            >
-              Go to Login
-            </Link>
-          </>
+              <Link
+                to="/login"
+                className="w-full inline-block rounded-xl bg-primary px-8 py-3.5 text-white font-semibold hover:bg-primary/90 transition-all hover:shadow-lg active:scale-[0.98]"
+              >
+                Go to Login
+              </Link>
+            </div>
+          </div>
         )}
       </div>
     </div>

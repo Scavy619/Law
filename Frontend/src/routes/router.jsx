@@ -32,6 +32,7 @@ const Resources = lazy(() => import("../pages/Resources.jsx"));
 const ResetPassword = lazy(() => import("../pages/ResetPassword.jsx"));
 const Verify = lazy(() => import("../pages/Verify.jsx"));
 const VerifyEmail = lazy(() => import("../pages/VerifyEmail.jsx"));
+const VerifyMagicLink = lazy(() => import("../pages/VerifyMagicLink.jsx"));
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -180,6 +181,16 @@ const router = createBrowserRouter(
             </Suspense>
           }
         />
+        
+        <Route
+          path="verify-magic-link/:token"
+          element={
+            <Suspense fallback={<Loader />}>
+              <VerifyMagicLink />
+            </Suspense>
+          }
+        />
+        
 
         <Route path="*" element={<NotFound />} />
       </Route>

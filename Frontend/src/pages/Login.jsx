@@ -8,12 +8,17 @@ import {
   loginUser,
   forgotPassword,
   loginWithGoogle,
+  requestMagicLink
 } from "../api/user.api.js";
 import { setAccessToken } from "../context/auth.tokens.js";
 
 const Login = () => {
   const [state, setState] = useState("Sign Up");
   const [searchParams, setSearchParams] = useSearchParams();
+  const [showMagicLink, setShowMagicLink] = useState(false);
+  const [magicLinkEmail, setMagicLinkEmail] = useState("");
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   // Show error toast if redirected back from Google OAuth with an error
   useEffect(() => {
@@ -235,6 +240,32 @@ const Login = () => {
       }
     } finally {
       setForgotLoading(false);
+    }
+  };
+  
+  
+  // magic link
+  const handleMagicLink = async () => {
+    if (!magicLinkEmail) {
+      toast.error("Please enter your email");
+      return;
+    }
+  
+    setMagicLinkLoading(true);
+    try {
+      const { data } = await requestMagicLink(magicLinkEmail);
+      if (data.success) {
+        setMagicLinkSent(true);
+        toast.success("Magic link sent! Check your email.");
+      }
+    } catch (error) {
+      if (error.response?.status === 429) {
+        startCooldown(10, error.response?.data?.message);
+      } else if (!error.handled) {
+        toast.error(error.response?.data?.message || "Could not send magic link");
+      }
+    } finally {
+      setMagicLinkLoading(false);
     }
   };
 
@@ -466,6 +497,58 @@ const Login = () => {
             </button>
           </div>
         )}
+        
+        {/* MAGIC LINK */}
+        {state === "Login" && !requires2FA && (
+          <div className="w-full">
+            <p
+              onClick={() => {
+                setShowMagicLink(!showMagicLink);
+                setMagicLinkSent(false);
+                setMagicLinkEmail(email); // prefill with whatever email user typed
+              }}
+              className="text-sm text-primary underline cursor-pointer"
+            >
+              Login with magic link instead
+            </p>
+        
+            {showMagicLink && (
+              <div className="mt-3 w-full">
+                {magicLinkSent ? (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3 text-sm text-green-700">
+                    Magic link sent to <strong>{magicLinkEmail}</strong>. 
+                    Check your email — link expires in 15 minutes.
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-500 mb-2">
+                      We'll send a one-time login link to your email.
+                    </p>
+                    <input
+                      type="email"
+                      value={magicLinkEmail}
+                      onChange={(e) => setMagicLinkEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      className="border border-[#DADADA] rounded w-full p-2 text-sm mb-2"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleMagicLink}
+                      disabled={magicLinkLoading || rateLimited}
+                      className="bg-primary text-white w-full py-2 rounded-md text-sm disabled:opacity-60"
+                    >
+                      {rateLimited
+                        ? `Wait ${cooldownSecs}s`
+                        : magicLinkLoading
+                        ? "Sending..."
+                        : "Send magic link"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* RESEND VERIFICATION */}
         {state === "Login" && showResend && !requires2FA && (
@@ -479,6 +562,8 @@ const Login = () => {
             </span>
           </p>
         )}
+        
+        
 
         {/* SWITCH MODE */}
         {!requires2FA && (

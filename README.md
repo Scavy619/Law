@@ -21,6 +21,7 @@ LawBridge Database Schema:
 ### User Features
 
 - Secure registration with email verification via hashed tokens
+- Magic link passwordless login for seamless authentication
 - JWT-based stateless authentication using short-lived access tokens and long-lived refresh tokens stored in HttpOnly cookies
 - Optional Two-Factor Authentication (TOTP) via QR code or manual key entry; supports setup, verification, and disabling with password confirmation
 - Password reset via time-limited email tokens
@@ -28,6 +29,7 @@ LawBridge Database Schema:
 - Profile management including name, phone, address, gender, date of birth, and profile image upload via Cloudinary
 - Browse lawyers filtered by specialisation
 - Appointment booking with slot selection and conflict prevention
+- Appointment scheduling constraints (maximum 2 appointments per day, and up to 3 appointments within a 5-day period)
 - Razorpay payment integration for appointment fees with signature verification
 - Appointment cancellation with automatic slot release back to the lawyer
 - Real-time one-on-one video consultations using Stream.io Video SDK with call lifecycle tracking (join, leave, end, duration)
@@ -349,9 +351,41 @@ When credits are exhausted, the backend returns HTTP 403 with a `daily credit li
 
 ---
 
-## RAG Pipeline
+## Chatbot Document Upload & RAG Flow
 
-The chatbot service implements a Retrieval Augmented Generation pipeline:
+The platform supports a comprehensive document analysis flow, allowing users to query their own uploaded legal documents alongside the platform's core legal knowledge base:
+
+1. **Frontend → JS Backend (Document Selection)**
+   - User selects a file on the frontend.
+   - The JS Backend performs extension validation, size limit checks, and daily upload limit checks against the database.
+   - The original file is stored securely on Cloudinary.
+   - The backend forwards the Cloudinary URL and file buffer to the Python Chatbot API.
+
+2. **JS Backend → Python Chatbot API (Processing Request)**
+   - A `POST /api/process-document` request is sent containing the `user_id`, `filename`, `cloudinary_url`, and the `file_bytes`.
+
+3. **Python Pipeline (Document Ingestion)**
+   - **Detection:** The pipeline identifies the file type (PDF, DOCX, TXT, Image).
+   - **Extraction:** Raw text is extracted using the appropriate parser.
+   - **Chunking:** The text is split into semantic chunks.
+   - **Embedding & Storage:** Chunks are vectorized and stored in Pinecone within a user-specific namespace (`user-uploads-<user_id>`).
+   - A success response with the number of chunks stored is returned to the JS Backend.
+
+4. **Chat Flow (Hybrid Q&A)**
+   - The user submits a question to the JS Backend, which forwards it to `POST /api/chat` with the desired mode (`knowledge-base`, `user-uploads`, or `both`).
+   - The Python API retrieves context from the core legal knowledge base (default namespace) and/or the user's specific uploads (user-specific namespace).
+   - Both sets of results are merged.
+   - Google Gemini receives the merged context alongside the query to generate a precise answer.
+
+5. **Frontend → User (Response Delivery)**
+   - The answer is streamed or returned to the user.
+   - Citations are provided to indicate the source of the information (e.g., "यह जानकारी आपके uploaded document से है" vs "यह जानकारी legal knowledge base से है").
+
+---
+
+## RAG Pipeline (Core Knowledge Base)
+
+The chatbot service implements a core Retrieval Augmented Generation pipeline:
 
 1. PDF documents from the `chatbot/data/` directory are loaded page-by-page using `PyPDFLoader` with source filename metadata tagging.
 2. Documents are chunked using `RecursiveCharacterTextSplitter` with a chunk size of 1000 characters and an overlap of 200 characters.

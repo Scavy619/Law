@@ -1161,6 +1161,52 @@ export const createPaymentOrder = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Slot Not Available" });
     }
+      
+    
+    // meeting booking restrictions : per day 2 meeting hi book kr skta hai user
+    // and maximum 3 meetings in next 5 days (done so as to avoid ki ek banda hi sbhi slots book krle)
+    const userId = req.user.id;
+   
+       const today = new Date();
+       today.setHours(0, 0, 0, 0);
+       const windowEnd = new Date(today);
+       windowEnd.setDate(today.getDate() + 4); // today included = 5 days total
+   
+       const parseSlotDate = (sd) => {
+         const [d, m, y] = sd.split("_");
+         return new Date(y, m - 1, d);
+       };
+   
+       const existingAppointments = await appointmentModel.find({
+         userId,
+         cancelled: "Not Cancelled",
+         isCompleted: false,
+       });
+   
+       // Check: max 3 in next 5 days (rolling window)
+       const inWindow = existingAppointments.filter((apt) => {
+         const aptDate = parseSlotDate(apt.slotDate);
+         return aptDate >= today && aptDate <= windowEnd;
+       });
+   
+       if (inWindow.length >= 3){
+         return res.status(400).json({
+           success: false,
+           message: "You can only have 3 appointments within the next 5 days",
+         });
+       }
+   
+       // Check: max 2 per day
+       const onSameDay = existingAppointments.filter(
+         (apt) => apt.slotDate === slotDate
+       );
+   
+       if (onSameDay.length >= 2) {
+         return res.status(400).json({
+           success: false,
+           message: "You can only book 2 appointments per day",
+         });
+       }
 
     // Create options for razorpay payment
     const options = {
@@ -1236,6 +1282,46 @@ export const verifyPaymentAndCreateAppointment = async (req, res) => {
         message: "Appointment Booked Successfully!",
       });
     }
+    
+    // restrictions checking 
+    const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const windowEnd = new Date(today);
+        windowEnd.setDate(today.getDate() + 4);
+    
+        const parseSlotDate = (sd) => {
+          const [d, m, y] = sd.split("_");
+          return new Date(y, m - 1, d);
+        };
+    
+        const existingUserAppointments = await appointmentModel.find({
+          userId,
+          cancelled: "Not Cancelled",
+          isCompleted: false,
+        });
+    
+        const inWindow = existingUserAppointments.filter((apt) => {
+          const aptDate = parseSlotDate(apt.slotDate);
+          return aptDate >= today && aptDate <= windowEnd;
+        });
+    
+        if (inWindow.length >= 3) {
+          return res.status(400).json({
+            success: false,
+            message: "You can only have 3 appointments within the next 5 days",
+          });
+        }
+    
+        const onSameDay = existingUserAppointments.filter(
+          (apt) => apt.slotDate === slotDate
+        );
+    
+        if (onSameDay.length >= 2) {
+          return res.status(400).json({
+            success: false,
+            message: "You can only book 2 appointments per day",
+          });
+        }
 
     const lawyerData = await lawyerModel.findById(lawyerId).select("-password");
     if (!lawyerData) {

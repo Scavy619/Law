@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import {
   createPaymentOrder,
   verifyPaymentAndCreateAppointment,
+  getUserAppointments
 } from "../api/appointment.api";
 import Loader from "../components/common/Loader";
 
@@ -33,21 +34,16 @@ const Appointment = () => {
   // all available slots of lawyer, will be used later to remove the booked slots from frontend
   const getAvailableSlots = async () => {
     setLawyerSlots([]);
-
-    // getting current date
     let today = new Date();
-
-    for (let i = 0; i < 7; i++) {
-      // getting date with index
+  
+    for (let i = 0; i < 5; i++) {
       let currentDate = new Date(today);
       currentDate.setDate(today.getDate() + i);
-
-      // setting end time of the date with index
+  
       let endTime = new Date();
       endTime.setDate(today.getDate() + i);
       endTime.setHours(21, 0, 0, 0);
-
-      // setting hours
+  
       if (today.getDate() === currentDate.getDate()) {
         currentDate.setHours(
           currentDate.getHours() > 10 ? currentDate.getHours() + 1 : 10,
@@ -57,58 +53,104 @@ const Appointment = () => {
         currentDate.setHours(10);
         currentDate.setMinutes(0);
       }
-
+  
       let timeSlots = [];
-
+  
       while (currentDate < endTime) {
-        let formattedTime = currentDate.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-
-        let day = currentDate.getDate();
-        let month = currentDate.getMonth() + 1;
-        let year = currentDate.getFullYear();
-
-        const slotDate = day + "_" + month + "_" + year;
-        const slotTime = formattedTime;
-
-        // Check if slot is booked
-        const isSlotAvailable =
-          lawyerInfo.slots_booked &&
-          lawyerInfo.slots_booked[slotDate] &&
-          lawyerInfo.slots_booked[slotDate].includes(slotTime)
-            ? false
-            : true;
-
-        if (isSlotAvailable) {
-          // Add slot to array
-          timeSlots.push({
-            datetime: new Date(currentDate),
-            time: formattedTime,
+        const hours = currentDate.getHours();
+        const minutes = currentDate.getMinutes();
+  
+        //Skip lunch break: 1:00 PM to 2:30 PM
+        const isLunchBreak =
+          (hours === 13) || (hours === 14 && minutes === 0);
+  
+        if (!isLunchBreak) {
+          let formattedTime = currentDate.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
           });
+  
+          let day = currentDate.getDate();
+          let month = currentDate.getMonth() + 1;
+          let year = currentDate.getFullYear();
+  
+          const slotDate = day + "_" + month + "_" + year;
+          const slotTime = formattedTime;
+  
+          const isSlotAvailable =
+            lawyerInfo.slots_booked &&
+            lawyerInfo.slots_booked[slotDate] &&
+            lawyerInfo.slots_booked[slotDate].includes(slotTime)
+              ? false
+              : true;
+  
+          if (isSlotAvailable) {
+            timeSlots.push({
+              datetime: new Date(currentDate),
+              time: formattedTime,
+            });
+          }
         }
-
-        // Increment current time by 30 minutes
+  
         currentDate.setMinutes(currentDate.getMinutes() + 30);
       }
-
+  
       setLawyerSlots((prev) => [...prev, timeSlots]);
     }
   };
 
-  const handleOpenModal = () => {
+  const handleOpenModal = async () => {
     if (!userData) {
       toast.warning("Login to book appointment");
       return navigate("/login");
     }
-
-    if (!lawyerSlots[slotIndex] || lawyerSlots[slotIndex].length === 0) {
-      toast.warning("No slots available for the selected day");
+  
+    if (!slotTime) {
+      toast.warning("Please select a time slot");
       return;
     }
-
-    setShowModal(true);
+  
+    try {
+      const { data } = await getUserAppointments(1, 100, "upcoming");
+      const active = data.appointments || [];
+  
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const windowEnd = new Date(today);
+      windowEnd.setDate(today.getDate() + 4); // today included = 5 days
+  
+      const parseSlotDate = (sd) => {
+        const [d, m, y] = sd.split("_");
+        return new Date(y, m - 1, d);
+      };
+  
+      // Check: max 3 in next 5 days
+      const inWindow = active.filter((apt) => {
+        const aptDate = parseSlotDate(apt.slotDate);
+        return aptDate >= today && aptDate <= windowEnd;
+      });
+  
+      if (inWindow.length >= 3) {
+        toast.error("You already have 3 appointments in the next 5 days! Check our booking policy for more information.");
+        return;
+      }
+  
+      // Check: max 2 per day
+      const selectedDate = lawyerSlots[slotIndex][0].datetime;
+      const slotDateStr = `${selectedDate.getDate()}_${selectedDate.getMonth() + 1}_${selectedDate.getFullYear()}`;
+  
+      const onSameDay = active.filter((apt) => apt.slotDate === slotDateStr);
+  
+      if (onSameDay.length >= 2) {
+        toast.error("You already have 2 appointments on this day. Check our booking policy for more information.");
+        return;
+      }
+  
+      setShowModal(true);
+    } catch (err) {
+      // agar fetch fail bhi ho toh user blocked na ho, backend checks hain waise bhi
+      setShowModal(true);
+    }
   };
 
   const handleConfirmAndPay = async () => {

@@ -2,18 +2,28 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import useApp from "../context/useApp";
 import Loader from "../components/common/Loader";
-import { Search, Filter, X, MapPin, Briefcase, GraduationCap, Award } from "lucide-react";
+import {
+  Search,
+  Filter,
+  X,
+  MapPin,
+  Briefcase,
+  GraduationCap,
+  Award,
+} from "lucide-react";
 
 const Lawyers = () => {
   const { speciality } = useParams();
   const [filteredLawyers, setFilteredLawyers] = useState([]);
   const [showFilter, setShowFilter] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSpeciality, setSelectedSpeciality] = useState(speciality || "");
+  const [selectedSpeciality, setSelectedSpeciality] = useState(
+    speciality || "",
+  );
   const [selectedCity, setSelectedCity] = useState("");
   const [experienceFilter, setExperienceFilter] = useState("");
   const [sortBy, setSortBy] = useState("name");
-  
+
   const navigate = useNavigate();
   const { lawyers } = useApp();
 
@@ -28,7 +38,9 @@ const Lawyers = () => {
   ];
 
   // Extract unique cities from lawyers data
-  const cities = [...new Set(lawyers.map(lawyer => lawyer.address?.City).filter(Boolean))];
+  const cities = [
+    ...new Set(lawyers.map((lawyer) => lawyer.address?.City).filter(Boolean)),
+  ];
 
   // Experience ranges
   const experienceRanges = [
@@ -44,20 +56,20 @@ const Lawyers = () => {
     // Speciality filter
     if (selectedSpeciality) {
       filtered = filtered.filter(
-        (lawyer) => lawyer.speciality === selectedSpeciality
+        (lawyer) => lawyer.speciality === selectedSpeciality,
       );
     }
 
     // City filter
     if (selectedCity) {
       filtered = filtered.filter(
-        (lawyer) => lawyer.address?.City === selectedCity
+        (lawyer) => lawyer.address?.City === selectedCity,
       );
     }
 
     // Experience filter
     if (experienceFilter) {
-      const range = experienceRanges.find(r => r.label === experienceFilter);
+      const range = experienceRanges.find((r) => r.label === experienceFilter);
       if (range) {
         filtered = filtered.filter((lawyer) => {
           const exp = parseInt(lawyer.experience);
@@ -68,10 +80,13 @@ const Lawyers = () => {
 
     // Search filter
     if (searchQuery) {
-      filtered = filtered.filter((lawyer) =>
-        lawyer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lawyer.speciality.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lawyer.address?.City?.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        (lawyer) =>
+          lawyer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          lawyer.speciality.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          lawyer.address?.City?.toLowerCase().includes(
+            searchQuery.toLowerCase(),
+          ),
       );
     }
 
@@ -100,7 +115,14 @@ const Lawyers = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [lawyers, selectedSpeciality, selectedCity, experienceFilter, searchQuery, sortBy]);
+  }, [
+    lawyers,
+    selectedSpeciality,
+    selectedCity,
+    experienceFilter,
+    searchQuery,
+    sortBy,
+  ]);
 
   const clearFilters = () => {
     setSelectedSpeciality("");
@@ -111,7 +133,11 @@ const Lawyers = () => {
     navigate("/lawyers");
   };
 
-  const activeFiltersCount = [selectedSpeciality, selectedCity, experienceFilter].filter(Boolean).length;
+  const activeFiltersCount = [
+    selectedSpeciality,
+    selectedCity,
+    experienceFilter,
+  ].filter(Boolean).length;
 
   if (!lawyers || lawyers.length === 0) {
     return <Loader minHeight="min-h-screen" />;
@@ -125,10 +151,15 @@ const Lawyers = () => {
           Find a Lawyer
         </h1>
         <div className="w-20 h-1 bg-primary mx-auto rounded-full mb-4" />
-        <p className="text-gray-500 text-sm md:text-base max-w-xl mx-auto">
+        <p className="text-gray-500 text-sm md:text-base max-w-xl mx-auto mb-4">
           Browse our network of verified legal professionals and find the right
           specialist for your situation.
         </p>
+        <div className="inline-block bg-blue-50 text-blue-700 text-xs md:text-sm px-4 py-2 rounded-lg border border-blue-100 mx-auto text-left max-w-xl">
+          <span className="font-semibold">Booking Policy:</span> You can book a
+          maximum of 2 appointments per day, and up to 3 appointments within a
+          5-day period.
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -315,10 +346,14 @@ const Lawyers = () => {
           {/* Results Count */}
           <div className="mb-6">
             <p className="text-gray-600 text-sm">
-              Showing <span className="font-semibold">{filteredLawyers.length}</span>{" "}
+              Showing{" "}
+              <span className="font-semibold">{filteredLawyers.length}</span>{" "}
               {filteredLawyers.length === 1 ? "lawyer" : "lawyers"}
               {selectedSpeciality && (
-                <span> in <span className="font-semibold">{selectedSpeciality}</span></span>
+                <span>
+                  {" "}
+                  in <span className="font-semibold">{selectedSpeciality}</span>
+                </span>
               )}
             </p>
           </div>
@@ -367,7 +402,7 @@ const Lawyers = () => {
                     <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-primary transition-colors">
                       {lawyer.name}
                     </h3>
-                    
+
                     <div className="flex items-center gap-1.5 text-sm text-gray-600 mb-3">
                       <Briefcase className="w-4 h-4" />
                       <span>{lawyer.speciality}</span>
@@ -378,7 +413,7 @@ const Lawyers = () => {
                         <GraduationCap className="w-4 h-4 flex-shrink-0" />
                         <span className="truncate">{lawyer.degree}</span>
                       </div>
-                      
+
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Award className="w-4 h-4 flex-shrink-0" />
                         <span>{lawyer.experience} Experience</span>
@@ -387,7 +422,9 @@ const Lawyers = () => {
                       {lawyer.address?.City && (
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <MapPin className="w-4 h-4 flex-shrink-0" />
-                          <span className="truncate">{lawyer.address.City}</span>
+                          <span className="truncate">
+                            {lawyer.address.City}
+                          </span>
                         </div>
                       )}
                     </div>

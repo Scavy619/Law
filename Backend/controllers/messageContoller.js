@@ -117,7 +117,7 @@ export const getMessage = async (req, res) => {
       });
     }
 
-    const { sessionId, message } = validationResult.data;
+    const { sessionId, message, attachedDocument } = validationResult.data;
 
     let chat = await conversationModel.findOne({ sessionId, userId });
 
@@ -132,6 +132,7 @@ export const getMessage = async (req, res) => {
     chat.messages.push({
       role: "user",
       content: message,
+      attachedDocument: attachedDocument || null,
     });
 
     const chatbot_response = await axios.post(

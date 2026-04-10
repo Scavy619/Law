@@ -32,6 +32,7 @@ const ChatBox = () => {
 
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState([]);
+  const [activeDocument, setActiveDocument] = useState(null);
 
   // Track the last failed prompt so we can offer a retry
   const [failedPrompt, setFailedPrompt] = useState(null);
@@ -76,9 +77,11 @@ const ChatBox = () => {
       const { data } = await api.post("/api/message/get-message", {
         message: text,
         sessionId: activeSessionId, // contextSessionId ki jagah
+        attachedDocument: activeDocument || null,
       });
 
       if (data) {
+        setActiveDocument(null);
         const botMessage = {
           role: "assistant",
           content: data.response.content,
@@ -321,60 +324,76 @@ const ChatBox = () => {
               </span>
             </div>
           ) : (
-            <form
-              onSubmit={onSubmit}
-              className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 p-3 sm:p-4 flex gap-2 sm:gap-3 items-center"
-            >
-              {/* for docs upload */}
-              <div className="flex-shrink-0 [&_span]:hidden">
-                <DocumentUpload />
-              </div>
-              <textarea
-                onChange={(e) => setPrompt(e.target.value)}
-                value={prompt}
-                placeholder={
-                  rateLimitCooldown
-                    ? "Rate limited — please wait..."
-                    : "Ask your legal question..."
-                }
-                className="flex-1 text-sm sm:text-base text-gray-700 placeholder-gray-400 outline-none bg-transparent resize-none overflow-y-auto min-h-[40px] max-h-24 sm:max-h-32 leading-6 disabled:cursor-not-allowed"
-                required
-                disabled={isInputDisabled}
-                rows={1}
-                onInput={(e) => {
-                  e.target.style.height = "auto";
-                  const maxHeight = window.innerWidth < 640 ? 96 : 128;
-                  e.target.style.height =
-                    Math.min(e.target.scrollHeight, maxHeight) + "px";
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    onSubmit(e);
-                  }
-                }}
-              />
-              <button
-                disabled={isInputDisabled || !prompt.trim()}
-                type="submit"
-                className="flex-shrink-0 p-2.5 sm:p-3 bg-[#A456F7] hover:bg-[#9146E6] disabled:bg-gray-300 rounded-xl transition-colors duration-200 group min-w-[40px] sm:min-w-[44px]"
-                title={
-                  rateLimitCooldown
-                    ? "Rate limited — wait a moment"
-                    : creditsExhausted
-                      ? "Daily credits exhausted"
-                      : loadingResponse
-                        ? "Waiting for response..."
-                        : "Send message"
-                }
+            <>
+              {activeDocument && (
+                <div className="flex items-center gap-2 mb-2 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-700">
+                  <span className="truncate flex-1">
+                    📎 {activeDocument.filename}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveDocument(null)}
+                    className="text-purple-400 hover:text-purple-600 text-lg leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+              <form
+                onSubmit={onSubmit}
+                className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 p-3 sm:p-4 flex gap-2 sm:gap-3 items-center"
               >
-                <img
-                  src={loadingResponse ? assets.stop_icon : assets.send_icon}
-                  alt={loadingResponse ? "loading" : "send"}
-                  className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-105 transition-transform duration-200 mx-auto"
+                {/* for docs upload */}
+                <div className="flex-shrink-0 [&_span]:hidden">
+                  <DocumentUpload onDocumentUploaded={setActiveDocument} />
+                </div>
+                <textarea
+                  onChange={(e) => setPrompt(e.target.value)}
+                  value={prompt}
+                  placeholder={
+                    rateLimitCooldown
+                      ? "Rate limited — please wait..."
+                      : "Ask your legal question..."
+                  }
+                  className="flex-1 text-sm sm:text-base text-gray-700 placeholder-gray-400 outline-none bg-transparent resize-none overflow-y-auto min-h-[40px] max-h-24 sm:max-h-32 leading-6 disabled:cursor-not-allowed"
+                  required
+                  disabled={isInputDisabled}
+                  rows={1}
+                  onInput={(e) => {
+                    e.target.style.height = "auto";
+                    const maxHeight = window.innerWidth < 640 ? 96 : 128;
+                    e.target.style.height =
+                      Math.min(e.target.scrollHeight, maxHeight) + "px";
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      onSubmit(e);
+                    }
+                  }}
                 />
-              </button>
-            </form>
+                <button
+                  disabled={isInputDisabled || !prompt.trim()}
+                  type="submit"
+                  className="flex-shrink-0 p-2.5 sm:p-3 bg-[#A456F7] hover:bg-[#9146E6] disabled:bg-gray-300 rounded-xl transition-colors duration-200 group min-w-[40px] sm:min-w-[44px]"
+                  title={
+                    rateLimitCooldown
+                      ? "Rate limited — wait a moment"
+                      : creditsExhausted
+                        ? "Daily credits exhausted"
+                        : loadingResponse
+                          ? "Waiting for response..."
+                          : "Send message"
+                  }
+                >
+                  <img
+                    src={loadingResponse ? assets.stop_icon : assets.send_icon}
+                    alt={loadingResponse ? "loading" : "send"}
+                    className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-105 transition-transform duration-200 mx-auto"
+                  />
+                </button>
+              </form>
+            </>
           )}
         </div>
       </div>

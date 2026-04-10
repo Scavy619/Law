@@ -16,4 +16,13 @@ export const deleteChatSchema = z.object({
 export const getMessageSchema = z.object({
   sessionId: z.string().min(1, "Session ID is required"),
   message: z.string().min(1, "Message is required"),
+  attachedDocument: z
+    .object({
+      documentId: z.string(),
+      filename: z.string(),
+      cloudinaryUrl: z.string(),
+      fileType: z.string(),
+    })
+    .nullable()
+    .optional(),
 });

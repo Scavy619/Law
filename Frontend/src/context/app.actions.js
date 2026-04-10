@@ -2,8 +2,10 @@ import { toast } from "react-toastify";
 import { getLawyersData as fetchLawyersAPI } from "../api/lawyer.api";
 import { getUserProfileData } from "../api/user.api";
 import { createChat, getChatBySession } from "../api/chat.api";
-import { uploadDocument as uploadDocumentAPI, getUserDocuments } from "../api/document.api";
-
+import {
+  uploadDocument as uploadDocumentAPI,
+  getUserDocuments,
+} from "../api/document.api";
 
 export const appActions = ({
   setLawyers,
@@ -12,7 +14,7 @@ export const appActions = ({
   setCurrentSession,
   setUserDocuments,
   setUploadsRemaining,
-  setUploadingDocument
+  setUploadingDocument,
 }) => ({
   // Lawyers related
   getLawyersData: async () => {
@@ -80,9 +82,8 @@ export const appActions = ({
       // console.error(err);
     }
   },
-  
-  
-  // document related 
+
+  // document related
   loadUserDocuments: async () => {
     try {
       const { data } = await getUserDocuments();
@@ -94,7 +95,7 @@ export const appActions = ({
       // silently fail
     }
   },
-  
+
   uploadDocument: async (file) => {
     try {
       setUploadingDocument(true);
@@ -105,9 +106,11 @@ export const appActions = ({
         setUserDocuments((prev) => [data.document, ...prev]);
         setUploadsRemaining(data.uploadsRemaining);
         toast.success(`"${data.document.filename}" uploaded successfully`);
+        return data;
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Document upload failed");
+      return null;
     } finally {
       setUploadingDocument(false);
     }

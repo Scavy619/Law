@@ -1,14 +1,22 @@
 import { useRef } from "react";
 import useApp from "../../context/useApp";
 
-const DocumentUpload = () => {
+const DocumentUpload = ({ onDocumentUploaded }) => {
   const { uploadDocument, uploadingDocument, uploadsRemaining } = useApp();
   const fileInputRef = useRef(null);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    await uploadDocument(file);
+    const data = await uploadDocument(file);
+    if (data && onDocumentUploaded) {
+      onDocumentUploaded({
+        documentId: data.document._id,
+        filename: data.document.filename,
+        cloudinaryUrl: data.document.cloudinaryUrl,
+        fileType: data.document.fileType,
+      });
+    }
     e.target.value = ""; // reset input
   };
 

@@ -1,28 +1,60 @@
 import mongoose from "mongoose";
 
-const messageSchema = new mongoose.Schema({
-  role: {
-    type: String,
-    enum: ["user", "assistant"],
-    required: true,
+// ye schema sirf conversation context ke liye banaya hai
+const attachedDocumentSchema = new mongoose.Schema(
+  {
+    documentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "document",
+      required: true,
+    },
+    filename: {
+      type: String,
+      required: true,
+    },
+    cloudinaryUrl: {
+      type: String,
+      required: true,
+    },
+    fileType: {
+      type: String,
+      enum: ["pdf", "docx", "txt", "image"],
+      required: true,
+    },
   },
-  content: {
-    type: String,
-    required: true,
+  { _id: false }, // nested object hai, alag _id nahi chahiye
+);
+
+const messageSchema = new mongoose.Schema(
+  {
+    role: {
+      type: String,
+      enum: ["user", "assistant"],
+      required: true,
+    },
+    content: {
+      type: String,
+      required: true,
+    },
+    // Sirf user messages mein hoga, assistant ke liye null
+    attachedDocument: {
+      type: attachedDocumentSchema,
+      default: null,
+    },
   },
-}, { timestamps: true });
+  { timestamps: true },
+);
 
 const conversationSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "user",   // like foreign key we refer to user model
+      ref: "user",
       required: true,
     },
     sessionId: {
       type: String,
       required: true,
-      // unique: true,
     },
     title: {
       type: String,
@@ -30,14 +62,15 @@ const conversationSchema = new mongoose.Schema(
     },
     messages: [messageSchema],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 conversationSchema.index({ userId: 1, sessionId: 1 }, { unique: true });
 conversationSchema.index({ userId: 1 });
 conversationSchema.index({ updatedAt: -1 });
 
+const conversationModel =
+  mongoose.models.conversation ||
+  mongoose.model("conversation", conversationSchema);
 
-
-const conversationModel = mongoose.models.Conversation || mongoose.model("Conversation", conversationSchema);
 export default conversationModel;

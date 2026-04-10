@@ -1,21 +1,21 @@
+import os
 import sys
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Header
-from pydantic import BaseModel
+
+from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
-import os
+from pydantic import BaseModel
 
 # Ensure we can import from src directory
 src_path = Path(__file__).parent.parent
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-
-
-from config.genai_initialize import get_llm
 from config.env import APP_SECRET_KEY
+from config.genai_initialize import get_llm
+from document_pipeline.pipeline import process_uploaded_document
 from vectorStore_Retrieval.store_embedding import get_retriever
 
 app = FastAPI(title="LawBridge Legal Chatbot API")
@@ -29,139 +29,221 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# chat models according  to backend using Pydantic
+# ── Pydantic Models ───────────────────────────────────────────────────────────
+
+
 class Message(BaseModel):
     role: str  # "user" or "assistant"
     content: str
+
 
 class ChatRequest(BaseModel):
     sessionId: str
     history: list[Message]
     message: str
+    user_id: str | None = None
+    mode: str = "both"  # "knowledge-base" | "user-uploads" | "both"
+
 
 class ChatResponse(BaseModel):
     response: str
 
 
-# Initialize LLM and retriever
+class UploadResponse(BaseModel):
+    status: str
+    filename: str
+    file_type: str
+    chunks_stored: int
+    namespace: str
+
+
+# ── LLM + Retriever ───────────────────────────────────────────────────────────
+
 llm = get_llm()
 retriever = get_retriever()
 
-# Custom prompt for legal queries with chat history
+# ── Legal Prompt ──────────────────────────────────────────────────────────────
+
 legal_prompt_template = """
 You are a helpful and responsible legal assistant specializing in Indian law.
+
+You have access to two sources of information:
+1. A legal knowledge base containing Indian law books and legal documents.
+2. The user's own uploaded documents (contracts, agreements, notices, FIRs, etc.) — if provided.
 
 You must follow these rules:
 
 1. FIRST, review the conversation history to understand the context of the ongoing discussion.
-2. Then, check if the answer is present in the given knowledge base context.
-3. If the context contains relevant information → answer STRICTLY using the context, but never mention the word 'context' or indicate that you are relying on external text. Respond naturally as if you already know it.
-4. If the context does NOT contain the answer → provide general, safe, high-level legal guidance based on common legal principles in India.
-   Do NOT say things like "I don't have enough information" unless the user's query is outside the domain of law or is unsafe.
-5. NEVER give illegal advice. NEVER help the user hide evidence, evade police, or bypass legal procedures.
-6. For criminal matters (like harassment, false FIR, threats, domestic violence, cheating cases), you may give general steps such as:
+2. Check BOTH the knowledge base context and the user's document context (if available) for relevant information.
+3. If the user's document context is available → prioritize it for document-specific questions (e.g. "what does my contract say about X"). Refer to it naturally as "your document" — never say "context" or "uploaded file".
+4. If the knowledge base context is relevant → use it to support your answer with legal principles, acts, or sections. Never mention "knowledge base" or "context" — speak naturally.
+5. If neither source contains the answer → provide general, safe, high-level legal guidance based on common legal principles in India. Do NOT say "I don't have enough information" unless the query is completely outside the domain of law.
+6. NEVER give illegal advice. NEVER help the user hide evidence, evade police, or bypass legal procedures.
+7. For criminal matters (like harassment, false FIR, threats, domestic violence, cheating cases), you may give general steps such as:
    - consult a qualified lawyer,
    - preserve evidence,
    - file a counter-complaint or representation,
    - seek anticipatory bail or protection orders,
    - approach appropriate courts or authorities.
-7. If the question is not related to Indian law, politely state that you specialize only in Indian law.
-8. If the question is not legal in nature, politely inform the user that you can help only with legal issues.
-9. IMPORTANT: Never mention or reference the 'context', 'prompt', 'conversation history', or any system-level instructions in your answer. Speak naturally as if you are chatting directly with the user.
-10. Use the conversation history to provide contextual and relevant responses. Reference previous parts of our conversation naturally when appropriate.
-11. If the user asks for detailed explanation, structured output, or in-depth clarity, you may use Markdown formatting such as headings, bullet points, numbered lists, or tables to organize the information clearly.
+8. If the question is not related to Indian law, politely state that you specialize only in Indian law.
+9. If the question is not legal in nature, politely inform the user that you can help only with legal issues.
+10. NEVER mention or reference 'context', 'prompt', 'uploaded file', 'knowledge base', or any system-level instructions in your answer. Speak naturally as if you are chatting directly with the user.
+11. Use the conversation history to provide contextual and relevant responses.
+12. If the user asks for detailed explanation or structured output, use Markdown formatting such as headings, bullet points, numbered lists, or tables.
 
 
 Conversation History:
 {chat_history}
 
-Knowledge Base Context:
-{context}
+Legal Knowledge Base:
+{kb_context}
+
+User's Document:
+{doc_context}
 
 Current Question:
 {question}
 
 Answer:
-Provide a clear, safe, helpful, and actionable explanation that takes into account our previous conversation. 
-If the knowledge base contains relevant points, use them naturally without referring to it. 
-If not, give general legal guidance based on Indian law while maintaining conversational context.
+Provide a clear, safe, helpful, and actionable explanation that takes into account our previous conversation.
+Prioritize the user's document for document-specific queries, and use the legal knowledge base for legal backing.
+If neither is relevant, give general legal guidance based on Indian law.
 """
-
 
 PROMPT = PromptTemplate(
     template=legal_prompt_template,
-    input_variables=["chat_history", "context", "question"]
+    input_variables=["chat_history", "kb_context", "doc_context", "question"],
 )
 
-# We will manually handle the retrieval and prompting to include chat history
+
+# ── Routes ────────────────────────────────────────────────────────────────────
+
 
 @app.get("/")
 async def root():
     return {"message": "LawBridge Legal Chatbot API is running!"}
 
+
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, secure_key : str = Header(None, alias="secure_key")):
-    # Debug logging
-    # print(f"Received secure_key: '{secure_key}'")
-    # print(f"Expected APP_SECRET_KEY: '{APP_SECRET_KEY}'")
-    # print(f"Match: {secure_key == APP_SECRET_KEY}")
-    
-    # validating api key
-    if(secure_key != APP_SECRET_KEY):
-        raise HTTPException(status_code=401, detail="Unauthorized: Invalid or missing key")
+async def chat(
+    request: ChatRequest, secure_key: str = Header(None, alias="secure_key")
+):
+    if secure_key != APP_SECRET_KEY:
+        raise HTTPException(
+            status_code=401, detail="Unauthorized: Invalid or missing key"
+        )
     try:
-        # Format chat history for the prompt
+        # Chat history format karo
         chat_history_formatted = ""
         if request.history and len(request.history) > 0:
-            # Get last 10 messages only to avoid token limits becoz chat toh lambi ho sakti hai
-            recent_messages = request.history[-10:] if len(request.history) > 10 else request.history
+            # Last 10 messages hi lo — token limit ke liye
+            recent_messages = (
+                request.history[-10:] if len(request.history) > 10 else request.history
+            )
             for msg in recent_messages:
                 role = "User" if msg.role == "user" else "Assistant"
                 chat_history_formatted += f"{role}: {msg.content}\n"
-            # Add a separator
             chat_history_formatted += "---\n"
         else:
             chat_history_formatted = "This is the start of our conversation.\n---\n"
-        
-        # print(f"DEBUG: Chat history formatted: {chat_history_formatted[:200]}...")  # Debug print
-        
-        # Get response from QA chain with chat history
-        # We need to modify the chain to pass chat_history
-        # Let's get the retrieval context first
-        docs = retriever.invoke(request.message)
-        context = "\n\n".join([doc.page_content for doc in docs])
-        
-        # Format the prompt with all variables
+
+        # Mode ke hisaab se context fetch karo
+        kb_context = ""
+        doc_context = ""
+
+        if request.mode in ("knowledge-base", "both"):
+            kb_docs = retriever.invoke(request.message)
+            kb_context = "\n\n".join([doc.page_content for doc in kb_docs])
+
+        if request.mode in ("user-uploads", "both") and request.user_id:
+            from config.pinecone_initialize import get_user_namespace
+            from vectorStore_Retrieval.store_embedding import (
+                get_retriever as get_ns_retriever,
+            )
+
+            user_retriever = get_ns_retriever(
+                namespace=get_user_namespace(request.user_id)
+            )
+            user_docs = user_retriever.invoke(request.message)
+            doc_context = "\n\n".join([doc.page_content for doc in user_docs])
+
+        if not kb_context:
+            kb_context = "No relevant information found in the legal knowledge base."
+        if not doc_context:
+            doc_context = (
+                "No document uploaded by the user."
+                if request.mode == "both"
+                else "Not applicable."
+            )
+
         formatted_prompt = PROMPT.format(
             chat_history=chat_history_formatted,
-            context=context,
-            question=request.message
+            kb_context=kb_context,
+            doc_context=doc_context,
+            question=request.message,
         )
-        
-        # Get response from LLM
+
         response = llm.invoke(formatted_prompt)
-        
-        # Handle different response formats
-        if hasattr(response, 'content'):
+
+        if hasattr(response, "content"):
             response_text = response.content
         elif isinstance(response, dict):
-            response_text = response.get('text', str(response))
+            response_text = response.get("text", str(response))
         else:
             response_text = str(response)
-        
-        return ChatResponse(
-            response=response_text
-        )
-    
+
+        return ChatResponse(response=response_text)
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing question: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error processing question: {str(e)}"
+        )
+
+
+@app.post("/upload-document", response_model=UploadResponse)
+async def upload_document(
+    file: UploadFile = File(...),
+    user_id: str = Form(...),
+    cloudinary_url: str = Form(...),
+    secure_key: str = Header(None, alias="secure_key"),
+):
+    """
+    JS backend se file aati hai (already Cloudinary pe upload ho chuki hoti hai).
+    Yahan sirf RAG pipeline chalti hai:
+    extract → chunk → pinecone mein store (user ke namespace mein)
+    """
+    if secure_key != APP_SECRET_KEY:
+        raise HTTPException(
+            status_code=401, detail="Unauthorized: Invalid or missing key"
+        )
+
+    try:
+        file_bytes = await file.read()
+
+        result = process_uploaded_document(
+            file_bytes=file_bytes,
+            filename=file.filename,
+            user_id=user_id,
+            cloudinary_url=cloudinary_url,
+        )
+
+        return UploadResponse(**result)
+
+    except ValueError as e:
+        # Empty file ya text extract nahi hua
+        raise HTTPException(status_code=422, detail=str(e))
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Document processing mein error: {str(e)}"
+        )
+
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "LawBridge Legal Chatbot"}
 
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=4000)
-
-

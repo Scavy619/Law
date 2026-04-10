@@ -5,6 +5,7 @@ import { updateUserProfile, forgotPassword } from "../api/user.api";
 import { toast } from "react-toastify";
 import { setup2FA, verify2FA, disable2FA } from "../api/user.api";
 import { exportAllChats } from "../api/chat.api";
+import { getUserDocuments } from "../api/document.api";
 
 import Setup2FAModal from "../components/two_fa/Setup2FAModal";
 import Verify2FAModal from "../components/two_fa/Verify2FAModal";
@@ -26,6 +27,9 @@ const MyProfile = () => {
   const [showVerify2FA, setShowVerify2FA] = useState(false);
   const [showDisable2FA, setShowDisable2FA] = useState(false);
   const [isExporting, setIsExporting] = useState(null);
+  const [userDocuments, setUserDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(true);
+  const [uploadsRemaining, setUploadsRemaining] = useState(2);
 
   /* ================= LOAD FRESH USER DATA ON MOUNT ================= */
   useEffect(() => {
@@ -53,6 +57,23 @@ const MyProfile = () => {
 
     setImage(file);
   };
+
+  useEffect(() => {
+    const fetchDocs = async () => {
+      try {
+        const { data } = await getUserDocuments();
+        if (data.success) {
+          setUserDocuments(data.documents);
+          setUploadsRemaining(data.uploadsRemaining);
+        }
+      } catch {
+        // silently fail
+      } finally {
+        setDocumentsLoading(false);
+      }
+    };
+    fetchDocs();
+  }, []);
 
   // profile update handler
   const updateUserProfileData = async () => {
@@ -533,6 +554,90 @@ const MyProfile = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* ================= MY DOCUMENTS ================= */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-10">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">My Documents</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Documents uploaded for legal Q&A
+            </p>
+          </div>
+          <span
+            className={`text-sm font-medium px-3 py-1 rounded-full ${
+              uploadsRemaining === 0
+                ? "bg-red-50 text-red-500 border border-red-200"
+                : "bg-purple-50 text-purple-500 border border-purple-200"
+            }`}
+          >
+            {uploadsRemaining}/2 uploads remaining today
+          </span>
+        </div>
+
+        {documentsLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : userDocuments.length === 0 ? (
+          <div className="bg-gray-50 rounded-xl p-8 text-center">
+            <p className="text-gray-400 text-sm">No documents uploaded yet</p>
+            <p className="text-gray-400 text-xs mt-1">
+              Upload documents from the chat to use them in Q&A
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {userDocuments.map((doc) => (
+              <div
+                key={doc._id}
+                className="flex items-center justify-between bg-gray-50 rounded-xl px-5 py-4 border border-gray-100"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  {/* File type badge */}
+                  <span
+                    className={`flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg uppercase ${
+                      doc.fileType === "pdf"
+                        ? "bg-red-100 text-red-600"
+                        : doc.fileType === "docx"
+                          ? "bg-blue-100 text-blue-600"
+                          : doc.fileType === "txt"
+                            ? "bg-gray-200 text-gray-600"
+                            : "bg-green-100 text-green-600"
+                    }`}
+                  >
+                    {doc.fileType}
+                  </span>
+
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {doc.filename}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {new Date(doc.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                      {" · "}
+                      {doc.chunksStored} chunks indexed
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={doc.cloudinaryUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-shrink-0 ml-4 px-4 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary hover:text-white transition-colors"
+                >
+                  View
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

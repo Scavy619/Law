@@ -29,7 +29,17 @@ export const AppContext = createContext({
 
   // credits
   creditsRemaining: null, // null = not yet loaded, number = known value
-  setCreditsRemaining: () => {},
+  setCreditsRemaining: () => { },
+  
+  // document related
+  userDocuments: [],
+  setUserDocuments: () => {},
+  uploadsRemaining: 2,
+  setUploadsRemaining: () => {},
+  uploadingDocument: false,
+  setUploadingDocument: () => {},
+  loadUserDocuments: () => {},
+  uploadDocument: () => {},
 
   createNewChat: () => {},
   fetchUserChats: () => {},

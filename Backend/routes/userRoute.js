@@ -1,6 +1,6 @@
 import express from "express";
 import authUser from "../middleware/authUser.js";
-import { upload } from "../middleware/multer.js";
+import { uploadImage } from "../middleware/multer.js";
 import {
   signupUser,
   loginUser,
@@ -48,7 +48,7 @@ userRouter.get("/get-profile", authUser, getUserProfile);
 userRouter.patch(
   "/update-profile",
   authUser,
-  upload.single("image"),
+  uploadImage.single("image"),
   updateUserProfile,
 );
 

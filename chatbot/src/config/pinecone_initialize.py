@@ -1,5 +1,3 @@
-# src/config/pinecone_initialize.py
-
 import sys
 import time
 from pathlib import Path
@@ -12,6 +10,32 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 from config.env import PINECONE_API_KEY, PINECONE_INDEX
+
+
+# ── Namespace Constants
+# Pinecone namespaces are auto-created on first upsert — no manual setup needed.
+# Always reference these constants instead of hardcoding namespace strings.
+
+NAMESPACE_KNOWLEDGE_BASE = "__default__"
+# Existing books/PDFs (e.g., Mp-Jain Constitutional Law)
+# Queried for general legal Q&A
+
+NAMESPACE_USER_UPLOADS = "user-uploads-{user_id}"
+# Per-user uploaded documents
+# Use: get_user_namespace(user_id) helper below
+# Queried only for that specific user's context
+
+
+def get_user_namespace(user_id: str) -> str:
+    """
+    Returns the Pinecone namespace string for a specific user's uploads.
+    Usage:
+        ns = get_user_namespace("abc123")
+        # → "user-uploads-abc123"
+    """
+    if not user_id or not user_id.strip():
+        raise ValueError("user_id cannot be empty")
+    return f"user-uploads-{user_id.strip()}"
 
 
 def get_pinecone_index():
@@ -39,3 +63,23 @@ def get_pinecone_index():
 
     # 4. Return connected index
     return pc.Index(PINECONE_INDEX)
+
+
+def get_namespace_stats() -> dict:
+    """
+    Returns per-namespace vector counts from Pinecone index stats.
+    Useful for debugging — see which namespaces exist and how many vectors each has.
+
+    Returns:
+        {
+            "__default__": {"vector_count": 1200},
+            "user-uploads-abc123": {"vector_count": 45},
+            ...
+        }
+    """
+    index = get_pinecone_index()
+    stats = index.describe_index_stats()
+    return stats.get("namespaces", {})
+    
+    
+    

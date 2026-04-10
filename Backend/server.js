@@ -10,6 +10,7 @@ import videoRouter from "./routes/videoRoutes.js";
 import chatRouter from "./routes/chatRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
 import AuthRouter from "./routes/authRoute.js";
+import documentRouter from "./routes/documentRoute.js";
 import { connectMongoDB } from "./config/mongodb.js";
 import { connectCloudinary } from "./config/cloudinary.js";
 import cookieParser from "cookie-parser";
@@ -109,6 +110,7 @@ app.use("/api/lawyer", LawyerRouter);
 app.use("/api/video", videoRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/message", messageRouter);
+app.use("/api/documents", documentRouter);
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", time: new Date().toISOString() });

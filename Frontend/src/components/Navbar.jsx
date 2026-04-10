@@ -72,8 +72,12 @@ const Navbar = () => {
     } catch (err) {
       // console.error("Logout error:", err);
     }
-    setUserData(null);
-    navigate("/login");
+
+    // UI delay for better experience
+    setTimeout(() => {
+      setUserData(null);
+      navigate("/");
+    }, 1500);
   };
 
   return (

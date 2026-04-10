@@ -140,6 +140,8 @@ export const getMessage = async (req, res) => {
         sessionId,
         history: chat.messages,
         message,
+        user_id: userId,
+        mode: "both",
       },
       {
         headers: {

@@ -23,6 +23,11 @@ const AppContextProvider = ({ children }) => {
   const [creditsExhausted, setCreditsExhausted] = useState(false);
   const [creditsRemaining, setCreditsRemaining] = useState(null);
 
+  // document upload for chatbot
+  const [userDocuments, setUserDocuments] = useState([]);
+  const [uploadsRemaining, setUploadsRemaining] = useState(2);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+
   const actions = useMemo(
     () =>
       appActions({
@@ -30,12 +35,15 @@ const AppContextProvider = ({ children }) => {
         setUserData,
         setSessionId,
         setCurrentSession,
+        setUserDocuments,
+        setUploadsRemaining,
+        setUploadingDocument,
       }),
     // setters from useState are guaranteed stable by React — no deps needed
     [],
   );
 
-  // 🔐 INIT AUTH (refresh token flow)
+  // INIT AUTH (refresh token flow)
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -56,7 +64,7 @@ const AppContextProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  // 🚦 Wire up global rate-limit events from axios interceptor
+  // Wire up global rate-limit events from axios interceptor
   useEffect(() => {
     const handleRateLimit = ({ cooldownMs }) => {
       setRateLimitCooldown(true);
@@ -80,8 +88,8 @@ const AppContextProvider = ({ children }) => {
   // initial data
   useEffect(() => {
     actions.getLawyersData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (userData) actions.loadUserDocuments();
+  }, [userData]);
 
   const contextValue = useMemo(
     () => ({
@@ -107,6 +115,13 @@ const AppContextProvider = ({ children }) => {
       creditsRemaining,
       setCreditsRemaining,
 
+      userDocuments,
+      setUserDocuments,
+      uploadsRemaining,
+      setUploadsRemaining,
+      uploadingDocument,
+      setUploadingDocument,
+
       ...actions,
     }),
     [
@@ -120,6 +135,9 @@ const AppContextProvider = ({ children }) => {
       rateLimitCooldown,
       creditsExhausted,
       creditsRemaining,
+      userDocuments,
+      uploadsRemaining,
+      uploadingDocument,
       actions,
     ],
   );

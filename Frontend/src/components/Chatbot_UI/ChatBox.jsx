@@ -5,13 +5,13 @@ import Message from "./Message";
 import { toast } from "react-toastify";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axiosClient";
+import DocumentUpload from "./DocumentUpload";
 
 const ChatBox = () => {
   const containerRef = useRef(null);
   const { sessionId } = useParams();
   const navigate = useNavigate();
 
-  
   const {
     userData,
     sessionId: contextSessionId,
@@ -25,7 +25,9 @@ const ChatBox = () => {
     creditsExhausted,
     creditsRemaining,
     setCreditsRemaining,
-    createNewChat
+    createNewChat,
+    uploadingDocument,
+    uploadsRemaining,
   } = useContext(AppContext);
 
   const [prompt, setPrompt] = useState("");
@@ -34,19 +36,21 @@ const ChatBox = () => {
   // Track the last failed prompt so we can offer a retry
   const [failedPrompt, setFailedPrompt] = useState(null);
 
-
   const isInputDisabled =
-    loadingResponse || rateLimitCooldown || creditsExhausted;
+    loadingResponse ||
+    rateLimitCooldown ||
+    creditsExhausted ||
+    uploadingDocument;
 
-  // send logic 
+  // send logic
   const sendMessage = async (text) => {
     if (!text.trim()) return;
-  
+
     if (!userData) {
       toast.error("Login to send message");
       return;
     }
-  
+
     // Session nahi hai toh pehle banao
     let activeSessionId = contextSessionId;
     if (!activeSessionId) {
@@ -57,23 +61,23 @@ const ChatBox = () => {
       }
       navigate(`/chatbot/${activeSessionId}`);
     }
-  
+
     setFailedPrompt(null);
     setLoadingResponse(true);
-  
+
     const userMessage = {
       role: "user",
       content: text,
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMessage]);
-  
+
     try {
       const { data } = await api.post("/api/message/get-message", {
         message: text,
         sessionId: activeSessionId, // contextSessionId ki jagah
       });
-  
+
       if (data) {
         const botMessage = {
           role: "assistant",
@@ -81,11 +85,11 @@ const ChatBox = () => {
           createdAt: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, botMessage]);
-  
+
         if (typeof data.creditsRemaining === "number") {
           setCreditsRemaining(data.creditsRemaining);
         }
-  
+
         if (currentSession) {
           setCurrentSession({
             ...currentSession,
@@ -99,7 +103,7 @@ const ChatBox = () => {
       }
     } catch (error) {
       setMessages((prev) => prev.filter((m) => m !== userMessage));
-  
+
       if (error.handled) {
         if (error.response?.status === 429) {
           setFailedPrompt(text);
@@ -112,8 +116,7 @@ const ChatBox = () => {
       setLoadingResponse(false);
     }
   };
-  
-  
+
   const onSubmit = async (e) => {
     e.preventDefault();
     if (isInputDisabled) return;
@@ -277,23 +280,38 @@ const ChatBox = () => {
       {/* ── Input footer ── */}
       <div className="flex-shrink-0 bg-white border-t border-gray-100 p-3 sm:p-4">
         <div className="max-w-4xl mx-auto">
-          {/* Credits counter */}
-          {creditsRemaining !== null && !creditsExhausted && (
-            <div className="flex justify-end mb-1.5">
-              <span
-                className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                  creditsRemaining <= 3
-                    ? "bg-red-50 text-red-500 border border-red-200"
-                    : creditsRemaining <= 5
-                      ? "bg-amber-50 text-amber-600 border border-amber-200"
-                      : "bg-purple-50 text-purple-500 border border-purple-200"
-                }`}
-              >
-                {creditsRemaining} message{creditsRemaining !== 1 ? "s" : ""}{" "}
-                remaining today
-              </span>
-            </div>
-          )}
+          {/* Top Bar Counters */}
+          {!creditsExhausted &&
+            (creditsRemaining !== null || uploadsRemaining !== null) && (
+              <div className="flex justify-end gap-2 mb-1.5 flex-wrap">
+                {uploadsRemaining !== null && (
+                  <span
+                    className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
+                      uploadsRemaining === 0
+                        ? "bg-red-50 text-red-500 border border-red-200"
+                        : "bg-blue-50 text-blue-600 border border-blue-200"
+                    }`}
+                  >
+                    {uploadsRemaining} document upload
+                    {uploadsRemaining !== 1 ? "s" : ""} left
+                  </span>
+                )}
+                {creditsRemaining !== null && (
+                  <span
+                    className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
+                      creditsRemaining <= 3
+                        ? "bg-red-50 text-red-500 border border-red-200"
+                        : creditsRemaining <= 5
+                          ? "bg-amber-50 text-amber-600 border border-amber-200"
+                          : "bg-purple-50 text-purple-500 border border-purple-200"
+                    }`}
+                  >
+                    {creditsRemaining} message
+                    {creditsRemaining !== 1 ? "s" : ""} remaining today
+                  </span>
+                )}
+              </div>
+            )}
 
           {/* Credits exhausted — static disabled bar */}
           {creditsExhausted ? (
@@ -307,6 +325,10 @@ const ChatBox = () => {
               onSubmit={onSubmit}
               className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 p-3 sm:p-4 flex gap-2 sm:gap-3 items-center"
             >
+              {/* for docs upload */}
+              <div className="flex-shrink-0 [&_span]:hidden">
+                <DocumentUpload />
+              </div>
               <textarea
                 onChange={(e) => setPrompt(e.target.value)}
                 value={prompt}

@@ -2,7 +2,7 @@ import { toast } from "react-toastify";
 import { getLawyersData as fetchLawyersAPI } from "../api/lawyer.api";
 import { getUserProfileData } from "../api/user.api";
 import { createChat, getChatBySession } from "../api/chat.api";
-
+import { uploadDocument as uploadDocumentAPI, getUserDocuments } from "../api/document.api";
 
 
 export const appActions = ({
@@ -10,8 +10,11 @@ export const appActions = ({
   setUserData,
   setSessionId,
   setCurrentSession,
+  setUserDocuments,
+  setUploadsRemaining,
+  setUploadingDocument
 }) => ({
-  // ================= LAWYERS =================
+  // Lawyers related
   getLawyersData: async () => {
     try {
       const { data } = await fetchLawyersAPI();
@@ -22,7 +25,7 @@ export const appActions = ({
     }
   },
 
-  // ================= USER =================
+  // Users
   loadUserProfileData: async () => {
     try {
       const { data } = await getUserProfileData();
@@ -33,7 +36,7 @@ export const appActions = ({
     }
   },
 
-  // ================= CHAT =================
+  // Chat
   createNewChat: async () => {
     const session = crypto.randomUUID();
 
@@ -75,6 +78,38 @@ export const appActions = ({
       }
     } catch (err) {
       // console.error(err);
+    }
+  },
+  
+  
+  // document related 
+  loadUserDocuments: async () => {
+    try {
+      const { data } = await getUserDocuments();
+      if (data.success) {
+        setUserDocuments(data.documents);
+        setUploadsRemaining(data.uploadsRemaining);
+      }
+    } catch (err) {
+      // silently fail
+    }
+  },
+  
+  uploadDocument: async (file) => {
+    try {
+      setUploadingDocument(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      const { data } = await uploadDocumentAPI(formData);
+      if (data.success) {
+        setUserDocuments((prev) => [data.document, ...prev]);
+        setUploadsRemaining(data.uploadsRemaining);
+        toast.success(`"${data.document.filename}" uploaded successfully`);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Document upload failed");
+    } finally {
+      setUploadingDocument(false);
     }
   },
 });

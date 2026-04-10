@@ -69,10 +69,16 @@ export const uploadDocument = async (req, res) => {
 
     // Upload to Cloudinary
     const today = new Date().toISOString().split("T")[0];
+
+    // PDF aur DOCX ke liye raw, images ke liye auto
+    const resourceType = ["pdf", "docx", "txt"].includes(fileType)
+      ? "raw"
+      : "auto";
+
     const cloudinaryResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          resource_type: "auto",
+          resource_type: resourceType,
           folder: `lawbridge/user-documents/${userId}`,
           public_id: `${Date.now()}-${req.file.originalname}`,
         },
@@ -109,7 +115,7 @@ export const uploadDocument = async (req, res) => {
     } catch (axiosError) {
       // Cloudinary pe upload ho gaya tha, clean up karo
       await cloudinary.uploader.destroy(cloudinaryResult.public_id, {
-        resource_type: "auto",
+        resource_type: resourceType,
       });
       const message =
         axiosError.response?.data?.detail || "Document processing failed";

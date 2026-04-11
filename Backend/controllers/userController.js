@@ -827,7 +827,7 @@ export const listAppointment = async (req, res) => {
     const userId = req.user.id;
 
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 7;
+    const limit = Math.min(parseInt(req.query.limit) || 7, 50);
     const skip = (page - 1) * limit;
     const status = req.query.status;
 

@@ -146,7 +146,7 @@ export const getLawyerAppointments = async (req, res) => {
     const lawyerId = req.lawyer.id;
 
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const skip = (page - 1) * limit;
 
     const query = { lawyerId };

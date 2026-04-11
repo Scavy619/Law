@@ -21,19 +21,24 @@ LawBridge Database Schema:
 ### User Features
 
 - Secure registration with email verification via hashed tokens
-- Magic link passwordless login for seamless authentication
+- **Magic link passwordless login** for seamless authentication (15-minute expiry, single-use tokens)
+- **Google OAuth 2.0 login** with PKCE (Proof Key for Code Exchange) for enhanced security
 - JWT-based stateless authentication using short-lived access tokens and long-lived refresh tokens stored in HttpOnly cookies
 - Optional Two-Factor Authentication (TOTP) via QR code or manual key entry; supports setup, verification, and disabling with password confirmation
 - Password reset via time-limited email tokens
 - Account deletion with OTP confirmation sent to registered email
 - Profile management including name, phone, address, gender, date of birth, and profile image upload via Cloudinary
-- Browse lawyers filtered by specialisation
+- Browse lawyers filtered by specialisation, city, experience, and fees with search and sort functionality
 - Appointment booking with slot selection and conflict prevention
 - Appointment scheduling constraints (maximum 2 appointments per day, and up to 3 appointments within a 5-day period)
 - Razorpay payment integration for appointment fees with signature verification
 - Appointment cancellation with automatic slot release back to the lawyer
 - Real-time one-on-one video consultations using Stream.io Video SDK with call lifecycle tracking (join, leave, end, duration)
+- **Automatic video call termination** via BullMQ background jobs when appointment time expires
 - AI legal chatbot with session-based conversation history, Markdown-rendered responses, and a daily credit system (10 credits per user per day, reset at midnight)
+- **Document upload and analysis** - Upload personal legal documents (PDF, DOCX, TXT, images) for AI-powered Q&A
+- **Hybrid RAG mode** - Query both platform knowledge base and personal uploaded documents simultaneously
+- **User-specific document namespaces** in Pinecone for isolated document storage per user
 - Resources and legal information pages
 - Contact, Privacy Policy, Terms and Conditions, and Refund Policy pages
 
@@ -89,13 +94,15 @@ LawBridge Database Schema:
 - Express.js 5.x
 - MongoDB with Mongoose 8.x
 - JWT access tokens (short-lived, sent via Authorization header) and refresh tokens (long-lived, stored in HttpOnly cookies)
+- **BullMQ 6.x** for background job processing (automatic video call termination)
+- **Google OAuth 2.0** with `google-auth-library` for secure social login with PKCE
 - Bcrypt 6.x for password hashing
 - Zod 4.x for request body validation
 - Multer 2.x for multipart file handling
-- Cloudinary 2.x for image storage
+- Cloudinary 2.x for image storage and document storage
 - Razorpay SDK 2.x for payment order creation and signature verification
 - Stream.io Node SDK for video token generation and call management
-- ioredis 5.x for Redis-backed rate limiting and chatbot credit tracking
+- ioredis 5.x for Redis-backed rate limiting, chatbot credit tracking, and BullMQ job queues
 - Helmet for HTTP security headers
 - express-mongo-sanitize for MongoDB operator injection prevention
 - Nodemailer and Brevo (Sendinblue) for transactional email delivery
@@ -110,9 +117,13 @@ LawBridge Database Schema:
 - Google Gemini 2.5 Flash as the language model via `langchain-google-genai`
 - Google `gemini-embedding-001` embedding model (3072-dimensional vectors) for document and query embeddings
 - Pinecone 7.x serverless vector database for similarity search over legal documents
+- **Multi-namespace architecture** - Separate namespaces for platform knowledge base (`__default__`) and per-user document uploads (`user-uploads-{user_id}`)
 - PyPDF2 and pypdf for PDF document loading
+- **python-docx** for DOCX document processing
+- **Pillow (PIL)** with **pytesseract** for OCR-based text extraction from images
 - LangChain `RecursiveCharacterTextSplitter` for chunking (chunk size 1000, overlap 200)
 - Custom production-safe batch embedding pipeline with resume-from-checkpoint, rate-limit retry logic, daily quota detection, and per-batch progress persistence
+- **Hybrid retrieval mode** - Query platform knowledge base, user uploads, or both simultaneously
 - Session-aware RAG pipeline passing last 10 conversation turns as chat history into the prompt
 - Secure key header (`secure_key`) for backend-to-chatbot authentication
 - pydantic 2.x for request/response models
@@ -244,6 +255,11 @@ Fields: `userId` (ref: User), `sessionId`, `title`, `messages` (array of `{role,
 |--------|------|-------------|
 | POST | `/register` | Register a new user account |
 | POST | `/login` | Login; returns access token and sets refresh cookie |
+| GET | `/google` | Initiate Google OAuth 2.0 login with PKCE |
+| GET | `/google/callback` | Handle Google OAuth callback and exchange code for tokens |
+| POST | `/google/exchange` | Exchange one-time code for access and refresh tokens |
+| POST | `/magic-link` | Request magic link for passwordless login (rate limited: 3/hour) |
+| GET | `/verify-magic-link/:token` | Verify magic link token and authenticate user |
 | POST | `/verify-email` | Verify email with hashed token from email link |
 | POST | `/resend-verification` | Resend email verification link |
 | POST | `/forgot-password` | Send password reset email |
@@ -309,12 +325,20 @@ Fields: `userId` (ref: User), `sessionId`, `title`, `messages` (array of `{role,
 |--------|------|-------------|
 | POST | `/send` | Send a message; proxies to RAG chatbot, decrements credit, saves conversation in background |
 
+### Document (`/api/document`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/upload` | Upload a legal document (PDF, DOCX, TXT, image) for AI analysis; stores in Cloudinary and processes via chatbot |
+| GET | `/` | Get all uploaded documents for the authenticated user |
+
 ### Chatbot Service (`FastAPI` on port 4000)
 
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/` | Service status |
-| POST | `/chat` | Accepts `sessionId`, `history`, and `message`; returns RAG-generated legal response. Requires `secure_key` header. |
+| POST | `/chat` | Accepts `sessionId`, `history`, `message`, `user_id`, and `mode` (knowledge-base/user-uploads/both); returns RAG-generated legal response. Requires `secure_key` header. |
+| POST | `/upload-document` | Process uploaded document: extract text, chunk, embed, and store in user-specific Pinecone namespace. Requires `secure_key` header. |
 | GET | `/health` | Health check |
 
 ---
@@ -351,35 +375,50 @@ When credits are exhausted, the backend returns HTTP 403 with a `daily credit li
 
 ---
 
-## Chatbot Document Upload & RAG Flow
+## Document Upload & Hybrid RAG Flow
 
 The platform supports a comprehensive document analysis flow, allowing users to query their own uploaded legal documents alongside the platform's core legal knowledge base:
 
-1. **Frontend → JS Backend (Document Selection)**
-   - User selects a file on the frontend.
-   - The JS Backend performs extension validation, size limit checks, and daily upload limit checks against the database.
-   - The original file is stored securely on Cloudinary.
-   - The backend forwards the Cloudinary URL and file buffer to the Python Chatbot API.
+### Document Upload Pipeline
 
-2. **JS Backend → Python Chatbot API (Processing Request)**
-   - A `POST /api/process-document` request is sent containing the `user_id`, `filename`, `cloudinary_url`, and the `file_bytes`.
+1. **Frontend → Backend (Document Selection)**
+   - User selects a file (PDF, DOCX, TXT, or image) on the frontend
+   - Backend performs validation: file extension, size limit (10MB), and daily upload limit (5 documents/day)
+   - Original file is stored securely on Cloudinary with user-specific folder structure
+   - File metadata is saved in MongoDB with status tracking
+
+2. **Backend → Python Chatbot API (Processing Request)**
+   - Backend forwards file to `POST /upload-document` with `user_id`, `filename`, `cloudinary_url`, and `file_bytes`
+   - Request authenticated via shared `secure_key` header
 
 3. **Python Pipeline (Document Ingestion)**
-   - **Detection:** The pipeline identifies the file type (PDF, DOCX, TXT, Image).
-   - **Extraction:** Raw text is extracted using the appropriate parser.
-   - **Chunking:** The text is split into semantic chunks.
-   - **Embedding & Storage:** Chunks are vectorized and stored in Pinecone within a user-specific namespace (`user-uploads-<user_id>`).
-   - A success response with the number of chunks stored is returned to the JS Backend.
+   - **Detection:** Identifies file type (PDF, DOCX, TXT, Image)
+   - **Extraction:** 
+     - PDF: PyPDF2/pypdf page-by-page extraction
+     - DOCX: python-docx paragraph extraction
+     - TXT: Direct UTF-8 reading
+     - Images: Pillow + pytesseract OCR
+   - **Chunking:** RecursiveCharacterTextSplitter (1000 chars, 200 overlap)
+   - **Embedding & Storage:** Chunks vectorized with Google gemini-embedding-001 and stored in Pinecone user-specific namespace (`user-uploads-{user_id}`)
+   - Returns success response with chunk count and namespace
 
-4. **Chat Flow (Hybrid Q&A)**
-   - The user submits a question to the JS Backend, which forwards it to `POST /api/chat` with the desired mode (`knowledge-base`, `user-uploads`, or `both`).
-   - The Python API retrieves context from the core legal knowledge base (default namespace) and/or the user's specific uploads (user-specific namespace).
-   - Both sets of results are merged.
-   - Google Gemini receives the merged context alongside the query to generate a precise answer.
+### Hybrid RAG Query Flow
 
-5. **Frontend → User (Response Delivery)**
-   - The answer is streamed or returned to the user.
-   - Citations are provided to indicate the source of the information (e.g., "यह जानकारी आपके uploaded document से है" vs "यह जानकारी legal knowledge base से है").
+4. **Chat Flow (Multi-Source Q&A)**
+   - User submits question with selected mode: `knowledge-base`, `user-uploads`, or `both`
+   - Backend forwards to `POST /chat` with `mode`, `user_id`, `message`, and conversation `history`
+   - Python API performs parallel retrieval:
+     - **knowledge-base mode:** Queries `__default__` namespace (platform legal documents)
+     - **user-uploads mode:** Queries `user-uploads-{user_id}` namespace (user's documents)
+     - **both mode:** Merges results from both namespaces
+   - Top 3 most similar chunks retrieved per namespace using cosine similarity
+   - Combined context + last 10 messages + current question sent to Google Gemini 2.5 Flash
+   - Model generates response with source attribution
+
+5. **Response Delivery**
+   - Answer returned to user with Markdown formatting
+   - Citations indicate source: platform knowledge base vs user uploads
+   - Conversation saved to MongoDB with timestamps
 
 ---
 
@@ -400,13 +439,35 @@ The chatbot service implements a core Retrieval Augmented Generation pipeline:
 ## Advanced Backend Features & Security
 
 ### Background Processing with BullMQ
-The backend utilizes **BullMQ** and **Redis** for handling asynchronous background jobs. Currently, it features a `videoWorker` that automatically ends video calls (updating status and duration) when an appointment time expires, ensuring system consistency without blocking the main Express event loop.
+The backend utilizes **BullMQ** and **Redis** for handling asynchronous background jobs:
+- **Video Call Auto-Termination:** `videoWorker` automatically ends video calls when appointment time expires
+- **Job Scheduling:** Calls scheduled to end at `slotEnd + 10 minutes` with automatic status updates and duration calculation
+- **Job Lifecycle Tracking:** QueueEvents monitor job completion and failures with detailed logging
+- **Graceful Handling:** Failed jobs logged for debugging; completed jobs update appointment records atomically
 
 ### Robust Authentication & Security
-- **OAuth2 & OIDC**: Secure Google login implemented using PKCE (Proof Key for Code Exchange) and a one-time code exchange mechanism to securely pass tokens to the frontend without exposing them in URLs.
-- **Two-Factor Authentication (2FA)**: Users can enable 2FA using authenticator apps (TOTP) for an extra layer of security.
-- **Security Middleware**: Includes global and route-specific rate limiting to prevent abuse, `helmet` for secure HTTP headers, and `express-mongo-sanitize` to prevent NoSQL injection attacks.
-- **Data Privacy**: Provides endpoints for secure account deletion (verified via OTP) and user chat data export.
+- **OAuth2 & OIDC**: Secure Google login implemented using PKCE (Proof Key for Code Exchange) with:
+  - State parameter for CSRF protection
+  - Code verifier and challenge stored in secure HttpOnly cookies
+  - One-time code exchange mechanism to securely pass tokens to frontend
+  - Automatic account creation for new Google users
+  - Prevention of password-based login for Google-authenticated accounts
+- **Magic Link Authentication**: Passwordless login via time-limited email tokens (15-minute expiry, single-use)
+- **Two-Factor Authentication (2FA)**: TOTP-based 2FA with:
+  - QR code and manual key setup
+  - 2-window delta for clock skew tolerance
+  - Brute-force protection via Redis attempt counters
+  - Password confirmation required for disabling
+- **Security Middleware**: 
+  - Global rate limiting: 200 requests/60s per IP across all routes
+  - Route-specific rate limiting for sensitive endpoints (login, 2FA, magic link)
+  - `helmet` for secure HTTP headers
+  - `express-mongo-sanitize` for NoSQL injection prevention
+  - CORS restricted to explicit allowlist
+- **Data Privacy**: 
+  - Secure account deletion with OTP verification
+  - User chat data export capability
+  - Per-user document isolation via Pinecone namespaces
 
 ## Prerequisites
 
@@ -475,12 +536,14 @@ Key variables by service:
 - `MONGODB_URI` – MongoDB connection string
 - `REDIS_URL` – Redis connection URL
 - `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` – JWT signing secrets
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` – Google OAuth 2.0 credentials
 - `CLOUDINARY_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 - `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`
 - `STREAM_API_KEY`, `STREAM_API_SECRET`
 - `RAG_CHATBOT_API_URL` – Base URL of the FastAPI chatbot service
 - `RAG_SECRET_KEY` – Shared secret for backend-to-chatbot authentication
 - `ALLOWED_ORIGINS` – Comma-separated list of allowed CORS origins
+- `FRONTEND_URL` – Frontend URL for OAuth redirects
 - `BREVO_API_KEY` or SMTP credentials for email delivery
 
 **Chatbot**

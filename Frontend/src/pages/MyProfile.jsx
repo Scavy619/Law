@@ -588,7 +588,7 @@ const MyProfile = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
             {userDocuments.map((doc) => (
               <div
                 key={doc._id}

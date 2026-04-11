@@ -25,6 +25,16 @@
               message:
                 type: string
                 example: "What are my rights as a tenant?"
+              mode:
+                type: string
+                enum: [knowledge-base, user-uploads, both]
+                default: both
+                description: >
+                  Query mode for the RAG chatbot:
+                  - `knowledge-base`: Query only the platform's legal knowledge base
+                  - `user-uploads`: Query only the user's uploaded documents
+                  - `both`: Query both knowledge base and user uploads (hybrid mode)
+                example: "both"
     responses:
       "200":
         description: Chatbot response returned

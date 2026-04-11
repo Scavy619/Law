@@ -59,7 +59,8 @@
 
 /user/login:
   post:
-    summary: Login user
+    summary: Login user with email and password
+    description: Standard email/password login. Returns access token or requires 2FA code if enabled. Google users must use OAuth flow.
     tags:
       - Users
     requestBody:
@@ -111,7 +112,7 @@
                       type: string
                       example: "2FA code required"
       "400":
-        description: Validation error
+        description: Validation error or Google user attempting password login
         content:
           application/json:
             schema:
@@ -136,6 +137,208 @@
               $ref: '../schemas/error.schema.yaml#/ErrorResponse'
       "429":
         description: Too many 2FA attempts
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/user/google:
+  get:
+    summary: Initiate Google OAuth 2.0 login
+    description: Redirects to Google OAuth consent screen with PKCE security. State and code verifier stored in secure cookies.
+    tags:
+      - Users
+    responses:
+      "302":
+        description: Redirect to Google OAuth consent screen
+      "500":
+        description: Failed to initiate Google authentication
+        content:
+          text/html:
+            schema:
+              type: string
+
+/user/google/callback:
+  get:
+    summary: Google OAuth callback handler
+    description: Handles OAuth callback, exchanges code for tokens, creates/updates user, and redirects to frontend with one-time code
+    tags:
+      - Users
+    parameters:
+      - in: query
+        name: code
+        required: true
+        schema:
+          type: string
+        description: Authorization code from Google
+      - in: query
+        name: state
+        required: true
+        schema:
+          type: string
+        description: CSRF protection state parameter
+    responses:
+      "302":
+        description: Redirect to frontend with one-time code
+      "400":
+        description: Invalid or expired OAuth state or missing PKCE verifier
+        content:
+          text/html:
+            schema:
+              type: string
+      "500":
+        description: Google authentication failed
+        content:
+          text/html:
+            schema:
+              type: string
+
+/user/google/exchange:
+  post:
+    summary: Exchange one-time code for access and refresh tokens
+    description: Frontend exchanges the one-time code received from OAuth callback for actual JWT tokens
+    tags:
+      - Users
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - code
+            properties:
+              code:
+                type: string
+                description: One-time code from OAuth callback redirect
+    responses:
+      "200":
+        description: Tokens exchanged successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                accessToken:
+                  type: string
+                user:
+                  $ref: '../schemas/user.schema.yaml#/User'
+      "400":
+        description: Invalid or expired code
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/user/magic-link:
+  post:
+    summary: Request magic link for passwordless login
+    description: Sends a time-limited magic link to user's email (15-minute expiry, single-use). Rate limited to 3 requests per hour.
+    tags:
+      - Users
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - email
+            properties:
+              email:
+                type: string
+                format: email
+                example: "john@example.com"
+    responses:
+      "200":
+        description: Magic link sent to email
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                message:
+                  type: string
+                  example: "Magic link sent! Check your email."
+      "400":
+        description: Validation error or Google user attempting magic link
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "403":
+        description: Email not verified
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "404":
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "429":
+        description: Rate limit exceeded (3 requests per hour)
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+      "500":
+        description: Server error
+        content:
+          application/json:
+            schema:
+              $ref: '../schemas/error.schema.yaml#/ErrorResponse'
+
+/user/verify-magic-link/{token}:
+  get:
+    summary: Verify magic link token and authenticate user
+    description: Validates magic link token and returns access token with refresh cookie. Token expires in 15 minutes and is single-use.
+    tags:
+      - Users
+    parameters:
+      - in: path
+        name: token
+        required: true
+        schema:
+          type: string
+        description: Magic link token from email
+    responses:
+      "200":
+        description: Magic link verified, user authenticated
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                accessToken:
+                  type: string
+                user:
+                  $ref: '../schemas/user.schema.yaml#/User'
+      "400":
+        description: Invalid or expired magic link token
         content:
           application/json:
             schema:

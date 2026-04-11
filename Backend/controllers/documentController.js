@@ -70,10 +70,10 @@ export const uploadDocument = async (req, res) => {
     // Upload to Cloudinary
     const today = new Date().toISOString().split("T")[0];
 
-    // PDF aur DOCX ke liye raw, images ke liye auto
+    // PDF aur DOCX ke liye raw, images ke liye image
     const resourceType = ["pdf", "docx", "txt"].includes(fileType)
       ? "raw"
-      : "auto";
+      : "image";
 
     const cloudinaryResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(

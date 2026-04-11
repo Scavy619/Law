@@ -3,6 +3,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import router from "./routes/router.jsx";
 import { RouterProvider } from "react-router-dom";
+import ColdStartNotice from "./components/common/ColdStartNotice";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         theme="colored"
       />
       <RouterProvider router={router} />
+      <ColdStartNotice />
     </div>
   );
 }

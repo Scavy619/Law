@@ -70,6 +70,7 @@ const ChatBox = () => {
       role: "user",
       content: text,
       createdAt: new Date().toISOString(),
+      attachedDocument: activeDocument || null,
     };
     setMessages((prev) => [...prev, userMessage]);
 

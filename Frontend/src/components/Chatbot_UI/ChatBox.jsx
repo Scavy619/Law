@@ -178,15 +178,7 @@ const ChatBox = () => {
             {messages.length === 0 && (
               <div className="h-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-gray-50">
                 <div className="animate-fade-in bg-white/80 backdrop-blur-sm rounded-2xl p-8 sm:p-10 md:p-12 shadow-lg border border-white/50 max-w-sm sm:max-w-md md:max-w-lg mx-auto">
-                  <div className="flex justify-center mb-6">
-                    <div className="relative p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                      <img
-                        src={assets.legallogo}
-                        alt="Law Bridge Logo"
-                        className="w-16 h-16 sm:w-20 sm:h-20 object-contain opacity-90"
-                      />
-                    </div>
-                  </div>
+                  
                   <div className="text-center space-y-3">
                     <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                       Legal Assistant
@@ -194,6 +186,14 @@ const ChatBox = () => {
                     <p className="text-gray-600 text-base sm:text-lg leading-relaxed font-medium px-2">
                       Ask your legal question and get expert assistance
                     </p>
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-start text-left gap-2 max-w-sm mx-auto">
+                      <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      <p className="text-xs text-blue-800">
+                        <strong>Privacy Note:</strong> Chats are not end-to-end encrypted, but they are securely stored and never leaked or shared with unauthorized parties.
+                      </p>
+                    </div>
                   </div>
                   <div className="flex justify-center mt-8">
                     <div className="flex space-x-1">

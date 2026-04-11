@@ -81,6 +81,19 @@ const PrivacyPolicy = () => {
 
 
 
+        <section>
+          <h2 className='text-2xl font-semibold mb-4 text-gray-800 flex items-center'>
+            <svg className="w-6 h-6 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            Chatbot and Consultation Privacy
+          </h2>
+
+          <p className='mb-4 text-sm md:text-base leading-relaxed'>
+            When you use our Legal Assistant chatbot or communicate with legal professionals on LawBridge, your conversations are securely stored on our servers. While these chats are not end-to-end encrypted, we employ strict access controls and robust security measures to ensure your data is kept confidential and safe. We do not leak, sell, or share your chat history with unauthorized third parties.
+          </p>
+        </section>
+
         {/* Data Security */}
         <section>
           <h2 className='text-2xl font-semibold mb-4 text-gray-800 flex items-center'>

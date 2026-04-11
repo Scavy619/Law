@@ -108,6 +108,15 @@ const TermsAndConditions = () => {
 
         <section>
           <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+            Chat and Data Privacy
+          </h2>
+          <p className="mb-4 text-sm md:text-base leading-relaxed">
+            By using our AI chatbot and communication features, you acknowledge that while your chats are not end-to-end encrypted, they are securely stored and protected by LawBridge. We are committed to your privacy and do not leak or share your chat data with unauthorized parties. Please refer to our Privacy Policy for more details on how we protect your information.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-2xl font-semibold mb-4 text-gray-800">
             Limitation of Liability
           </h2>
           <p className="mb-4 text-sm md:text-base leading-relaxed">

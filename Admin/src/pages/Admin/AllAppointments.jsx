@@ -5,6 +5,7 @@ import { AdminContext } from "../../context/AdminContext";
 import { AppContext } from "../../context/AppContext";
 import Loader from "../../components/common/Loader";
 import { ArrowDownAZ, ArrowUpZA, Filter } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import Pagination from "../../components/common/Pagination";
 
 const AllAppointments = () => {
@@ -18,26 +19,40 @@ const AllAppointments = () => {
   const { slotDateFormat, currency, adminData } = useContext(AppContext);
   const [loading, setLoading] = useState(true);
 
-  // Filters State
-  const [sortOrder, setSortOrder] = useState("desc"); // 'asc' or 'desc' (default newest first)
-  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'upcoming', 'completed', 'cancelled'
-  const [lawyerFilter, setLawyerFilter] = useState("all"); // 'all' or lawyer.name
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [currentPage, setCurrentPage] = useState(1);
+  // Filters State from URL or defaults
+  const sortOrder = searchParams.get("sort") || "desc";
+  const statusFilter = searchParams.get("status") || "all";
+  const lawyerFilter = searchParams.get("lawyer") || "all";
+  const limit = parseInt(searchParams.get("limit")) || 10;
+  const currentPage = parseInt(searchParams.get("page")) || 1;
+
   const [totalPages, setTotalPages] = useState(1);
 
-  const fetchAppointments = async (page = 1) => {
+  // Helper to update URL params
+  const updateParams = (newParams) => {
+    const currentParams = Object.fromEntries([...searchParams]);
+    setSearchParams({ ...currentParams, ...newParams });
+  };
+
+  const setSortOrder = (val) => updateParams({ sort: typeof val === "function" ? val(sortOrder) : val, page: 1 });
+  const setStatusFilter = (val) => updateParams({ status: val, page: 1 });
+  const setLawyerFilter = (val) => updateParams({ lawyer: val, page: 1 });
+  const setLimit = (val) => updateParams({ limit: val, page: 1 });
+  const setCurrentPage = (val) => updateParams({ page: val });
+
+  const fetchAppointments = async (page = currentPage) => {
     setLoading(true);
     const response = await getAllAppointments(
       page,
-      10,
+      limit,
       statusFilter,
       lawyerFilter,
       sortOrder,
     );
     if (response?.data?.pagination) {
       setTotalPages(response.data.pagination.totalPages);
-      setCurrentPage(page);
     }
     setLoading(false);
   };
@@ -51,11 +66,11 @@ const AllAppointments = () => {
 
   useEffect(() => {
     if (adminData) {
-      fetchAppointments(1);
+      fetchAppointments(currentPage);
     } else {
       setLoading(false);
     }
-  }, [adminData, statusFilter, lawyerFilter, sortOrder]);
+  }, [adminData, statusFilter, lawyerFilter, sortOrder, currentPage, limit]);
 
   if (loading) {
     return <Loader />;
@@ -104,6 +119,29 @@ const AllAppointments = () => {
               <option value="upcoming">Upcoming</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+              <svg
+                className="fill-current h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+              >
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Limit Filter */}
+          <div className="relative flex-1 min-w-[100px] sm:flex-none">
+            <select
+              value={limit}
+              onChange={(e) => setLimit(e.target.value)}
+              className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg pl-3 pr-8 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors cursor-pointer"
+            >
+              <option value="5">5 per page</option>
+              <option value="10">10 per page</option>
+              <option value="20">20 per page</option>
+              <option value="50">50 per page</option>
             </select>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
               <svg
@@ -247,7 +285,7 @@ const AllAppointments = () => {
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          onPageChange={fetchAppointments}
+          onPageChange={setCurrentPage}
         />
       </div>
     </div>

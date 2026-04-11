@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import useApp from "../context/useApp";
 import { toast } from "react-toastify";
 import { assets } from "../assets/assets";
@@ -141,9 +141,22 @@ const MyAppointments = () => {
 
   const [appointments, setAppointments] = useState([]);
   const [payment, setPayment] = useState("");
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const filter = searchParams.get("filter") || "all";
+  const limit = parseInt(searchParams.get("limit")) || 7;
+  const page = parseInt(searchParams.get("page")) || 1;
+
   const [totalPages, setTotalPages] = useState(1);
-  const [filter, setFilter] = useState("all");
+
+  const updateParams = (newParams) => {
+    const currentParams = Object.fromEntries([...searchParams]);
+    setSearchParams({ ...currentParams, ...newParams });
+  };
+
+  const setFilter = (val) => updateParams({ filter: val, page: 1 });
+  const setLimit = (val) => updateParams({ limit: val, page: 1 });
+  const setPage = (val) => updateParams({ page: typeof val === "function" ? val(page) : val });
   const [loading, setLoading] = useState(false);
 
   // Months array for date formatting
@@ -188,7 +201,7 @@ const MyAppointments = () => {
 
       const { data } = await userAppointments(
         page,
-        7,
+        limit,
         filter === "all" ? "" : filter,
       );
 
@@ -264,12 +277,8 @@ const MyAppointments = () => {
     if (userData) {
       getUserAppointments();
     }
-  }, [page, filter, userData]);
+  }, [page, limit, filter, userData]);
 
-  // Reset page when filter changes
-  useEffect(() => {
-    setPage(1);
-  }, [filter]);
 
   // Function to make payment using razorpay
   const appointmentRazorpay = async (appointmentId) => {
@@ -321,6 +330,29 @@ const MyAppointments = () => {
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
+        </div>
+
+        {/* Limit Dropdown */}
+        <div className="relative">
+          <select
+            value={limit}
+            onChange={(e) => setLimit(e.target.value)}
+            className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 text-sm font-medium rounded-lg pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors cursor-pointer"
+          >
+            <option value="5">5 per page</option>
+            <option value="7">7 per page</option>
+            <option value="15">15 per page</option>
+            <option value="30">30 per page</option>
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+            <svg
+              className="fill-current h-4 w-4"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+            >
+              <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+            </svg>
+          </div>
         </div>
       </div>
 

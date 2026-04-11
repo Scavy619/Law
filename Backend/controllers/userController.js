@@ -18,6 +18,7 @@ import redis from "../config/redis.js";
 import userModel from "../models/userModel.js";
 import lawyerModel from "../models/lawyerModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+import documentModel from "../models/documentModel.js"
 import crypto from "crypto";
 import { generateCryptoToken } from "../utils/cryptoToken.js";
 import { sendEmail } from "../services/mailService.js";
@@ -32,6 +33,7 @@ import {
   verifyPassword,
   hashToken,
 } from "../utils/hash.js";
+import axios from "axios";
 import { encrypt, decrypt } from "../utils/encryption.js";
 import { generateOTP } from "../utils/generateOTP.js";
 import { v2 as cloudinary } from "cloudinary";
@@ -1504,7 +1506,38 @@ export const verifyDeleteAccountOtp = async (req, res) => {
         message: "Invalid OTP",
       });
     }
-
+    
+    const userDocs = await documentModel.find({ userId });
+    
+    if (userDocs.length > 0) {
+      // Cloudinary cleanup
+      await Promise.all(
+        userDocs.map((doc) =>
+          cloudinary.uploader.destroy(doc.cloudinaryPublicId, {
+            resource_type: doc.fileType === "image" ? "image" : "raw",
+          }).catch(err => console.error("Cloudinary cleanup error:", err))
+        )
+      );
+    
+      // Pinecone cleanup — chatbot service se
+      try {
+        await axios.delete(`${process.env.RAG_CHATBOT_API_URL || 'http://localhost:4000'}/delete-user-data`, {
+          headers: {
+            "Content-Type": "application/json",
+            "secure_key": process.env.RAG_SECRET_KEY,
+          },
+          data: {
+            user_id: userId.toString(),
+          },
+        });
+      } catch (err) {
+        console.error("Failed to clear vector DB data:", err.message);
+      }
+    
+      await documentModel.deleteMany({ userId });
+    }
+    
+    
     // delete user-related data first
     await appointmentModel.deleteMany({ userId });
     await conversationModel.deleteMany({ userId });
@@ -1517,7 +1550,7 @@ export const verifyDeleteAccountOtp = async (req, res) => {
       message: "Account deleted successfully",
     });
   } catch (error) {
-    // console.error("Verify delete account OTP error:", error);
+    console.error("Verify delete account OTP error:", error);
     return res.status(500).json({
       success: false,
       message: "Account deletion failed",

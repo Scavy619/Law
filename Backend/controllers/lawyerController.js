@@ -291,7 +291,7 @@ export const cancelAppointmentByLawyer = async (req, res) => {
   }
 };
 
-// apit to mark appointment as completed by lawyer
+// api to mark appointment as completed by lawyer
 export const appointmentCompletedByLawyer = async (req, res) => {
   try {
     const validationResult = lawyerAppointmentSchema.safeParse(req.body);

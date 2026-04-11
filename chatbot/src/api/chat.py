@@ -57,6 +57,10 @@ class UploadResponse(BaseModel):
     namespace: str
 
 
+class DeleteUserDataRequest(BaseModel):
+    user_id: str
+    
+
 # ── LLM + Retriever ───────────────────────────────────────────────────────────
 
 llm = get_llm()
@@ -239,9 +243,32 @@ async def upload_document(
         )
 
 
+@app.delete("/delete-user-data")
+async def delete_user_data(
+    request: DeleteUserDataRequest,
+    secure_key: str = Header(None, alias="secure_key"),
+):
+    if secure_key != APP_SECRET_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid or missing key")
+    
+    try:
+        from config.pinecone_initialize import get_pinecone_index, get_user_namespace
+        
+        index = get_pinecone_index()
+        namespace = get_user_namespace(request.user_id)
+        index.delete(delete_all=True, namespace=namespace)
+        
+        return {"success": True, "deleted_namespace": namespace}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pinecone cleanup failed: {str(e)}")
+        
+        
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "LawBridge Legal Chatbot"}
+
 
 
 if __name__ == "__main__":

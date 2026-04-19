@@ -26,7 +26,7 @@ const faqs = [
   {
     question: "Is my data and conversation secure?",
     answer:
-      "Yes. LawBridge uses encrypted communication and follows industry-standard privacy protocols to keep your chats, documents, and personal data fully secure.",
+      "Chatbot conversations are not end-to-end encrypted. However, we still keep them secure, and your data is encrypted in transit and at rest using industry-standard protections.",
   },
 ];
 

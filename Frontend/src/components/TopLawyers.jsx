@@ -45,21 +45,6 @@ const TopLawyers = () => {
                   alt={item.name}
                 />
 
-                {/* Availability Badge */}
-                <div className="absolute top-4 right-4">
-                  <div
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm ${
-                      item.available
-                        ? "bg-green-500/90 text-white"
-                        : "bg-gray-500/90 text-white"
-                    }`}
-                  >
-                    <div
-                      className={`w-1.5 h-1.5 rounded-full ${item.available ? "bg-white" : "bg-gray-300"}`}
-                    ></div>
-                    {item.available ? "Available" : "Busy"}
-                  </div>
-                </div>
               </div>
 
               {/* Content */}

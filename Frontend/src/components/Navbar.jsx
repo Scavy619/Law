@@ -164,13 +164,13 @@ const Navbar = () => {
 
       <div className="flex items-center gap-4 relative z-30">
         {userData ? (
-          <div className="flex items-center cursor-pointer group relative">
+          <div className="flex items-center cursor-pointer group relative max-[330px]:hidden">
             <div
               id="profile-dropdown-button"
               onClick={() => setShowMobileDropdown(!showMobileDropdown)}
               className="flex items-center gap-2 sm:gap-3 p-1 sm:p-2 rounded-full hover:bg-gray-50 transition-all duration-300"
             >
-              <div className="relative">
+              <div className="relative max-[330px]:hidden">
                 <img
                   className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-200 shadow-sm hover:border-primary transition-all duration-300 hover:shadow-md"
                   src={

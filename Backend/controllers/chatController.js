@@ -277,3 +277,156 @@ export const exportAllChats = async (req, res) => {
     });
   }
 };
+
+
+// if a user wanna export a particular chat as pdf or json
+export const exportSingleChat = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { sessionId } = req.params;
+    const format = req.query.format || "json";
+
+    const conversation = await conversationModel
+      .findOne({ userId, sessionId })
+      .select("sessionId title messages createdAt updatedAt")
+      .lean();
+
+    if (!conversation || conversation.messages.length === 0) {
+      return res.status(404).json({ success: false, message: "Chat not found" });
+    }
+
+    // JSON
+    if (format === "json") {
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        sessionId: conversation.sessionId,
+        title: conversation.title || "Untitled",
+        createdAt: conversation.createdAt,
+        totalMessages: conversation.messages.length,
+        messages: conversation.messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.createdAt,
+        })),
+      };
+      res.setHeader("Content-Disposition", `attachment; filename="lawbridge-chat-${Date.now()}.json"`);
+      res.setHeader("Content-Type", "application/json");
+      return res.status(200).json(exportData);
+    }
+
+    // PDF
+    if (format === "pdf") {
+      const doc = new PDFDocument({ margin: 50 });
+      res.setHeader("Content-Disposition", `attachment; filename="lawbridge-chat-${Date.now()}.pdf"`);
+      res.setHeader("Content-Type", "application/pdf");
+      doc.pipe(res);
+
+      doc.fontSize(20).font("Helvetica-Bold").text("LawBridge - Chat Export", { align: "center" });
+      doc.fontSize(10).font("Helvetica").text(`Exported on: ${new Date().toLocaleString("en-IN")}`, { align: "center" });
+      doc.moveDown(2);
+
+      doc.fontSize(14).font("Helvetica-Bold").text(conversation.title || "Untitled", { underline: true });
+      doc.fontSize(9).font("Helvetica")
+        .text(`Session: ${conversation.sessionId}`)
+        .text(`Created: ${new Date(conversation.createdAt).toLocaleString("en-IN")}`)
+        .text(`Messages: ${conversation.messages.length}`);
+      doc.moveDown(0.5);
+
+      conversation.messages.forEach((msg) => {
+        const isUser = msg.role === "user";
+        doc.fontSize(10).font("Helvetica-Bold")
+          .fillColor(isUser ? "#1a56db" : "#057a55")
+          .text(isUser ? "You:" : "LawBridge AI:");
+        doc.fontSize(10).font("Helvetica").fillColor("#000000").text(msg.content, { width: 500 });
+        doc.fontSize(8).fillColor("#888888").text(new Date(msg.createdAt).toLocaleString("en-IN"));
+        doc.moveDown(0.5);
+      });
+
+      doc.end();
+      return;
+    }
+
+    return res.status(400).json({ success: false, message: "Invalid format" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to export chat" });
+  }
+};
+
+
+// chat sharing aale controllers
+// we will provide toggle button too ie public bana di, user can make that chat private too
+
+// Sharing the chat
+export const shareChat = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { sessionId } = req.params;
+
+    const conversation = await conversationModel.findOne({ userId, sessionId });
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: "Chat not found" });
+    }
+
+    if (!conversation.shareToken) {
+      conversation.shareToken = nanoid(12);
+    }
+    
+    conversation.isPublic = true;
+    await conversation.save();
+
+    return res.status(200).json({
+      success: true,
+      shareUrl: `${process.env.FRONTEND_URL}/shared/${conversation.shareToken}`,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to share chat" });
+  }
+};
+
+// Toggling the chat to unshare it, like make it private again
+export const unshareChat = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { sessionId } = req.params;
+
+    await conversationModel.findOneAndUpdate(
+      { userId, sessionId },
+      { isPublic: false, shareToken: null }
+    );
+
+    return res.status(200).json({ success: true, message: "Chat is now private" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to unshare chat" });
+  }
+};
+
+// Public fetch -> jisko share kri hai vo bhi dekh ske
+export const getSharedChat = async (req, res) => {
+  try {
+    const { shareToken } = req.params;
+
+    const conversation = await conversationModel
+      .findOne({ shareToken, isPublic: true })
+      .select("title messages createdAt")
+      .lean();
+
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: "Shared chat not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      chat: {
+        title: conversation.title || "Untitled",
+        createdAt: conversation.createdAt,
+        messages: conversation.messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.createdAt,
+        })),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to fetch shared chat" });
+  }
+};

@@ -61,6 +61,19 @@ const conversationSchema = new mongoose.Schema(
       default: null,
     },
     messages: [messageSchema],
+    
+    // public banane aali chize like if user wanna share their chat
+    
+    isPublic: {
+      type: Boolean,
+      default : false,
+    },
+    
+    shareToken: {
+      type: String,
+      default: null,
+      index: true // fastly lookup krna ho 
+    },
   },
   { timestamps: true },
 );

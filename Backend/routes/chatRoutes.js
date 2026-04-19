@@ -7,6 +7,10 @@ import {
   getUserChats,
   updateChatTitle,
   exportAllChats,
+  exportSingleChat,
+  shareChat,
+  unshareChat,
+  getSharedChat,
 } from "../controllers/chatController.js";
 import { routeLimiter } from "../middleware/rateLimiter.js";
 
@@ -41,5 +45,29 @@ chatRouter.get(
   routeLimiter(5, 60 * 60, (req) => req.user.id),
   exportAllChats,
 );
+
+chatRouter.get(
+  "/export/:sessionId",
+  authUser,
+  routeLimiter(10, 60 * 60, (req) => req.user.id),
+  exportSingleChat,
+);
+
+// Share routes (auth required for these ofc)
+chatRouter.post(
+  "/:sessionId/share",
+  authUser,
+  routeLimiter(20, 60 * 60, (req) => req.user.id),
+  shareChat,
+);
+chatRouter.delete(
+  "/:sessionId/share",
+  authUser,
+  routeLimiter(20, 60 * 60, (req) => req.user.id),
+  unshareChat,
+);
+
+// Public route — no auth
+chatRouter.get("/shared/:shareToken", getSharedChat);
 
 export default chatRouter;

@@ -6,8 +6,20 @@ import moment from "moment";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axiosClient";
-import { Edit3, Home } from "lucide-react";
+import { Check, Edit3, Home, Trash2, X } from "lucide-react";
 import DeleteChatModal from "./DeleteChatModal";
+
+const getChatDisplayName = (chat) => {
+  const title = chat?.title?.trim();
+  if (title) return title;
+
+  const chatDate = chat?.createdAt || chat?.updatedAt;
+  const formattedDate = moment(chatDate).isValid()
+    ? moment(chatDate).format("MMM D, h:mm A")
+    : moment().format("MMM D, h:mm A");
+
+  return `Chat — ${formattedDate}`;
+};
 
 const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
   const {
@@ -150,9 +162,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
 
   const startEditingTitle = (chat) => {
     setEditingTitleId(chat.sessionId);
-    setTempTitle(
-      chat.title || chat.lastMessage || `Chat ${chat.sessionId.split("-")[1]}`,
-    );
+    setTempTitle(getChatDisplayName(chat));
   };
 
   const saveTitle = async (sessionIdToUpdate) => {
@@ -174,18 +184,29 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
   }, [userData]);
 
   return (
-    <div
-      className={`flex flex-col h-screen min-w-80 p-5 dark:bg-gradient-to-b from-[#242124]/30 to-[#000000]/30 border-r border-[#80609F]/30 backdrop-blur-3xl transition-all duration-500 ${
-        isMenuOpen ? "translate-x-0" : "-translate-x-full"
-      }`}
-    >
+    <div className="flex flex-col h-screen w-72 p-4 bg-gray-50 border-r border-gray-200">
+      <div className="flex items-center justify-between">
+        <span className="text-lg font-semibold text-black">
+          LawBridge
+        </span>
+        <button
+          type="button"
+          onClick={() => setIsMenuOpen(false)}
+          className="p-2 bg-red-500 text-white hover:bg-red-600 rounded-lg transition-colors"
+          aria-label="Close sidebar"
+          title="Close sidebar"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
       {/* Go to Homepage Button */}
       <button
         onClick={() => {
           navigate("/");
           setIsMenuOpen(false);
         }}
-        className="flex justify-center items-center w-full py-3 mt-15 text-gray-700 dark:text-white bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-sm rounded-md cursor-pointer transition-colors"
+        className="flex justify-center items-center w-full py-3 mt-15 text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-sm rounded-md cursor-pointer transition-colors"
       >
         <Home size={16} className="mr-2" /> Go to Homepage
       </button>
@@ -200,7 +221,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
       </button>
 
       {/* Search Conversations */}
-      <div className="flex items-center gap-3 p-3 mt-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl shadow-sm hover:bg-white/20 transition-all duration-200">
+      <div className="flex items-center gap-3 p-3 mt-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all duration-200">
         <img
           src={assets.search_icon}
           alt="search"
@@ -211,14 +232,14 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
           value={search}
           type="text"
           placeholder="Search conversations..."
-          className="flex-1 text-sm placeholder:text-gray-400 dark:placeholder:text-gray-300 text-gray-700 dark:text-white outline-none bg-transparent"
+          className="flex-1 text-sm placeholder:text-gray-400 text-gray-700 outline-none bg-transparent"
         />
       </div>
 
       {/* Recent Chats */}
       {chatSessions.length > 0 && (
         <div className="mt-6 mb-2">
-          <h3 className="text-base font-semibold text-center text-black dark:text-white">
+          <h3 className="text-base font-semibold text-center text-gray-900">
             Recent Legal Chats
           </h3>
         </div>
@@ -240,10 +261,10 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
             .map((chat) => (
               <div
                 key={chat.sessionId}
-                className={`p-2 px-4 border border-gray-300 dark:border-[#80609F]/15 rounded-md flex justify-between group ${
+                className={`p-2 px-4 border border-gray-300 rounded-md flex justify-between group ${
                   sessionId === chat.sessionId
                     ? "bg-[#A456F7] text-white"
-                    : "dark:bg-[#57317C]/10 hover:bg-gray-50 dark:hover:bg-[#57317C]/20"
+                    : "bg-white hover:bg-gray-50"
                 }`}
               >
                 <div
@@ -268,16 +289,14 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
                       className="truncate cursor-pointer"
                       onDoubleClick={() => startEditingTitle(chat)}
                     >
-                      {chat.title ||
-                        chat.lastMessage ||
-                        `Legal Chat ${chat.sessionId.split("-")[1]}`}
+                      {getChatDisplayName(chat)}
                     </p>
                   )}
                   <p
                     className={`text-sm font-medium mt-1 ${
                       sessionId === chat.sessionId
                         ? "text-white/90"
-                        : "text-[#A456F7] dark:text-gray-300"
+                        : "text-[#A456F7]"
                     }`}
                   >
                     {moment(chat.updatedAt).format("MMM DD, YYYY h:mm A")}
@@ -287,18 +306,32 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (editingTitleId === chat.sessionId) {
+                        saveTitle(chat.sessionId);
+                        return;
+                      }
                       startEditingTitle(chat);
                     }}
-                    className="p-1 text-black hover:text-gray-700 hover:bg-white/20 rounded transition-all duration-200"
+                    className={`p-1 rounded transition-all duration-200 ${
+                      editingTitleId === chat.sessionId
+                        ? "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                        : "text-black hover:text-gray-700 hover:bg-white/20"
+                    }`}
                   >
-                    <Edit3 size={16} />
+                    {editingTitleId === chat.sessionId ? (
+                      <Check size={16} />
+                    ) : (
+                      <Edit3 size={16} />
+                    )}
                   </button>
-                  <img
+                  <button
                     onClick={(e) => handleDeleteClick(e, chat)}
-                    src={assets.bin_icon}
-                    alt="delete"
-                    className="w-4 cursor-pointer brightness-0 flex-shrink-0"
-                  />
+                    className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-all duration-200"
+                    aria-label="Delete chat"
+                    title="Delete chat"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
             ))
@@ -312,10 +345,10 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
           <div
             className={`p-3 rounded-xl border text-xs ${
               creditsExhausted
-                ? "bg-red-900/40 border-red-500/50"
+                ? "bg-red-50 border-red-200"
                 : creditsRemaining !== null && creditsRemaining <= 3
-                  ? "bg-amber-900/40 border-amber-500/50"
-                  : "bg-[#3b1f5e]/60 border-[#80609F]/50"
+                  ? "bg-amber-50 border-amber-200"
+                  : "bg-purple-50 border-purple-200"
             }`}
           >
             <div className="flex items-center gap-2 mb-1">
@@ -323,35 +356,35 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
                 size={13}
                 className={
                   creditsExhausted
-                    ? "text-red-400"
+                    ? "text-red-500"
                     : creditsRemaining !== null && creditsRemaining <= 3
-                      ? "text-amber-400"
-                      : "text-[#A456F7]"
+                      ? "text-amber-500"
+                      : "text-purple-600"
                 }
               />
               <span
                 className={`font-semibold ${
                   creditsExhausted
-                    ? "text-red-300"
+                    ? "text-red-700"
                     : creditsRemaining !== null && creditsRemaining <= 3
-                      ? "text-amber-300"
-                      : "text-white"
+                      ? "text-amber-700"
+                      : "text-purple-700"
                 }`}
               >
                 {creditsExhausted
                   ? "No messages left today"
                   : creditsRemaining !== null
                     ? `${creditsRemaining} of 10 messages left`
-                    : "10 messages per day"}
+                    : "Loading credits..."}
               </span>
             </div>
             <p
               className={`leading-relaxed ${
                 creditsExhausted
-                  ? "text-red-400/80"
+                  ? "text-red-600"
                   : creditsRemaining !== null && creditsRemaining <= 3
-                    ? "text-amber-400/80"
-                    : "text-gray-400"
+                    ? "text-amber-600"
+                    : "text-purple-600"
               }`}
             >
               {creditsExhausted
@@ -362,7 +395,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
 
           {/* User Info */}
           <div
-            className="p-3 border border-gray-300 dark:border-white/15 rounded-md hover:bg-gray-50 dark:hover:bg-[#57317C]/20 transition-colors cursor-pointer"
+            className="p-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
             onClick={() => {
               navigate("/my-profile");
               setIsMenuOpen(false);
@@ -374,7 +407,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
                 alt="user"
                 className="w-7 rounded-full"
               />
-              <p className="text-sm dark:text-primary truncate">
+              <p className="text-sm text-gray-800 truncate">
                 {userData.name}
               </p>
             </div>
@@ -392,13 +425,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
           }
         }}
         onConfirm={confirmDelete}
-        chatTitle={
-          chatToDelete?.title ||
-          chatToDelete?.lastMessage ||
-          (chatToDelete
-            ? `Legal Chat ${chatToDelete.sessionId.split("-")[1]}`
-            : "")
-        }
+        chatTitle={chatToDelete ? getChatDisplayName(chatToDelete) : ""}
         isDeleting={isDeleting}
       />
     </div>

@@ -61,6 +61,8 @@ const ChatBox = () => {
     rateLimitCooldown ||
     creditsExhausted ||
     uploadingDocument;
+  const hasCreditsCount = typeof creditsRemaining === "number";
+  const hasUploadsCount = typeof uploadsRemaining === "number";
 
   // send logic
   const sendMessage = async (text) => {
@@ -353,89 +355,66 @@ const ChatBox = () => {
       </div>
 
       {/* ── Input footer ── */}
-      <div className="flex-shrink-0 bg-white border-t border-gray-100 p-3 sm:p-4">
+      <div className="flex-shrink-0 bg-white border-t border-gray-100 p-2 sm:p-4">
         <div className="max-w-4xl mx-auto">
-          {/* Top Bar Counters */}
-          {!creditsExhausted &&
-            (creditsRemaining !== null || uploadsRemaining !== null) && (
-              <div className="flex justify-end gap-2 mb-1.5 flex-wrap">
-                {uploadsRemaining !== null && (
-                  <span
-                    className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                      uploadsRemaining === 0
-                        ? "bg-red-50 text-red-500 border border-red-200"
-                        : "bg-blue-50 text-blue-600 border border-blue-200"
-                    }`}
-                  >
-                    {uploadsRemaining} document upload
-                    {uploadsRemaining !== 1 ? "s" : ""} left
-                  </span>
-                )}
-                {creditsRemaining !== null && (
-                  <span
-                    className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                      creditsRemaining <= 3
-                        ? "bg-red-50 text-red-500 border border-red-200"
-                        : creditsRemaining <= 5
-                          ? "bg-amber-50 text-amber-600 border border-amber-200"
-                          : "bg-purple-50 text-purple-500 border border-purple-200"
-                    }`}
-                  >
-                    {creditsRemaining} message
-                    {creditsRemaining !== 1 ? "s" : ""} remaining today
-                  </span>
-                )}
-              </div>
-            )}
-
-          {/* Credits exhausted — static disabled bar */}
-          {creditsExhausted ? (
-            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-3 sm:p-4 flex items-center gap-3 opacity-60 cursor-not-allowed select-none">
-              <span className="flex-1 text-sm text-gray-400">
-                Daily credit limit reached. Come back tomorrow.
+      
+          {/* Counters */}
+          {!creditsExhausted && (
+            <div className="flex justify-end gap-2 mb-1.5 flex-wrap">
+              {hasUploadsCount && (
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  uploadsRemaining === 0
+                    ? "bg-red-50 text-red-500 border border-red-200"
+                    : "bg-blue-50 text-blue-600 border border-blue-200"
+                }`}>
+                  {uploadsRemaining} upload{uploadsRemaining !== 1 ? "s" : ""} left
+                </span>
+              )}
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                hasCreditsCount && creditsRemaining <= 3
+                  ? "bg-red-50 text-red-500 border border-red-200"
+                  : hasCreditsCount && creditsRemaining <= 5
+                    ? "bg-amber-50 text-amber-600 border border-amber-200"
+                    : hasCreditsCount
+                      ? "bg-purple-50 text-purple-500 border border-purple-200"
+                      : "bg-gray-50 text-gray-500 border border-gray-200"
+              }`}>
+                {hasCreditsCount
+                  ? `${creditsRemaining} msg${creditsRemaining !== 1 ? "s" : ""} left`
+                  : "Loading credits..."}
               </span>
+            </div>
+          )}
+      
+          {creditsExhausted ? (
+            <div className="bg-gray-100 border border-gray-200 rounded-2xl p-3 flex items-center gap-3 opacity-60 cursor-not-allowed">
+              <span className="flex-1 text-sm text-gray-400">Daily limit reached. Come back tomorrow.</span>
             </div>
           ) : (
             <>
               {activeDocument && (
                 <div className="flex items-center gap-2 mb-2 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-700">
-                  <span className="truncate flex-1">
-                    📎 {activeDocument.filename}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveDocument(null)}
-                    className="text-purple-400 hover:text-purple-600 text-lg leading-none"
-                  >
-                    ×
-                  </button>
+                  <span className="truncate flex-1">📎 {activeDocument.filename}</span>
+                  <button type="button" onClick={() => setActiveDocument(null)}
+                    className="text-purple-400 hover:text-purple-600 text-lg leading-none flex-shrink-0">×</button>
                 </div>
               )}
-              <form
-                onSubmit={onSubmit}
-                className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 p-3 sm:p-4 flex gap-2 sm:gap-3 items-center"
-              >
-                {/* for docs upload */}
+              <form onSubmit={onSubmit}
+                className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-2 sm:p-3 flex gap-2 items-end">
                 <div className="flex-shrink-0 [&_span]:hidden">
                   <DocumentUpload onDocumentUploaded={setActiveDocument} />
                 </div>
                 <textarea
                   onChange={(e) => setPrompt(e.target.value)}
                   value={prompt}
-                  placeholder={
-                    rateLimitCooldown
-                      ? "Rate limited — please wait..."
-                      : "Ask your legal question..."
-                  }
-                  className="flex-1 text-sm sm:text-base text-gray-700 placeholder-gray-400 outline-none bg-transparent resize-none overflow-y-auto min-h-[40px] max-h-24 sm:max-h-32 leading-6 disabled:cursor-not-allowed"
+                  placeholder={rateLimitCooldown ? "Rate limited — please wait..." : "Ask your legal question..."}
+                  className="flex-1 text-sm text-gray-700 placeholder-gray-400 outline-none bg-transparent resize-none min-h-[36px] max-h-28 leading-6 disabled:cursor-not-allowed"
                   required
                   disabled={isInputDisabled}
                   rows={1}
                   onInput={(e) => {
                     e.target.style.height = "auto";
-                    const maxHeight = window.innerWidth < 640 ? 96 : 128;
-                    e.target.style.height =
-                      Math.min(e.target.scrollHeight, maxHeight) + "px";
+                    e.target.style.height = Math.min(e.target.scrollHeight, 112) + "px";
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -447,21 +426,12 @@ const ChatBox = () => {
                 <button
                   disabled={isInputDisabled || !prompt.trim()}
                   type="submit"
-                  className="flex-shrink-0 p-2.5 sm:p-3 bg-[#A456F7] hover:bg-[#9146E6] disabled:bg-gray-300 rounded-xl transition-colors duration-200 group min-w-[40px] sm:min-w-[44px]"
-                  title={
-                    rateLimitCooldown
-                      ? "Rate limited — wait a moment"
-                      : creditsExhausted
-                        ? "Daily credits exhausted"
-                        : loadingResponse
-                          ? "Waiting for response..."
-                          : "Send message"
-                  }
+                  className="flex-shrink-0 p-2 md:p-3 bg-[#A456F7] hover:bg-[#9146E6] disabled:bg-gray-300 rounded-xl transition-colors"
                 >
                   <img
                     src={loadingResponse ? assets.stop_icon : assets.send_icon}
                     alt={loadingResponse ? "loading" : "send"}
-                    className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-105 transition-transform duration-200 mx-auto"
+                    className="w-4 h-4 md:w-5 md:h-5 mx-auto"
                   />
                 </button>
               </form>

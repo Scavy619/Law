@@ -91,6 +91,24 @@ const AppContextProvider = ({ children }) => {
     if (userData) actions.loadUserDocuments();
   }, [userData]);
 
+  useEffect(() => {
+    if (!userData) {
+      setCreditsRemaining(null);
+      setCreditsExhausted(false);
+      return;
+    }
+
+    const remaining = userData?.credits?.remaining;
+
+    if (typeof remaining === "number") {
+      setCreditsRemaining(remaining);
+      setCreditsExhausted(remaining <= 0);
+      return;
+    }
+
+    actions.loadUserProfileData();
+  }, [userData, actions]);
+
   const contextValue = useMemo(
     () => ({
       currencySymbol,

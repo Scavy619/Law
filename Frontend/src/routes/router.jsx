@@ -33,6 +33,7 @@ const ResetPassword = lazy(() => import("../pages/ResetPassword.jsx"));
 const Verify = lazy(() => import("../pages/Verify.jsx"));
 const VerifyEmail = lazy(() => import("../pages/VerifyEmail.jsx"));
 const VerifyMagicLink = lazy(() => import("../pages/VerifyMagicLink.jsx"));
+const SharedChat = lazy(() => import("../pages/sharedChat.jsx"));
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -181,7 +182,7 @@ const router = createBrowserRouter(
             </Suspense>
           }
         />
-        
+
         <Route
           path="verify-magic-link/:token"
           element={
@@ -190,10 +191,18 @@ const router = createBrowserRouter(
             </Suspense>
           }
         />
-        
 
         <Route path="*" element={<NotFound />} />
       </Route>
+
+      <Route
+        path="/shared/:shareToken"
+        element={
+          <Suspense fallback={<Loader />}>
+            <SharedChat />
+          </Suspense>
+        }
+      />
     </>,
   ),
 );

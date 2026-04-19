@@ -5,7 +5,7 @@ import {
   deleteChatSchema,
 } from "../validations/chatValidation.js";
 import PDFDocument from "pdfkit";
-
+import { nanoid } from "nanoid";
 
 // Create a new chat session
 export const createChat = async (req, res) => {

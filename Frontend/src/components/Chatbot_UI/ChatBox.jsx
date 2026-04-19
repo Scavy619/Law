@@ -7,8 +7,26 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axiosClient";
 import DocumentUpload from "./DocumentUpload";
 
+const thinkingPhrases = [
+  "Analyzing your query...",
+  "Searching legal knowledge base...",
+  "Reviewing relevant provisions...",
+  "Drafting response...",
+];
+
+const getMessageKey = (message) =>
+  `${message.role}|${message.content}|${message.createdAt}`;
+
+const appendUniqueMessage = (existingMessages, message) => {
+  const messageKey = getMessageKey(message);
+  return existingMessages.some((item) => getMessageKey(item) === messageKey)
+    ? existingMessages
+    : [...existingMessages, message];
+};
+
 const ChatBox = () => {
   const containerRef = useRef(null);
+  const lastSyncedSessionRef = useRef(null);
   const { sessionId } = useParams();
   const navigate = useNavigate();
 
@@ -33,6 +51,7 @@ const ChatBox = () => {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState([]);
   const [activeDocument, setActiveDocument] = useState(null);
+  const [thinkingPhrase, setThinkingPhrase] = useState(thinkingPhrases[0]);
 
   // Track the last failed prompt so we can offer a retry
   const [failedPrompt, setFailedPrompt] = useState(null);
@@ -73,6 +92,16 @@ const ChatBox = () => {
       attachedDocument: activeDocument || null,
     };
     setMessages((prev) => [...prev, userMessage]);
+    setCurrentSession((prevSession) => {
+      if (!prevSession || prevSession.sessionId !== activeSessionId) {
+        return prevSession;
+      }
+
+      return {
+        ...prevSession,
+        messages: appendUniqueMessage(prevSession.messages || [], userMessage),
+      };
+    });
 
     try {
       const { data } = await api.post("/api/message/get-message", {
@@ -94,16 +123,19 @@ const ChatBox = () => {
           setCreditsRemaining(data.creditsRemaining);
         }
 
-        if (currentSession) {
-          setCurrentSession({
-            ...currentSession,
-            messages: [
-              ...(currentSession.messages || []),
-              userMessage,
+        setCurrentSession((prevSession) => {
+          if (!prevSession || prevSession.sessionId !== activeSessionId) {
+            return prevSession;
+          }
+
+          return {
+            ...prevSession,
+            messages: appendUniqueMessage(
+              appendUniqueMessage(prevSession.messages || [], userMessage),
               botMessage,
-            ],
-          });
-        }
+            ),
+          };
+        });
       }
     } catch (error) {
       setMessages((prev) => prev.filter((m) => m !== userMessage));
@@ -139,6 +171,29 @@ const ChatBox = () => {
     await sendMessage(text);
   };
 
+  useEffect(() => {
+    if (!loadingResponse) return;
+
+    const pickRandomPhrase = () =>
+      thinkingPhrases[Math.floor(Math.random() * thinkingPhrases.length)];
+
+    setThinkingPhrase(pickRandomPhrase());
+
+    const intervalId = setInterval(() => {
+      setThinkingPhrase((prevPhrase) => {
+        if (thinkingPhrases.length <= 1) return prevPhrase;
+
+        let nextPhrase = pickRandomPhrase();
+        while (nextPhrase === prevPhrase) {
+          nextPhrase = pickRandomPhrase();
+        }
+        return nextPhrase;
+      });
+    }, 1800);
+
+    return () => clearInterval(intervalId);
+  }, [loadingResponse]);
+
   // ── side effects ───────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -150,7 +205,23 @@ const ChatBox = () => {
 
   useEffect(() => {
     if (currentSession?.messages) {
-      setMessages(currentSession.messages);
+      setMessages((previousMessages) => {
+        const incomingSessionId = currentSession.sessionId;
+        const incomingMessages = currentSession.messages || [];
+        const isSessionChanged =
+          lastSyncedSessionRef.current !== incomingSessionId;
+
+        if (isSessionChanged) {
+          lastSyncedSessionRef.current = incomingSessionId;
+          return incomingMessages;
+        }
+
+        if (incomingMessages.length < previousMessages.length) {
+          return previousMessages;
+        }
+
+        return incomingMessages;
+      });
     }
   }, [currentSession]);
 
@@ -231,7 +302,7 @@ const ChatBox = () => {
                     style={{ animationDelay: "0.2s" }}
                   />
                   <span className="text-sm text-gray-500 ml-2">
-                    Thinking...
+                    {thinkingPhrase}
                   </span>
                 </div>
               </div>

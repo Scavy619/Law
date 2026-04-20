@@ -90,7 +90,7 @@ const Navbar = () => {
       />
       <nav
         ref={navRef}
-        className="md:flex items-center gap-2 font-medium hidden relative z-10"
+        className="lg:flex items-center gap-2 font-medium hidden relative z-10"
       >
         {/* Animated Droplet Background */}
         <div
@@ -197,7 +197,7 @@ const Navbar = () => {
               />
             </div>
             {/* Desktop Dropdown (Hover) */}
-            <div className="absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-50 hidden md:group-hover:block">
+            <div className="absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-50 hidden lg:group-hover:block">
               <div className="min-w-48 bg-white border border-gray-200 rounded flex flex-col gap-4 p-4 shadow-xl">
                 <p
                   onClick={() => navigate("/my-profile")}
@@ -219,7 +219,7 @@ const Navbar = () => {
             {/* Mobile Dropdown (Click) */}
             <div
               id="profile-dropdown-content"
-              className={`absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-50 md:hidden ${showMobileDropdown ? "block" : "hidden"}`}
+              className={`absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-50 lg:hidden ${showMobileDropdown ? "block" : "hidden"}`}
             >
               <div className="min-w-48 bg-white border border-gray-200 rounded flex flex-col gap-4 p-4 shadow-xl">
                 <p
@@ -262,14 +262,14 @@ const Navbar = () => {
         )}
         <img
           onClick={() => setShowMenu(true)}
-          className="w-6 md:hidden"
+          className="w-6 lg:hidden"
           src={assets.menu_icon}
           alt=""
         />
 
         {/* ---- Mobile Menu ---- */}
         <div
-          className={`md:hidden ${showMenu ? "fixed w-full" : "h-0 w-0"} right-0 top-0 bottom-0 z-20 overflow-hidden bg-white transition-all`}
+          className={`lg:hidden ${showMenu ? "fixed w-full" : "h-0 w-0"} right-0 top-0 bottom-0 z-20 overflow-hidden bg-white transition-all`}
         >
           <div className="flex items-center justify-between px-5 py-6">
             <img src={assets.legallogo} className="w-auto h-14" alt="" />

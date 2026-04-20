@@ -251,7 +251,6 @@ const ChatBox = () => {
             {messages.length === 0 && (
               <div className="h-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-gray-50">
                 <div className="animate-fade-in bg-white/80 backdrop-blur-sm rounded-2xl p-8 sm:p-10 md:p-12 shadow-lg border border-white/50 max-w-sm sm:max-w-md md:max-w-lg mx-auto">
-                  
                   <div className="text-center space-y-3">
                     <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                       Legal Assistant
@@ -260,11 +259,24 @@ const ChatBox = () => {
                       Ask your legal question and get expert assistance
                     </p>
                     <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-start text-left gap-2 max-w-sm mx-auto">
-                      <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z" />
+                      <svg
+                        className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z"
+                        />
                       </svg>
                       <p className="text-xs text-blue-800">
-                        <strong>Privacy Note:</strong> Chats are not end-to-end encrypted, but they are securely stored and never leaked or shared with unauthorized parties.
+                        <strong>Privacy Note:</strong> Chats are not end-to-end
+                        encrypted, but they are securely stored and never leaked
+                        or shared with unauthorized parties.
                       </p>
                     </div>
                   </div>
@@ -355,66 +367,86 @@ const ChatBox = () => {
       </div>
 
       {/* ── Input footer ── */}
-      <div className="flex-shrink-0 bg-white border-t border-gray-100 p-2 sm:p-4">
+      <div className="flex-shrink-0 sticky bottom-0 z-10 bg-white border-t border-gray-100 p-2 sm:p-4">
         <div className="max-w-4xl mx-auto">
-      
           {/* Counters */}
           {!creditsExhausted && (
             <div className="flex justify-end gap-2 mb-1.5 flex-wrap">
               {hasUploadsCount && (
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                  uploadsRemaining === 0
-                    ? "bg-red-50 text-red-500 border border-red-200"
-                    : "bg-blue-50 text-blue-600 border border-blue-200"
-                }`}>
-                  {uploadsRemaining} upload{uploadsRemaining !== 1 ? "s" : ""} left
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    uploadsRemaining === 0
+                      ? "bg-red-50 text-red-500 border border-red-200"
+                      : "bg-blue-50 text-blue-600 border border-blue-200"
+                  }`}
+                >
+                  {uploadsRemaining} upload{uploadsRemaining !== 1 ? "s" : ""}{" "}
+                  left
                 </span>
               )}
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                hasCreditsCount && creditsRemaining <= 3
-                  ? "bg-red-50 text-red-500 border border-red-200"
-                  : hasCreditsCount && creditsRemaining <= 5
-                    ? "bg-amber-50 text-amber-600 border border-amber-200"
-                    : hasCreditsCount
-                      ? "bg-purple-50 text-purple-500 border border-purple-200"
-                      : "bg-gray-50 text-gray-500 border border-gray-200"
-              }`}>
+              <span
+                className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  hasCreditsCount && creditsRemaining <= 3
+                    ? "bg-red-50 text-red-500 border border-red-200"
+                    : hasCreditsCount && creditsRemaining <= 5
+                      ? "bg-amber-50 text-amber-600 border border-amber-200"
+                      : hasCreditsCount
+                        ? "bg-purple-50 text-purple-500 border border-purple-200"
+                        : "bg-gray-50 text-gray-500 border border-gray-200"
+                }`}
+              >
                 {hasCreditsCount
                   ? `${creditsRemaining} msg${creditsRemaining !== 1 ? "s" : ""} left`
                   : "Loading credits..."}
               </span>
             </div>
           )}
-      
+
           {creditsExhausted ? (
             <div className="bg-gray-100 border border-gray-200 rounded-2xl p-3 flex items-center gap-3 opacity-60 cursor-not-allowed">
-              <span className="flex-1 text-sm text-gray-400">Daily limit reached. Come back tomorrow.</span>
+              <span className="flex-1 text-sm text-gray-400">
+                Daily limit reached. Come back tomorrow.
+              </span>
             </div>
           ) : (
             <>
               {activeDocument && (
                 <div className="flex items-center gap-2 mb-2 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-700">
-                  <span className="truncate flex-1">📎 {activeDocument.filename}</span>
-                  <button type="button" onClick={() => setActiveDocument(null)}
-                    className="text-purple-400 hover:text-purple-600 text-lg leading-none flex-shrink-0">×</button>
+                  <span className="truncate flex-1">
+                    📎 {activeDocument.filename}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveDocument(null)}
+                    className="text-purple-400 hover:text-purple-600 text-lg leading-none flex-shrink-0"
+                  >
+                    ×
+                  </button>
                 </div>
               )}
-              <form onSubmit={onSubmit}
-                className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-2 sm:p-3 flex gap-2 items-end">
+              <form
+                onSubmit={onSubmit}
+                className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow p-2 sm:p-3 flex gap-2 items-end"
+              >
                 <div className="flex-shrink-0 [&_span]:hidden">
                   <DocumentUpload onDocumentUploaded={setActiveDocument} />
                 </div>
                 <textarea
                   onChange={(e) => setPrompt(e.target.value)}
                   value={prompt}
-                  placeholder={rateLimitCooldown ? "Rate limited — please wait..." : "Ask your legal question..."}
+                  placeholder={
+                    rateLimitCooldown
+                      ? "Rate limited — please wait..."
+                      : "Ask your legal question..."
+                  }
                   className="flex-1 text-sm text-gray-700 placeholder-gray-400 outline-none bg-transparent resize-none min-h-[36px] max-h-28 leading-6 disabled:cursor-not-allowed"
                   required
                   disabled={isInputDisabled}
                   rows={1}
                   onInput={(e) => {
                     e.target.style.height = "auto";
-                    e.target.style.height = Math.min(e.target.scrollHeight, 112) + "px";
+                    e.target.style.height =
+                      Math.min(e.target.scrollHeight, 112) + "px";
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {

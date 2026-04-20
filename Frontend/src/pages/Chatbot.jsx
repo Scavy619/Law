@@ -20,8 +20,12 @@ const Chatbot = () => {
   const sharePopoverRef = useRef(null);
 
   const {
-    userData, authLoading, sessionId, setSessionId,
-    currentSession, fetchUserChats,
+    userData,
+    authLoading,
+    sessionId,
+    setSessionId,
+    currentSession,
+    fetchUserChats,
   } = useApp();
 
   const handleExport = async (format) => {
@@ -80,7 +84,10 @@ const Chatbot = () => {
     const handleOutside = (e) => {
       if (exportMenuRef.current && !exportMenuRef.current.contains(e.target))
         setShowExportMenu(false);
-      if (sharePopoverRef.current && !sharePopoverRef.current.contains(e.target))
+      if (
+        sharePopoverRef.current &&
+        !sharePopoverRef.current.contains(e.target)
+      )
         setShowSharePopover(false);
     };
     document.addEventListener("mousedown", handleOutside);
@@ -103,20 +110,23 @@ const Chatbot = () => {
 
   const chatDateSource = currentSession?.createdAt || currentSession?.updatedAt;
   const chatDate = chatDateSource ? new Date(chatDateSource) : null;
-  const hasValidChatDate = chatDate instanceof Date && !Number.isNaN(chatDate.getTime());
+  const hasValidChatDate =
+    chatDate instanceof Date && !Number.isNaN(chatDate.getTime());
   const chatDateFallback = hasValidChatDate
     ? `Chat — ${chatDate.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    })}`
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })}`
     : "New Legal Chat";
 
   const MAX_HEADER_TITLE_CHARS = 32;
   const title = currentSession?.title?.trim() || "";
-  const titleFirstThreeWords = title ? title.split(/\s+/).slice(0, 3).join(" ") : "";
+  const titleFirstThreeWords = title
+    ? title.split(/\s+/).slice(0, 3).join(" ")
+    : "";
   const truncatedTitle =
     titleFirstThreeWords.length > MAX_HEADER_TITLE_CHARS
       ? `${titleFirstThreeWords.slice(0, MAX_HEADER_TITLE_CHARS).trimEnd()}...`
@@ -128,8 +138,7 @@ const Chatbot = () => {
   if (!userData) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-
+    <div className="flex h-[100dvh] overflow-hidden bg-gray-50">
       {/* Overlay — sidebar open hone pe background dim */}
       {isMenuOpen && (
         <div
@@ -139,30 +148,46 @@ const Chatbot = () => {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full w-72 z-30 transform transition-transform duration-300 ease-in-out ${
-        isMenuOpen ? "translate-x-0" : "-translate-x-full"
-      }`}>
+      <div
+        className={`fixed left-0 top-0 h-full w-72 z-30 transform transition-transform duration-300 ease-in-out ${
+          isMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <Sidebar isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
       </div>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col h-screen min-w-0">
-
+      <div className="flex-1 flex flex-col h-[100dvh] min-w-0">
         {/* Header */}
         <div className="bg-white border-b border-gray-100 shadow-sm flex-shrink-0">
           <div className="flex items-center h-14 px-3 gap-2">
-
             {/* Hamburger */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="flex-shrink-0 p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               aria-label="Toggle sidebar"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {isMenuOpen
-                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                }
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {isMenuOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
               </svg>
             </button>
 
@@ -181,27 +206,40 @@ const Chatbot = () => {
             {/* Actions — fixed width, never shrink */}
             {sessionId && (
               <div className="flex items-center gap-1.5 flex-shrink-0">
-
                 {/* Export */}
                 <div ref={exportMenuRef} className="relative">
                   <button
-                    onClick={() => setShowExportMenu(p => !p)}
+                    onClick={() => setShowExportMenu((p) => !p)}
                     className="flex items-center gap-1 px-2.5 py-1.5 text-xs md:gap-1.5 md:px-3.5 md:py-2 md:text-sm text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
                     aria-label="Export"
                   >
-                    <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    <svg
+                      className="w-3.5 h-3.5 md:w-4 md:h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
                     </svg>
                     <span className="hidden md:inline">Export</span>
                   </button>
                   {showExportMenu && (
                     <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
-                      <button onClick={() => handleExport("pdf")}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-t-xl">
+                      <button
+                        onClick={() => handleExport("pdf")}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-t-xl"
+                      >
                         Export as PDF
                       </button>
-                      <button onClick={() => handleExport("json")}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-b-xl">
+                      <button
+                        onClick={() => handleExport("json")}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-b-xl"
+                      >
                         Export as JSON
                       </button>
                     </div>
@@ -219,8 +257,18 @@ const Chatbot = () => {
                         : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                     }`}
                   >
-                    <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    <svg
+                      className="w-3.5 h-3.5 md:w-4 md:h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                      />
                     </svg>
                     <span className="hidden md:inline">
                       {shareLoading ? "..." : isShared ? "Shared" : "Share"}
@@ -228,28 +276,41 @@ const Chatbot = () => {
                   </button>
 
                   {isShared && shareUrl && showSharePopover && (
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-50"
-                      style={{ width: "min(280px, calc(100vw - 24px))" }}>
+                    <div
+                      className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-50"
+                      style={{ width: "min(280px, calc(100vw - 24px))" }}
+                    >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-gray-700">Shareable link</span>
-                        <button onClick={() => setShowSharePopover(false)}
-                          className="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
+                        <span className="text-xs font-medium text-gray-700">
+                          Shareable link
+                        </span>
+                        <button
+                          onClick={() => setShowSharePopover(false)}
+                          className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+                        >
+                          ×
+                        </button>
                       </div>
                       <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                        <span className="text-xs text-gray-600 truncate flex-1">{shareUrl}</span>
-                        <button onClick={handleCopyLink}
-                          className="text-xs text-purple-600 font-medium hover:text-purple-800 flex-shrink-0">
+                        <span className="text-xs text-gray-600 truncate flex-1">
+                          {shareUrl}
+                        </span>
+                        <button
+                          onClick={handleCopyLink}
+                          className="text-xs text-purple-600 font-medium hover:text-purple-800 flex-shrink-0"
+                        >
                           Copy
                         </button>
                       </div>
-                      <button onClick={handleShare}
-                        className="mt-2 w-full text-xs text-red-500 hover:text-red-700 text-center">
+                      <button
+                        onClick={handleShare}
+                        className="mt-2 w-full text-xs text-red-500 hover:text-red-700 text-center"
+                      >
                         Make private
                       </button>
                     </div>
                   )}
                 </div>
-
               </div>
             )}
           </div>

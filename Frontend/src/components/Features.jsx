@@ -105,8 +105,8 @@ export default function Features() {
           </p>
         </div>
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+        {/* Features Grid - 4 cards in one row on desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             const colors = colorClasses[feature.color];
@@ -115,33 +115,32 @@ export default function Features() {
               <div
                 key={index}
                 onClick={() => handleNavigation(feature.path, feature.isExternal)}
-                className={`group relative bg-white border-2 border-gray-100 rounded-2xl sm:rounded-3xl p-4 sm:p-8 transition-all duration-300 cursor-pointer overflow-hidden ${colors.hoverBorder} hover:shadow-xl ${colors.shadow} hover:-translate-y-1`}
+                className={`group relative bg-white border-2 border-gray-100 rounded-lg p-6 transition-all duration-200 ease-in-out cursor-pointer overflow-hidden ${colors.hoverBorder} hover:shadow-xl ${colors.shadow} hover:scale-105 flex flex-col h-full`}
               >
                 {/* Gradient Background */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${colors.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-200`} />
                 
                 {/* Content */}
-                <div className="relative flex items-start gap-3 sm:gap-5">
+                <div className="relative flex flex-col h-full">
                   {/* Icon */}
-                  <div className={`flex-shrink-0 p-2.5 sm:p-4 ${colors.iconBg} rounded-xl sm:rounded-2xl transition-transform duration-300 group-hover:scale-110`}>
-                    <Icon className={`w-5 h-5 sm:w-7 sm:h-7 ${colors.iconColor}`} />
+                  <div className={`flex-shrink-0 w-fit p-3 ${colors.iconBg} rounded-xl transition-transform duration-200 group-hover:scale-110 mb-4`}>
+                    <Icon className={`w-6 h-6 ${colors.iconColor}`} />
                   </div>
                   
                   {/* Text Content */}
-                  <div className="flex-1">
-                    <h3 className="text-base sm:text-2xl font-bold text-gray-900 mb-1.5 sm:mb-3 leading-tight">
+                  <div className="flex-1 flex flex-col">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
                       <span className="sm:hidden">{feature.mobileTitle || feature.title}</span>
                       <span className="hidden sm:inline">{feature.title}</span>
                     </h3>
-                    <p className="hidden sm:block text-gray-600 leading-relaxed mb-5">
+                    <p className="text-gray-600 text-base leading-relaxed mb-4 flex-1">
                       {feature.description}
                     </p>
                     
                     {/* Action Link */}
-                    <div className={`flex items-center ${colors.actionColor} font-semibold text-xs sm:text-sm group/link`}>
-                      <span className="sm:hidden">Open</span>
-                      <span className="hidden sm:inline">{feature.action}</span>
-                      <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover/link:translate-x-1" />
+                    <div className={`flex items-center ${colors.actionColor} font-semibold text-sm group/link mt-auto`}>
+                      <span>{feature.action}</span>
+                      <ArrowRight className="w-4 h-4 ml-2 transition-transform duration-200 group-hover/link:translate-x-1" />
                     </div>
                   </div>
                 </div>

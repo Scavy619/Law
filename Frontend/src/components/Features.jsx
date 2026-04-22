@@ -18,7 +18,7 @@ export default function Features() {
         icon: Upload,
         title: "Video Meeting Based Appointments",
         mobileTitle: "Video Appointments",
-        description: "Schedule and attend secure video consultations with qualified lawyers from the comfort of your home or office.",
+        description: "Schedule and attend secure video consultations with qualified lawyers from the comfort of your home or office or anywhere.",
         action: "Book Video Meeting",
         color: "emerald",
         path: "/lawyers",
@@ -28,7 +28,7 @@ export default function Features() {
         icon: MessageSquare,
         title: "AI Legal Assistant",
         mobileTitle: "AI Assistant",
-        description: "Get instant answers to legal questions, understand your rights, and receive guidance on everyday legal matters through our intelligent chatbot.",
+        description: "Get instant answers to legal questions, understand your rights, and receive guidance on everyday legal matters through our intelligent AI chatbot.",
         action: "Start Conversation",
         color: "violet",
         path: "/chatbot",
@@ -38,7 +38,7 @@ export default function Features() {
         icon: Video,
         title: "Learning Resources",
         mobileTitle: "Learning Resources",
-        description: "Access curated video guides, legal tutorials, and educational content to build your understanding of law and legal processes.",
+        description: "Access easy to follow video guides, legal tutorials, and educational content to build your understanding of law and legal processes.",
         action: "Browse Resources",
         color: "amber",
         path: "/resources",
@@ -48,7 +48,7 @@ export default function Features() {
         icon: BookOpen,
         title: "Legal Blog & Insights",
         mobileTitle: "Legal Blog",
-        description: "Access real legal stories, expert articles, and community discussions to stay informed about legal trends and precedents.",
+        description: "Access real legal stories, expert written articles, and community discussions to stay informed about legal trends and precedents.",
         action: "Explore Articles",
         color: "blue",
         path: "https://blogspace-alpha.vercel.app/",
@@ -133,7 +133,7 @@ export default function Features() {
                       <span className="sm:hidden">{feature.mobileTitle || feature.title}</span>
                       <span className="hidden sm:inline">{feature.title}</span>
                     </h3>
-                    <p className="text-gray-600 text-base leading-relaxed mb-4 flex-1">
+                    <p className="text-gray-600 text-base leading-relaxed mb-4 flex-1 text-justify">
                       {feature.description}
                     </p>
                     

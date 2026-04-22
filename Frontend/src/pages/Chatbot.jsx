@@ -46,23 +46,35 @@ const Chatbot = () => {
 
   const handleShare = async () => {
     if (!sessionId) return toast.error("No active chat to share");
+    if (isShared) {
+      setShowSharePopover(true);
+      return;
+    }
     setShareLoading(true);
     try {
-      if (isShared) {
-        await unshareChat(sessionId);
-        setIsShared(false);
-        setShareUrl(null);
-        setShowSharePopover(false);
-        toast.success("Chat is now private");
-      } else {
-        const { data } = await shareChat(sessionId);
-        setIsShared(true);
-        setShareUrl(data.shareUrl);
-        setShowSharePopover(true);
-        toast.success("Chat is now public");
-      }
+      const { data } = await shareChat(sessionId);
+      setIsShared(true);
+      setShareUrl(data.shareUrl);
+      setShowSharePopover(true);
+      toast.success("Chat is now public");
     } catch {
-      toast.error("Failed to update share settings");
+      toast.error("Failed to share chat");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleUnshare = async () => {
+    if (!sessionId) return;
+    setShareLoading(true);
+    try {
+      await unshareChat(sessionId);
+      setIsShared(false);
+      setShareUrl(null);
+      setShowSharePopover(false);
+      toast.success("Chat is now private");
+    } catch {
+      toast.error("Failed to make chat private");
     } finally {
       setShareLoading(false);
     }
@@ -251,27 +263,53 @@ const Chatbot = () => {
                   <button
                     onClick={handleShare}
                     disabled={shareLoading}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 text-xs md:gap-1.5 md:px-3.5 md:py-2 md:text-sm border rounded-lg transition-colors ${
+                    className={`flex items-center gap-1 px-2.5 py-1.5 text-xs md:gap-1.5 md:px-3.5 md:py-2 md:text-sm border rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                       isShared
                         ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
                         : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                     }`}
                   >
-                    <svg
-                      className="w-3.5 h-3.5 md:w-4 md:h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                      />
-                    </svg>
+                    {shareLoading ? (
+                      <svg
+                        className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-3.5 h-3.5 md:w-4 md:h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                        />
+                      </svg>
+                    )}
                     <span className="hidden md:inline">
-                      {shareLoading ? "..." : isShared ? "Shared" : "Share"}
+                      {shareLoading
+                        ? "Sharing…"
+                        : isShared
+                          ? "Shared"
+                          : "Share"}
                     </span>
                   </button>
 
@@ -303,10 +341,36 @@ const Chatbot = () => {
                         </button>
                       </div>
                       <button
-                        onClick={handleShare}
-                        className="mt-2 w-full text-xs text-red-500 hover:text-red-700 text-center"
+                        onClick={handleUnshare}
+                        disabled={shareLoading}
+                        className="mt-2 w-full text-xs text-red-500 hover:text-red-700 text-center disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                       >
-                        Make private
+                        {shareLoading ? (
+                          <>
+                            <svg
+                              className="w-3 h-3 animate-spin"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              />
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                              />
+                            </svg>
+                            Making private…
+                          </>
+                        ) : (
+                          "Make private"
+                        )}
                       </button>
                     </div>
                   )}

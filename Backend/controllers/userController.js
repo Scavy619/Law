@@ -830,6 +830,40 @@ export const listAppointment = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 7, 50);
     const skip = (page - 1) * limit;
     const status = req.query.status;
+    const sortOrder = String(req.query.sortOrder || "desc").toLowerCase();
+    
+    const lawyerName =
+      typeof req.query.lawyerName === "string"
+        ? req.query.lawyerName.trim()
+        : "";
+    const fromDateParam =
+      typeof req.query.fromDate === "string" ? req.query.fromDate.trim() : "";
+    const toDateParam =
+      typeof req.query.toDate === "string" ? req.query.toDate.trim() : "";
+    const sortDirection = ["asc", "ascending"].includes(sortOrder) ? 1 : -1;
+    const fromDate = fromDateParam
+      ? new Date(`${fromDateParam}T00:00:00.000Z`)
+      : null;
+    const toDate = toDateParam
+      ? new Date(`${toDateParam}T23:59:59.999Z`)
+      : null;
+
+    if (
+      (fromDate && Number.isNaN(fromDate.getTime())) ||
+      (toDate && Number.isNaN(toDate.getTime()))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date filter provided",
+      });
+    }
+
+    if (fromDate && toDate && fromDate > toDate) {
+      return res.status(400).json({
+        success: false,
+        message: "From date cannot be later than to date",
+      });
+    }
 
     const query = { userId };
 
@@ -844,18 +878,65 @@ export const listAppointment = async (req, res) => {
       }
     }
 
-    const [total, appointments] = await Promise.all([
-      appointmentModel.countDocuments(query),
-      appointmentModel
-        .find(query)
-        .select(
-          "slotDate slotTime amount payment isCompleted cancelled createdAt lawyerId lawyerData videoCall",
-        )
-        .sort({ createdAt: -1 }) // Sorts by latest booked
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-    ]);
+    if (lawyerName) {
+      query["lawyerData.name"] = { $regex: lawyerName, $options: "i" };
+    }
+
+    const pipeline = [
+      { $match: query },
+      {
+        $addFields: {
+          slotDateObj: {
+            $let: {
+              vars: { parts: { $split: ["$slotDate", "_"] } },
+              in: {
+                $dateFromParts: {
+                  year: { $toInt: { $arrayElemAt: ["$$parts", 2] } },
+                  month: { $toInt: { $arrayElemAt: ["$$parts", 1] } },
+                  day: { $toInt: { $arrayElemAt: ["$$parts", 0] } },
+                },
+              },
+            },
+          },
+        },
+      },
+    ];
+
+    if (fromDate || toDate) {
+      const rangeQuery = {};
+      if (fromDate) rangeQuery.$gte = fromDate;
+      if (toDate) rangeQuery.$lte = toDate;
+      pipeline.push({ $match: { slotDateObj: rangeQuery } });
+    }
+
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "total" }],
+        appointments: [
+          { $sort: { slotDateObj: sortDirection, createdAt: sortDirection } },
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              slotDate: 1,
+              slotTime: 1,
+              amount: 1,
+              payment: 1,
+              isCompleted: 1,
+              cancelled: 1,
+              createdAt: 1,
+              lawyerId: 1,
+              lawyerData: 1,
+              videoCall: 1,
+            },
+          },
+        ],
+      },
+    });
+
+    const [result] = await appointmentModel.aggregate(pipeline);
+    const total = result?.metadata?.[0]?.total || 0;
+    const appointments = result?.appointments || [];
 
     // Shape each appointment — expose only safe, required fields
     const shaped = appointments.map((appt) => {

@@ -1,10 +1,28 @@
 import api from "./axiosClient";
 
 // GET user appointments
-export const getUserAppointments = async (page = 1, limit = 7, status = "") => {
-  let url = `/api/user/appointments?page=${page}&limit=${limit}`;
-  if (status) url += `&status=${status}`;
-  return api.get(url);
+export const getUserAppointments = async (
+  page = 1,
+  limit = 7,
+  status = "",
+  filters = {},
+) => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  if (status) params.set("status", status);
+
+  const { sortOrder = "desc", lawyerName = "", fromDate = "", toDate = "" } =
+    filters;
+
+  if (sortOrder) params.set("sortOrder", sortOrder);
+  if (lawyerName) params.set("lawyerName", lawyerName);
+  if (fromDate) params.set("fromDate", fromDate);
+  if (toDate) params.set("toDate", toDate);
+
+  return api.get(`/api/user/appointments?${params.toString()}`);
 };
 
 // CANCEL appointment

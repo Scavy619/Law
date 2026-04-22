@@ -39,13 +39,13 @@ const AppointmentActionButtons = ({
   };
 
   return (
-    <div className="sm:w-48 shrink-0 flex flex-col gap-3 justify-center">
+    <div className="w-full sm:w-48 shrink-0 flex flex-col gap-2.5 justify-center">
       {!isAppointmentCancelled(item) && !item.payment && !item.isCompleted && (
         <>
           {payment !== item.id ? (
             <button
               onClick={() => setPayment(item.id)}
-              className="w-full px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+              className="w-full px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
             >
               <svg
                 className="w-4 h-4"
@@ -65,7 +65,7 @@ const AppointmentActionButtons = ({
           ) : (
             <button
               onClick={() => appointmentRazorpay(item.id)}
-              className="w-full px-4 py-2 rounded-lg bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-colors flex items-center justify-center"
+              className="w-full px-4 py-2.5 rounded-lg bg-white border-2 border-primary text-primary text-sm font-semibold hover:bg-primary/5 transition-colors flex items-center justify-center"
             >
               <img
                 className="max-h-6"
@@ -83,7 +83,7 @@ const AppointmentActionButtons = ({
           {state === "join" && (
             <button
               onClick={() => handleJoinVideoCall(item.id)}
-              className="w-full px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 flex items-center justify-center gap-2"
+              className="w-full px-4 py-2.5 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 flex items-center justify-center gap-2"
             >
               <Video size={18} />
               Join Video Call
@@ -93,7 +93,7 @@ const AppointmentActionButtons = ({
           {state === "too_early" && (
             <button
               disabled
-              className="w-full px-4 py-2 rounded-lg bg-gray-300 text-gray-600 cursor-not-allowed"
+              className="w-full px-4 py-2.5 rounded-lg bg-gray-200 text-gray-600 text-sm font-medium cursor-not-allowed"
             >
               Opens in {formatCountdown(countdown)}
             </button>
@@ -102,7 +102,7 @@ const AppointmentActionButtons = ({
           {state === "expired" && (
             <button
               disabled
-              className="w-full px-4 py-2 rounded-lg bg-gray-300 text-gray-600"
+              className="w-full px-4 py-2.5 rounded-lg bg-gray-200 text-gray-600 text-sm font-medium"
             >
               Meeting expired
             </button>
@@ -113,7 +113,7 @@ const AppointmentActionButtons = ({
       {!isAppointmentCancelled(item) && !item.isCompleted && (
         <button
           onClick={() => cancelAppointment(item.id)}
-          className="w-full px-4 py-2 rounded-lg border-2 border-red-500 text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+          className="w-full px-4 py-2.5 rounded-lg border-2 border-red-500 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
         >
           <svg
             className="w-4 h-4"
@@ -146,18 +146,59 @@ const MyAppointments = () => {
   const filter = searchParams.get("filter") || "all";
   const limit = parseInt(searchParams.get("limit")) || 7;
   const page = parseInt(searchParams.get("page")) || 1;
+  const sortOrder = searchParams.get("sortOrder") || "desc";
+  const lawyerName = searchParams.get("lawyerName") || "";
+  const fromDate = searchParams.get("fromDate") || "";
+  const toDate = searchParams.get("toDate") || "";
 
   const [totalPages, setTotalPages] = useState(1);
+  const [lawyerSearchInput, setLawyerSearchInput] = useState(lawyerName);
+  const [fromDateInput, setFromDateInput] = useState(fromDate);
+  const [toDateInput, setToDateInput] = useState(toDate);
 
   const updateParams = (newParams) => {
     const currentParams = Object.fromEntries([...searchParams]);
-    setSearchParams({ ...currentParams, ...newParams });
+    const mergedParams = { ...currentParams, ...newParams };
+
+    Object.keys(mergedParams).forEach((key) => {
+      const value = mergedParams[key];
+      if (value === "" || value === null || value === undefined) {
+        delete mergedParams[key];
+      }
+    });
+
+    setSearchParams(mergedParams);
   };
 
   const setFilter = (val) => updateParams({ filter: val, page: 1 });
   const setLimit = (val) => updateParams({ limit: val, page: 1 });
-  const setPage = (val) => updateParams({ page: typeof val === "function" ? val(page) : val });
+  const setSortOrder = (val) => updateParams({ sortOrder: val, page: 1 });
+  const setPage = (val) =>
+    updateParams({ page: typeof val === "function" ? val(page) : val });
   const [loading, setLoading] = useState(false);
+
+  const applyAdvancedFilters = (e) => {
+    e.preventDefault();
+    updateParams({
+      lawyerName: lawyerSearchInput.trim(),
+      fromDate: fromDateInput,
+      toDate: toDateInput,
+      page: 1,
+    });
+  };
+
+  const clearAdvancedFilters = () => {
+    setLawyerSearchInput("");
+    setFromDateInput("");
+    setToDateInput("");
+    updateParams({
+      lawyerName: null,
+      fromDate: null,
+      toDate: null,
+      sortOrder: "desc",
+      page: 1,
+    });
+  };
 
   // Months array for date formatting
   const months = [
@@ -203,6 +244,12 @@ const MyAppointments = () => {
         page,
         limit,
         filter === "all" ? "" : filter,
+        {
+          sortOrder,
+          lawyerName,
+          fromDate,
+          toDate,
+        },
       );
 
       if (data.success) {
@@ -277,7 +324,13 @@ const MyAppointments = () => {
     if (userData) {
       getUserAppointments();
     }
-  }, [page, limit, filter, userData]);
+  }, [page, limit, filter, sortOrder, lawyerName, fromDate, toDate, userData]);
+
+  useEffect(() => {
+    setLawyerSearchInput(lawyerName);
+    setFromDateInput(fromDate);
+    setToDateInput(toDate);
+  }, [lawyerName, fromDate, toDate]);
 
 
   // Function to make payment using razorpay
@@ -356,6 +409,80 @@ const MyAppointments = () => {
         </div>
       </div>
 
+      <form
+        onSubmit={applyAdvancedFilters}
+        className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 mb-8"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Sort by date
+            </label>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 text-sm font-medium rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+            >
+              <option value="desc">Newest first</option>
+              <option value="asc">Oldest first</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Lawyer name
+            </label>
+            <input
+              type="text"
+              value={lawyerSearchInput}
+              onChange={(e) => setLawyerSearchInput(e.target.value)}
+              placeholder="e.g. Adv. Sharma"
+              className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              From date
+            </label>
+            <input
+              type="date"
+              value={fromDateInput}
+              onChange={(e) => setFromDateInput(e.target.value)}
+              className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              To date
+            </label>
+            <input
+              type="date"
+              value={toDateInput}
+              onChange={(e) => setToDateInput(e.target.value)}
+              className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+            />
+          </div>
+
+          <div className="flex items-end gap-2">
+            <button
+              type="submit"
+              className="w-full px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              onClick={clearAdvancedFilters}
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </form>
+
       <div className="space-y-6">
         {loading ? (
           <div className="flex justify-center items-center py-20">
@@ -391,107 +518,119 @@ const MyAppointments = () => {
               key={index}
               className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
             >
-              <div className="flex flex-col sm:flex-row gap-6 p-6">
-                {/* Lawyer Image */}
-                <div className="sm:w-48 flex-shrink-0">
-                  <div className="w-full aspect-square rounded-xl overflow-hidden bg-[#EAEFFF]">
-                    <img
-                      className="w-full h-full object-cover"
-                      src={item.lawyer.image || assets.legallogo}
-                      alt={item.lawyer.name}
-                    />
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-6">
+                <div className="flex items-start gap-3 sm:gap-6 flex-1 min-w-0">
+                  {/* Lawyer Image */}
+                  <div className="w-20 h-20 sm:w-40 sm:h-40 md:w-48 md:h-48 flex-shrink-0">
+                    <div className="w-full h-full rounded-xl overflow-hidden bg-[#EAEFFF]">
+                      <img
+                        className="w-full h-full object-cover"
+                        src={item.lawyer.image || assets.legallogo}
+                        alt={item.lawyer.name}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Appointment Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="space-y-4">
-                    {/* Status Badge */}
-                    <div className="flex flex-wrap gap-2">
-                      {isAppointmentCancelled(item) && (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          <svg
-                            className="w-3 h-3 mr-1"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          {item.cancelled}
-                        </span>
-                      )}
-                      {item.isCompleted && (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <svg
-                            className="w-3 h-3 mr-1"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          Completed
-                        </span>
-                      )}
-                      {!isAppointmentCancelled(item) &&
-                        item.payment &&
-                        !item.isCompleted && (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {/* Appointment Details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="space-y-3 sm:space-y-4">
+                      {/* lawyer Info */}
+                      <div>
+                        <h3 className="text-base sm:text-xl font-semibold text-gray-900 mb-0.5 sm:mb-1">
+                          {item.lawyer.name}
+                        </h3>
+                        <p className="text-primary text-sm sm:text-base font-medium">
+                          {item.lawyer.speciality}
+                        </p>
+                      </div>
+
+                      {/* Appointment Details */}
+                      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                        <div className="min-w-0">
+                          <h4 className="text-xs sm:text-sm font-medium text-gray-500 mb-1">
+                            Date & Time
+                          </h4>
+                          <p className="text-sm sm:text-base text-gray-900 flex items-center">
                             <svg
-                              className="w-3 h-3 mr-1"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
+                              className="w-4 h-4 mr-2 text-primary"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
                             >
                               <path
-                                fillRule="evenodd"
-                                d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
-                                clipRule="evenodd"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                               />
                             </svg>
-                            Paid
-                          </span>
-                        )}
-                    </div>
-
-                    {/* lawyer Info */}
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                        {item.lawyer.name}
-                      </h3>
-                      <p className="text-primary font-medium">
-                        {item.lawyer.speciality}
-                      </p>
-                    </div>
-
-                    {/* Appointment Details */}
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 mb-1">
-                          Date & Time
-                        </h4>
-                        <p className="text-gray-900 flex items-center">
-                          <svg
-                            className="w-4 h-4 mr-2 text-primary"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                          {slotDateFormat(item.slotDate)} | {item.slotTime}
-                        </p>
+                            {slotDateFormat(item.slotDate)} | {item.slotTime}
+                          </p>
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm sm:text-base font-semibold text-gray-600 mb-2">
+                            Status
+                          </h4>
+                          <div className="flex flex-wrap gap-2 min-w-0">
+                            {isAppointmentCancelled(item) && (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-semibold bg-red-100 text-red-800">
+                                <svg
+                                  className="w-3 h-3 mr-1"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                {item.cancelled}
+                              </span>
+                            )}
+                            {item.isCompleted && (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-semibold bg-green-100 text-green-800">
+                                <svg
+                                  className="w-3 h-3 mr-1"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                Completed
+                              </span>
+                            )}
+                            {!isAppointmentCancelled(item) &&
+                              item.payment &&
+                              !item.isCompleted && (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-semibold bg-blue-100 text-blue-800">
+                                  <svg
+                                    className="w-3 h-3 mr-1"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                  Paid
+                                </span>
+                              )}
+                            {!isAppointmentCancelled(item) &&
+                              !item.payment &&
+                              !item.isCompleted && (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-semibold bg-amber-100 text-amber-800">
+                                  Payment Pending
+                                </span>
+                              )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -534,7 +673,7 @@ const MyAppointments = () => {
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             disabled={page === totalPages || loading}
-            className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors bg-white text-gray-700 font-medium shadow-sm"
+            className="px-4 py-2 border border-primary rounded-md disabled:opacity-60 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors bg-primary text-white font-medium shadow-sm"
           >
             Next
           </button>

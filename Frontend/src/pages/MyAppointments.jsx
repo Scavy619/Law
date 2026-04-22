@@ -315,8 +315,8 @@ const MyAppointments = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex justify-center mb-8">
-        <div className="inline-flex bg-gray-100 p-1 rounded-lg overflow-x-auto max-w-full">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
+        <div className="inline-flex bg-gray-100 p-1 rounded-lg overflow-x-auto max-w-full w-full sm:w-auto">
           {["all", "upcoming", "completed", "cancelled"].map((f) => (
             <button
               key={f}
@@ -333,11 +333,11 @@ const MyAppointments = () => {
         </div>
 
         {/* Limit Dropdown */}
-        <div className="relative">
+        <div className="relative w-full sm:w-auto sm:shrink-0">
           <select
             value={limit}
             onChange={(e) => setLimit(e.target.value)}
-            className="appearance-none bg-gray-50 border border-gray-200 text-gray-700 text-sm font-medium rounded-lg pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors cursor-pointer"
+            className="appearance-none w-full sm:w-auto bg-gray-50 border border-gray-200 text-gray-700 text-sm font-medium rounded-lg pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors cursor-pointer"
           >
             <option value="5">5 per page</option>
             <option value="7">7 per page</option>

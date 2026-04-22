@@ -32,6 +32,13 @@ const Navbar = () => {
           setDropletStyle({
             transform: `translateX(${activeRect.left - containerRect.left}px)`,
             width: `${activeRect.width}px`,
+            opacity: 1,
+          });
+        } else {
+          setDropletStyle({
+            width: "0px",
+            transform: "translateX(0px)",
+            opacity: 0,
           });
         }
       }
@@ -69,7 +76,7 @@ const Navbar = () => {
   const logout = async () => {
     try {
       await api.post("/api/auth/logout");
-    } catch (err) {
+    } catch {
       // console.error("Logout error:", err);
     }
 
@@ -90,7 +97,7 @@ const Navbar = () => {
       />
       <nav
         ref={navRef}
-        className="lg:flex items-center gap-2 font-medium hidden relative z-10"
+        className="lg:flex items-center lg:gap-0.5 xl:gap-2 font-medium hidden relative z-10"
       >
         {/* Animated Droplet Background */}
         <div
@@ -101,7 +108,7 @@ const Navbar = () => {
         <NavLink
           to="/"
           data-path="/"
-          className={`relative z-10 block px-4 py-2 text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
+          className={`relative z-10 block lg:px-3 xl:px-4 py-2 text-sm xl:text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
             activeLink === "/" ? "text-primary font-semibold" : ""
           }`}
         >
@@ -110,7 +117,7 @@ const Navbar = () => {
         <NavLink
           to="/about"
           data-path="/about"
-          className={`relative z-10 block px-4 py-2 text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
+          className={`relative z-10 block lg:px-3 xl:px-4 py-2 text-sm xl:text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
             activeLink === "/about" ? "text-primary font-semibold" : ""
           }`}
         >
@@ -119,7 +126,7 @@ const Navbar = () => {
         <NavLink
           to="/lawyers"
           data-path="/lawyers"
-          className={`relative z-10 block px-4 py-2 text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
+          className={`relative z-10 block lg:px-3 xl:px-4 py-2 text-sm xl:text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
             activeLink === "/lawyers" ? "text-primary font-semibold" : ""
           }`}
         >
@@ -128,7 +135,7 @@ const Navbar = () => {
         <NavLink
           to="/resources"
           data-path="/resources"
-          className={`relative z-10 block px-4 py-2 text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
+          className={`relative z-10 block lg:px-3 xl:px-4 py-2 text-sm xl:text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
             activeLink === "/resources" ? "text-primary font-semibold" : ""
           }`}
         >
@@ -137,7 +144,7 @@ const Navbar = () => {
         <NavLink
           to="/chatbot"
           data-path="/chatbot"
-          className={`relative z-10 block px-4 py-2 text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
+          className={`relative z-10 block lg:px-3 xl:px-4 py-2 text-sm xl:text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
             activeLink === "/chatbot" ? "text-primary font-semibold" : ""
           }`}
         >
@@ -146,7 +153,7 @@ const Navbar = () => {
         <NavLink
           to="/contact"
           data-path="/contact"
-          className={`relative z-10 block px-4 py-2 text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
+          className={`relative z-10 block lg:px-3 xl:px-4 py-2 text-sm xl:text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
             activeLink === "/contact" ? "text-primary font-semibold" : ""
           }`}
         >
@@ -156,7 +163,7 @@ const Navbar = () => {
           href="https://blogspace-alpha.vercel.app/"
           target="_blank"
           rel="noopener noreferrer"
-          className="relative z-10 block px-4 py-2 text-base hover:text-primary transition-colors duration-300 cursor-pointer"
+          className="relative z-10 block lg:px-3 xl:px-4 py-2 text-sm xl:text-base hover:text-primary transition-colors duration-300 cursor-pointer"
         >
           BLOG
         </a>
@@ -164,13 +171,13 @@ const Navbar = () => {
 
       <div className="flex items-center gap-4 relative z-30">
         {userData ? (
-          <div className="flex items-center cursor-pointer group relative max-[330px]:hidden">
+          <div className="flex items-center cursor-pointer relative max-[330px]:hidden">
             <div
               id="profile-dropdown-button"
               onClick={() => setShowMobileDropdown(!showMobileDropdown)}
-              className="flex items-center gap-2 sm:gap-3 p-1 sm:p-2 rounded-full hover:bg-gray-50 transition-all duration-300"
+              className="flex items-center gap-2 sm:gap-3 lg:gap-1.5 xl:gap-3 p-1 sm:p-2 lg:p-1.5 xl:p-2 rounded-full hover:bg-gray-50 transition-all duration-300"
             >
-              <div className="relative max-[330px]:hidden">
+              <div className="relative block lg:hidden xl:block">
                 <img
                   className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-200 shadow-sm hover:border-primary transition-all duration-300 hover:shadow-md"
                   src={
@@ -184,10 +191,12 @@ const Navbar = () => {
               </div>
               <div className="hidden sm:flex items-center gap-2">
                 <div className="text-left">
-                  <p className="text-medium font-medium text-gray-900 truncate max-w-24">
-                    {userData.name}
+                  <p className="text-sm xl:text-base font-medium text-gray-900 max-w-20 xl:max-w-24 overflow-hidden whitespace-nowrap">
+                    {(userData.name || "User").trim().split(/\s+/)[0]}
                   </p>
-                  <p className="text-xs text-gray-500">Online</p>
+                  <p className="text-[11px] xl:text-xs text-gray-500">
+                    LawBridge User
+                  </p>
                 </div>
               </div>
               <img
@@ -196,30 +205,10 @@ const Navbar = () => {
                 alt=""
               />
             </div>
-            {/* Desktop Dropdown (Hover) */}
-            <div className="absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-50 hidden lg:group-hover:block">
-              <div className="min-w-48 bg-white border border-gray-200 rounded flex flex-col gap-4 p-4 shadow-xl">
-                <p
-                  onClick={() => navigate("/my-profile")}
-                  className={`hover:text-black cursor-pointer ${activeLink === "/my-profile" ? "text-primary font-semibold" : ""}`}
-                >
-                  My Profile
-                </p>
-                <p
-                  onClick={() => navigate("/my-appointments")}
-                  className={`hover:text-black cursor-pointer ${activeLink === "/my-appointments" ? "text-primary font-semibold" : ""}`}
-                >
-                  My Appointments
-                </p>
-                <p onClick={logout} className="hover:text-black cursor-pointer">
-                  Logout
-                </p>
-              </div>
-            </div>
-            {/* Mobile Dropdown (Click) */}
+            {/* Profile Dropdown (Click) */}
             <div
               id="profile-dropdown-content"
-              className={`absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-50 lg:hidden ${showMobileDropdown ? "block" : "hidden"}`}
+              className={`absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-50 ${showMobileDropdown ? "block" : "hidden"}`}
             >
               <div className="min-w-48 bg-white border border-gray-200 rounded flex flex-col gap-4 p-4 shadow-xl">
                 <p

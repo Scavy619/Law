@@ -4,7 +4,7 @@ import { assets } from '../assets/assets'
 
 const Header = () => {
     return (
-        <div className='relative flex flex-col md:flex-row flex-wrap rounded-lg px-6 md:px-10 lg:px-20 overflow-hidden'>
+        <div className='relative flex flex-col md:flex-row flex-wrap rounded-lg px-4 md:px-10 lg:px-20 overflow-hidden'>
             
             {/* --------- Background Image --------- */}
             <div className='absolute inset-0 z-0'>
@@ -20,7 +20,7 @@ const Header = () => {
             {/* --------- Header Content --------- */}
             <div className='relative z-10 w-full flex flex-col items-center justify-center gap-6 py-16 md:py-[12vw] text-center'>
                 <p className='text-3xl md:text-4xl lg:text-5xl text-white font-semibold leading-tight md:leading-tight lg:leading-tight max-w-4xl'>
-                    Book Appointment with Lawyers or Chat with Our Trusted Legal AI Assistant
+                    Book Appointment with Lawyers or Chat with Our Trusted AI Assistant
                 </p>
                 <div className='flex flex-col items-center gap-3 text-white font-light max-w-2xl'>
                     <img className='w-32' src={assets.group_profiles} alt="" />

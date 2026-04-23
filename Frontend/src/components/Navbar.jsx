@@ -88,10 +88,10 @@ const Navbar = () => {
   };
 
   return (
-    <div className="flex items-center justify-between text-sm py-4 mb-5 border-b border-b-[#ADADAD] relative">
+    <div className="relative mb-5 flex w-full min-w-0 items-center justify-between border-b border-b-[#ADADAD] py-4 text-sm">
       <img
         onClick={() => navigate("/")}
-        className="w-auto h-16 cursor-pointer"
+        className="h-12 w-auto shrink-0 cursor-pointer sm:h-14 md:h-16"
         src={assets.legallogo}
         alt=""
       />
@@ -169,7 +169,7 @@ const Navbar = () => {
         </a>
       </nav>
 
-      <div className="flex items-center gap-4 relative z-30">
+      <div className="relative z-30 flex shrink-0 items-center gap-2 sm:gap-4">
         {userData ? (
           <div className="flex items-center cursor-pointer relative max-[330px]:hidden">
             <div
@@ -244,14 +244,14 @@ const Navbar = () => {
         ) : (
           <button
             onClick={() => navigate("/login")}
-            className="bg-[#5f6FFF] text-white px-4 sm:px-6 md:px-8 py-2 sm:py-3 rounded-full font-light text-sm sm:text-base cursor-pointer hover:bg-[#4f5fff] transition-colors duration-200"
+            className="max-[359px]:hidden cursor-pointer rounded-full bg-[#5f6FFF] px-3 py-2 text-sm font-light text-white transition-colors duration-200 hover:bg-[#4f5fff] sm:px-6 sm:py-3 sm:text-base md:px-8"
           >
             Sign up
           </button>
         )}
         <img
           onClick={() => setShowMenu(true)}
-          className="w-6 lg:hidden"
+          className="w-6 shrink-0 lg:hidden"
           src={assets.menu_icon}
           alt=""
         />

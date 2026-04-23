@@ -383,15 +383,26 @@ const Navbar = () => {
             ) : (
               <>
                 <div className="w-full h-px bg-gray-200 my-2"></div>
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    navigate("/login");
-                  }}
-                  className="bg-[#5f6FFF] text-white px-8 py-3 rounded-xl font-medium hover:bg-[#4f5fff] transition-colors duration-200 w-full max-w-xs mx-auto"
-                >
-                  Sign up
-                </button>
+                <div className="w-full max-w-xs mx-auto flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      navigate("/login");
+                    }}
+                    className="border border-[#5f6FFF] text-[#5f6FFF] px-8 py-3 rounded-xl font-medium hover:bg-[#eef0ff] transition-colors duration-200 w-full"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      navigate("/login");
+                    }}
+                    className="bg-[#5f6FFF] text-white px-8 py-3 rounded-xl font-medium hover:bg-[#4f5fff] transition-colors duration-200 w-full"
+                  >
+                    Sign up
+                  </button>
+                </div>
               </>
             )}
           </ul>

@@ -1,5 +1,5 @@
 # Python 3.12 required
-
+# deprecated now, use the pyproject.toml file
 fastapi==0.123.4
 uvicorn==0.38.0
 

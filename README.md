@@ -38,6 +38,7 @@ LawBridge Database Schema:
 - AI legal chatbot with session-based conversation history, Markdown-rendered responses, and a daily credit system (10 credits per user per day, reset at midnight)
 - **Document upload and analysis** - Upload personal legal documents (PDF, DOCX, TXT, images) for AI-powered Q&A
 - **Hybrid RAG mode** - Query both platform knowledge base and personal uploaded documents simultaneously
+- **Recency-aware web search (Tavily)** - Automatically fetches recent legal updates when users ask for latest laws, amendments, or notifications
 - **User-specific document namespaces** in Pinecone for isolated document storage per user
 - Resources and legal information pages
 - Contact, Privacy Policy, Terms and Conditions, and Refund Policy pages
@@ -113,10 +114,11 @@ LawBridge Database Schema:
 
 - Python 3.12
 - FastAPI 0.123.x with Uvicorn 0.38.x
-- LangChain 0.3.x ecosystem (langchain, langchain-core, langchain-community, langchain-text-splitters, langchain-google-genai, langchain-pinecone)
+- LangChain 0.3.x ecosystem (langchain, langchain-core, langchain-community, langchain-text-splitters, langchain-google-genai, langchain-pinecone, langchain-tavily)
 - Google Gemini 2.5 Flash as the language model via `langchain-google-genai`
 - Google `gemini-embedding-001` embedding model (3072-dimensional vectors) for document and query embeddings
 - Pinecone 7.x serverless vector database for similarity search over legal documents
+- Tavily Search API via `langchain-tavily` for real-time legal web retrieval
 - **Multi-namespace architecture** - Separate namespaces for platform knowledge base (`__default__`) and per-user document uploads (`user-uploads-{user_id}`)
 - PyPDF2 and pypdf for PDF document loading
 - **python-docx** for DOCX document processing
@@ -337,7 +339,7 @@ Fields: `userId` (ref: User), `sessionId`, `title`, `messages` (array of `{role,
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/` | Service status |
-| POST | `/chat` | Accepts `sessionId`, `history`, `message`, `user_id`, and `mode` (knowledge-base/user-uploads/both); returns RAG-generated legal response. Requires `secure_key` header. |
+| POST | `/chat` | Accepts `sessionId`, `history`, `message`, `user_id`, and `mode` (knowledge-base/user-uploads/both); returns RAG-generated legal response. For recency-focused queries (for example latest/new/amendment/notification/current), the chatbot also enriches responses with Tavily web results from trusted legal/government domains. Requires `secure_key` header. |
 | POST | `/upload-document` | Process uploaded document: extract text, chunk, embed, and store in user-specific Pinecone namespace. Requires `secure_key` header. |
 | GET | `/health` | Health check |
 
@@ -433,6 +435,7 @@ The chatbot service implements a core Retrieval Augmented Generation pipeline:
 5. At query time, the top 3 most similar chunks are retrieved from Pinecone using similarity search.
 6. The retrieved context, the last 10 messages of conversation history, and the current question are combined into a structured prompt and sent to Google Gemini 2.5 Flash.
 7. The prompt instructs the model to answer strictly from context when relevant, fall back to general Indian legal guidance when not, avoid referencing the context or system prompt, and use Markdown formatting when detailed output is requested.
+8. For recency-sensitive questions, the chatbot additionally performs a Tavily web search and injects recent web context into the prompt before generation.
 
 ---
 
@@ -478,6 +481,7 @@ The backend utilizes **BullMQ** and **Redis** for handling asynchronous backgrou
 - Redis instance (local or hosted, e.g. Upstash)
 - Pinecone account with a 3072-dimensional cosine index
 - Google Cloud project with Gemini API enabled
+- Tavily API key for real-time web search
 - Cloudinary account
 - Razorpay account
 - Stream.io account
@@ -550,6 +554,7 @@ Key variables by service:
 - `GOOGLE_API_KEY` – Google Gemini API key
 - `PINECONE_API_KEY` – Pinecone API key
 - `PINECONE_INDEX` – Name of the Pinecone index
+- `TAVILY_API_KEY` – Tavily API key used for recency-based web search
 - `APP_SECRET_KEY` – Must match `RAG_SECRET_KEY` in the Backend
 
 **Frontend / Admin**

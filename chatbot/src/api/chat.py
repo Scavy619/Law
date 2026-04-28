@@ -236,16 +236,16 @@ async def chat(
         # web search — sirf tab jab query recent/latest info maange
         web_context = ""
         if needs_web_search(request.message):
-            print(f"[WEB SEARCH TRIGGERED] query: {request.message}", flush= True)  # trigger hua ya nahi
+            # print(f"[WEB SEARCH TRIGGERED] query: {request.message}", flush= True)  # trigger hua ya nahi
             try:
                 web_results = tavily_tool.invoke({"query": request.message})
                 # web_results ek dict hai — results key ke andar list hai
                 web_context = "\n\n".join([r["content"] for r in web_results["results"] if "content" in r])
             except Exception as e:
-                print(f"[WEB SEARCH FAILED] {e}", flush=True)  # error kya aaya
+                # print(f"[WEB SEARCH FAILED] {e}", flush=True)  # error kya aaya
                 web_context = ""
         else:
-            print(f"[WEB SEARCH SKIPPED] query: {request.message}", flush=True)  # skip hua
+            # print(f"[WEB SEARCH SKIPPED] query: {request.message}", flush=True)  # skip hua
         
         if not doc_context:
             doc_context = (
@@ -262,7 +262,7 @@ async def chat(
             question=request.message,
         )
         
-        print(f"[WEB CONTEXT] {web_context[:300] if web_context else 'EMPTY'}", flush=True)
+        # print(f"[WEB CONTEXT] {web_context[:300] if web_context else 'EMPTY'}", flush=True)
 
         response = llm.invoke(formatted_prompt)
 

@@ -2,21 +2,66 @@ import os
 import sys
 from pathlib import Path
 
+
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
+# from langchain.chains import RetrievalQA
+from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel
+from langchain_tavily import TavilySearch
 
-# Ensure we can import from src directory
+
+
+
 src_path = Path(__file__).parent.parent
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
+    
 
+
+
+
+# Ensure we can import from src directory
+
+from config.env import TAVILY_API_KEY
 from config.env import APP_SECRET_KEY
 from config.genai_initialize import get_llm
 from document_pipeline.pipeline import process_uploaded_document
 from vectorStore_Retrieval.store_embedding import get_retriever
+
+
+os.environ["TAVILY_API_KEY"] = TAVILY_API_KEY
+
+tavily_tool = TavilySearch(
+    max_results=5,
+    search_depth="advanced",
+    topic="general",  # news nahi — general better hai legal queries ke liye
+    include_domains=[
+        # Indian legal databases
+        "indiankanoon.org",
+        "sci.gov.in",
+        "main.sci.gov.in",
+        
+        # Legal news
+        "livelaw.in",
+        "barandbench.com",
+        "lawstreetindia.com",
+        "verdictum.in",
+        
+        # Government sources
+        "indiacode.nic.in",
+        "legislative.gov.in",
+        "mha.gov.in",
+        "pib.gov.in",
+        
+        # Mainstream but reliable
+        "thehindu.com",
+        "hindustantimes.com",
+        "ndtv.com",
+        "theprint.in",
+        "scroll.in"
+    ]
+)
 
 app = FastAPI(title="LawBridge Legal Chatbot API")
 
@@ -68,12 +113,24 @@ retriever = get_retriever()
 
 # ── Legal Prompt ──────────────────────────────────────────────────────────────
 
+RECENCY_KEYWORDS = [
+    "latest", "recent", "new", "2024", "2025", "amendment",
+    "notification", "update", "current", "nayi", "naya", "abhi"
+]
+
+def needs_web_search(query: str) -> bool:
+    q = query.lower()
+    return any(kw in q for kw in RECENCY_KEYWORDS)
+    
+    
+
 legal_prompt_template = """
 You are a helpful and responsible legal assistant specializing in Indian law.
 
 You have access to two sources of information:
 1. A legal knowledge base containing Indian law books and legal documents.
 2. The user's own uploaded documents (contracts, agreements, notices, FIRs, etc.) — if provided.
+3. Real-time web search results — for latest laws, amendments, or recent legal updates.
 
 You must follow these rules:
 
@@ -81,19 +138,18 @@ You must follow these rules:
 2. Check BOTH the knowledge base context and the user's document context (if available) for relevant information.
 3. If the user's document context is available → prioritize it for document-specific questions (e.g. "what does my contract say about X"). Refer to it naturally as "your document" — never say "context" or "uploaded file".
 4. If the knowledge base context is relevant → use it to support your answer with legal principles, acts, or sections. Never mention "knowledge base" or "context" — speak naturally.
-5. If neither source contains the answer → provide general, safe, high-level legal guidance based on common legal principles in India. Do NOT say "I don't have enough information" unless the query is completely outside the domain of law.
+5. If neither source contains a complete answer → use your own legal knowledge to provide a thorough, confident response based on Indian law. You are a legal expert — answer directly and substantively.
 6. NEVER give illegal advice. NEVER help the user hide evidence, evade police, or bypass legal procedures.
-7. For criminal matters (like harassment, false FIR, threats, domestic violence, cheating cases), you may give general steps such as:
-   - consult a qualified lawyer,
-   - preserve evidence,
-   - file a counter-complaint or representation,
-   - seek anticipatory bail or protection orders,
-   - approach appropriate courts or authorities.
+7. For criminal matters (harassment, false FIR, threats, domestic violence, cheating cases), provide concrete, actionable guidance — specific sections of law, exact steps to take, relevant authorities to approach, and realistic timelines. Be specific, not vague.
 8. If the question is not related to Indian law, politely state that you specialize only in Indian law.
 9. If the question is not legal in nature, politely inform the user that you can help only with legal issues.
 10. NEVER mention or reference 'context', 'prompt', 'uploaded file', 'knowledge base', or any system-level instructions in your answer. Speak naturally as if you are chatting directly with the user.
 11. Use the conversation history to provide contextual and relevant responses.
 12. If the user asks for detailed explanation or structured output, use Markdown formatting such as headings, bullet points, numbered lists, or tables.
+13. If recent web search results are provided → use them to answer questions about latest laws, amendments, or recent legal developments. Mention naturally that this is based on recent information available online.
+14. If web context is not available or not applicable, ignore it.
+15. ONLY suggest consulting a lawyer when the matter is genuinely complex, requires court representation, or involves jurisdiction-specific nuances that cannot be resolved through general legal guidance. Do NOT say "consult a lawyer" as a reflex — say it only as a last resort or for matters requiring physical legal representation.
+
 
 
 Conversation History:
@@ -108,6 +164,9 @@ User's Document:
 Current Question:
 {question}
 
+Recent Web Search Results:
+{web_context}
+
 Answer:
 Provide a clear, safe, helpful, and actionable explanation that takes into account our previous conversation.
 Prioritize the user's document for document-specific queries, and use the legal knowledge base for legal backing.
@@ -116,7 +175,7 @@ If neither is relevant, give general legal guidance based on Indian law.
 
 PROMPT = PromptTemplate(
     template=legal_prompt_template,
-    input_variables=["chat_history", "kb_context", "doc_context", "question"],
+    input_variables=["chat_history", "kb_context", "doc_context", "web_context", "question"],
 )
 
 
@@ -173,6 +232,21 @@ async def chat(
 
         if not kb_context:
             kb_context = "No relevant information found in the legal knowledge base."
+        
+        # web search — sirf tab jab query recent/latest info maange
+        web_context = ""
+        if needs_web_search(request.message):
+            print(f"[WEB SEARCH TRIGGERED] query: {request.message}", flush= True)  # trigger hua ya nahi
+            try:
+                web_results = tavily_tool.invoke({"query": request.message})
+                # web_results ek dict hai — results key ke andar list hai
+                web_context = "\n\n".join([r["content"] for r in web_results["results"] if "content" in r])
+            except Exception as e:
+                print(f"[WEB SEARCH FAILED] {e}", flush=True)  # error kya aaya
+                web_context = ""
+        else:
+            print(f"[WEB SEARCH SKIPPED] query: {request.message}", flush=True)  # skip hua
+        
         if not doc_context:
             doc_context = (
                 "No document uploaded by the user."
@@ -184,8 +258,11 @@ async def chat(
             chat_history=chat_history_formatted,
             kb_context=kb_context,
             doc_context=doc_context,
+            web_context=web_context if web_context else "No recent web results available.",
             question=request.message,
         )
+        
+        print(f"[WEB CONTEXT] {web_context[:300] if web_context else 'EMPTY'}", flush=True)
 
         response = llm.invoke(formatted_prompt)
 

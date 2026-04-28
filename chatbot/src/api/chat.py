@@ -246,6 +246,7 @@ async def chat(
                 web_context = ""
         else:
             # print(f"[WEB SEARCH SKIPPED] query: {request.message}", flush=True)  # skip hua
+            pass
         
         if not doc_context:
             doc_context = (

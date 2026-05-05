@@ -1,5 +1,5 @@
 [project]
-name = "LawBridge Chatbot"
+name = "LawBridge-Chatbot"
 version = "1.0.0"
 description = "Chatbot for my project"
 readme = "README.md"

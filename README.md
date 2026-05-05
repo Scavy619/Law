@@ -417,7 +417,13 @@ The platform supports a comprehensive document analysis flow, allowing users to 
    - Combined context + last 10 messages + current question sent to Google Gemini 2.5 Flash
    - Model generates response with source attribution
 
-5. **Response Delivery**
+5. **Real-Time Legal Web Search (Tavily API)**
+   - To ensure accuracy on current events and recent amendments, the system integrates the **Tavily API**.
+   - **Smart Triggering:** Web search is conditionally triggered only if the user's query contains recency keywords (e.g., "latest", "recent", "amendment", "2024", "update").
+   - **Domain Filtering:** Searches are strictly scoped to highly reliable Indian legal and government domains (e.g., `indiankanoon.org`, `sci.gov.in`, `livelaw.in`, `barandbench.com`, `indiacode.nic.in`) to prevent generic or hallucinated advice.
+   - **Context Injection:** The real-time search results are seamlessly injected into the LLM prompt alongside the Pinecone vector data, allowing the model to synthesize core legal principles with breaking legal news.
+
+6. **Response Delivery**
    - Answer returned to user with Markdown formatting
    - Citations indicate source: platform knowledge base vs user uploads
    - Conversation saved to MongoDB with timestamps
@@ -435,7 +441,7 @@ The chatbot service implements a core Retrieval Augmented Generation pipeline:
 5. At query time, the top 3 most similar chunks are retrieved from Pinecone using similarity search.
 6. The retrieved context, the last 10 messages of conversation history, and the current question are combined into a structured prompt and sent to Google Gemini 2.5 Flash.
 7. The prompt instructs the model to answer strictly from context when relevant, fall back to general Indian legal guidance when not, avoid referencing the context or system prompt, and use Markdown formatting when detailed output is requested.
-8. For recency-sensitive questions, the chatbot additionally performs a Tavily web search and injects recent web context into the prompt before generation.
+8. For recency-sensitive questions, the chatbot additionally performs a Tavily web search (filtered to Indian legal domains) and injects recent web context into the prompt before generation.
 
 ---
 

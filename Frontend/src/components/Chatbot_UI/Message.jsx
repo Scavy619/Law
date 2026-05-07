@@ -1,5 +1,5 @@
 import { assets } from "../../assets/assets";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import Prism from "prismjs";
 import moment from "moment";
@@ -18,6 +18,8 @@ const ResponsiveTable = ({ children, ...props }) => (
 );
 
 const Message = ({ message }) => {
+  const [showSources, setShowSources] = useState(false);
+
   useEffect(() => {
     Prism.highlightAll();
   }, [message.content]);
@@ -117,7 +119,63 @@ const Message = ({ message }) => {
                 </div>
               </div>
             </div>
-            <span className="text-xs text-gray-400 px-1">
+
+            {/* Sources Section */}
+            {message.sources && message.sources.length > 0 && (
+              <div className="mt-2">
+                <button
+                  onClick={() => setShowSources(!showSources)}
+                  className="flex items-center gap-1.5 text-[11px] font-bold tracking-wider uppercase text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg
+                    className={`w-3.5 h-3.5 transition-transform ${showSources ? "rotate-90" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                  <span>Sources ({message.sources.length})</span>
+                </button>
+                {showSources && (
+                  <div className="mt-2 flex flex-col gap-1.5 bg-gray-50/80 border border-gray-100 p-2.5 rounded-xl w-fit max-w-full">
+                    {message.sources.map((src, idx) => (
+                      <a
+                        key={idx}
+                        href={src.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-start gap-2 text-[11px] sm:text-xs text-gray-600 hover:text-purple-600 transition-colors group"
+                      >
+                        <svg
+                          className="w-3.5 h-3.5 mt-0.5 text-gray-400 group-hover:text-purple-500 shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                          />
+                        </svg>
+                        <span className="break-words line-clamp-2">
+                          {src.title}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <span className="text-xs text-gray-400 px-1 mt-0.5">
               {moment(
                 message.createdAt || message.timestamp || new Date(),
               ).format("h:mm A")}

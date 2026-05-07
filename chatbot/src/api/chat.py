@@ -2,33 +2,25 @@ import os
 import sys
 from pathlib import Path
 
-
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+
 # from langchain.chains import RetrievalQA
 from langchain_core.prompts import PromptTemplate
-from pydantic import BaseModel
 from langchain_tavily import TavilySearch
-
-
-
+from pydantic import BaseModel
 
 src_path = Path(__file__).parent.parent
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
-    
-
-
 
 
 # Ensure we can import from src directory
 
-from config.env import TAVILY_API_KEY
-from config.env import APP_SECRET_KEY
+from config.env import APP_SECRET_KEY, TAVILY_API_KEY
 from config.genai_initialize import get_llm
 from document_pipeline.pipeline import process_uploaded_document
 from vectorStore_Retrieval.store_embedding import get_retriever
-
 
 os.environ["TAVILY_API_KEY"] = TAVILY_API_KEY
 
@@ -41,26 +33,23 @@ tavily_tool = TavilySearch(
         "indiankanoon.org",
         "sci.gov.in",
         "main.sci.gov.in",
-        
         # Legal news
         "livelaw.in",
         "barandbench.com",
         "lawstreetindia.com",
         "verdictum.in",
-        
         # Government sources
         "indiacode.nic.in",
         "legislative.gov.in",
         "mha.gov.in",
         "pib.gov.in",
-        
         # Mainstream but reliable
         "thehindu.com",
         "hindustantimes.com",
         "ndtv.com",
         "theprint.in",
-        "scroll.in"
-    ]
+        "scroll.in",
+    ],
 )
 
 app = FastAPI(title="LawBridge Legal Chatbot API")
@@ -90,8 +79,14 @@ class ChatRequest(BaseModel):
     mode: str = "both"  # "knowledge-base" | "user-uploads" | "both"
 
 
+class Source(BaseModel):
+    title: str
+    url: str
+
+
 class ChatResponse(BaseModel):
     response: str
+    sources: list[Source] = []  # default empty list
 
 
 class UploadResponse(BaseModel):
@@ -104,7 +99,7 @@ class UploadResponse(BaseModel):
 
 class DeleteUserDataRequest(BaseModel):
     user_id: str
-    
+
 
 # ── LLM + Retriever ───────────────────────────────────────────────────────────
 
@@ -114,15 +109,25 @@ retriever = get_retriever()
 # ── Legal Prompt ──────────────────────────────────────────────────────────────
 
 RECENCY_KEYWORDS = [
-    "latest", "recent", "new", "2024", "2025", "amendment",
-    "notification", "update", "current", "nayi", "naya", "abhi"
+    "latest",
+    "recent",
+    "new",
+    "2024",
+    "2025",
+    "amendment",
+    "notification",
+    "update",
+    "current",
+    "nayi",
+    "naya",
+    "abhi",
 ]
+
 
 def needs_web_search(query: str) -> bool:
     q = query.lower()
     return any(kw in q for kw in RECENCY_KEYWORDS)
-    
-    
+
 
 legal_prompt_template = """
 You are a helpful and responsible legal assistant specializing in Indian law.
@@ -175,7 +180,13 @@ If neither is relevant, give general legal guidance based on Indian law.
 
 PROMPT = PromptTemplate(
     template=legal_prompt_template,
-    input_variables=["chat_history", "kb_context", "doc_context", "web_context", "question"],
+    input_variables=[
+        "chat_history",
+        "kb_context",
+        "doc_context",
+        "web_context",
+        "question",
+    ],
 )
 
 
@@ -232,22 +243,40 @@ async def chat(
 
         if not kb_context:
             kb_context = "No relevant information found in the legal knowledge base."
-        
+
         # web search — sirf tab jab query recent/latest info maange
         web_context = ""
+        sources = []
         if needs_web_search(request.message):
-            # print(f"[WEB SEARCH TRIGGERED] query: {request.message}", flush= True)  # trigger hua ya nahi
             try:
                 web_results = tavily_tool.invoke({"query": request.message})
-                # web_results ek dict hai — results key ke andar list hai
-                web_context = "\n\n".join([r["content"] for r in web_results["results"] if "content" in r])
+                # In newer versions of langchain_tavily, invoke() returns a LIST of dicts
+                # e.g. [{"url": "...", "title": "...", "content": "..."}, ...]
+                if isinstance(web_results, list):
+                    sources = [
+                        Source(title=r.get("title", "Source"), url=r.get("url", ""))
+                        for r in web_results
+                        if r.get("url")
+                    ]
+                    web_context = "\n\n".join(
+                        [r.get("content", "") for r in web_results if "content" in r]
+                    )
+                elif isinstance(web_results, dict) and "results" in web_results:
+                    sources = [
+                        Source(title=r.get("title", "Source"), url=r["url"])
+                        for r in web_results["results"]
+                        if "url" in r
+                    ]
+                    web_context = "\n\n".join(
+                        [r["content"] for r in web_results["results"] if "content" in r]
+                    )
             except Exception as e:
-                # print(f"[WEB SEARCH FAILED] {e}", flush=True)  # error kya aaya
+                print(f"[WEB SEARCH FAILED] {e}", flush=True)  # error kya aaya
                 web_context = ""
         else:
             # print(f"[WEB SEARCH SKIPPED] query: {request.message}", flush=True)  # skip hua
             pass
-        
+
         if not doc_context:
             doc_context = (
                 "No document uploaded by the user."
@@ -259,10 +288,12 @@ async def chat(
             chat_history=chat_history_formatted,
             kb_context=kb_context,
             doc_context=doc_context,
-            web_context=web_context if web_context else "No recent web results available.",
+            web_context=web_context
+            if web_context
+            else "No recent web results available.",
             question=request.message,
         )
-        
+
         # print(f"[WEB CONTEXT] {web_context[:300] if web_context else 'EMPTY'}", flush=True)
 
         response = llm.invoke(formatted_prompt)
@@ -274,7 +305,7 @@ async def chat(
         else:
             response_text = str(response)
 
-        return ChatResponse(response=response_text)
+        return ChatResponse(response=response_text, sources=sources)
 
     except Exception as e:
         raise HTTPException(
@@ -327,28 +358,31 @@ async def delete_user_data(
     secure_key: str = Header(None, alias="secure_key"),
 ):
     if secure_key != APP_SECRET_KEY:
-        raise HTTPException(status_code=401, detail="Unauthorized: Invalid or missing key")
-    
+        raise HTTPException(
+            status_code=401, detail="Unauthorized: Invalid or missing key"
+        )
+
     try:
         from config.pinecone_initialize import get_pinecone_index, get_user_namespace
-        
+
         index = get_pinecone_index()
         namespace = get_user_namespace(request.user_id)
         index.delete(delete_all=True, namespace=namespace)
-        
+
         return {"success": True, "deleted_namespace": namespace}
-    
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Pinecone cleanup failed: {str(e)}")
-        
-        
+        raise HTTPException(
+            status_code=500, detail=f"Pinecone cleanup failed: {str(e)}"
+        )
+
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "LawBridge Legal Chatbot"}
 
 
-
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=4000)

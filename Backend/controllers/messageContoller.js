@@ -152,10 +152,12 @@ export const getMessage = async (req, res) => {
     );
 
     const chatbot_reply = chatbot_response.data.response;
+    const sources = chatbot_response.data.sources || []; // sources bhi lo for web search
 
     const replyObject = {
       role: "assistant",
       content: chatbot_reply,
+      sources: sources,
     };
 
     const redisKey = `credits:${userId}`;
@@ -171,6 +173,7 @@ export const getMessage = async (req, res) => {
       success: true,
       response: replyObject,
       creditsRemaining: Math.max(0, Number(remainingAfter)),
+      sources,
     });
 
     // background save of conversation (non-blocking)

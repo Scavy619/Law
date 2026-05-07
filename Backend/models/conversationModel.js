@@ -25,6 +25,14 @@ const attachedDocumentSchema = new mongoose.Schema(
   { _id: false }, // nested object hai, alag _id nahi chahiye
 );
 
+const sourceSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    url: { type: String, required: true },
+  },
+  { _id: false },
+);
+
 const messageSchema = new mongoose.Schema(
   {
     role: {
@@ -40,6 +48,10 @@ const messageSchema = new mongoose.Schema(
     attachedDocument: {
       type: attachedDocumentSchema,
       default: null,
+    },
+    sources: {
+      type: [sourceSchema],
+      default: [],
     },
   },
   { timestamps: true },
@@ -61,18 +73,18 @@ const conversationSchema = new mongoose.Schema(
       default: null,
     },
     messages: [messageSchema],
-    
+
     // public banane aali chize like if user wanna share their chat
-    
+
     isPublic: {
       type: Boolean,
-      default : false,
+      default: false,
     },
-    
+
     shareToken: {
       type: String,
       default: null,
-      index: true // fastly lookup krna ho 
+      index: true, // fastly lookup krna ho
     },
   },
   { timestamps: true },

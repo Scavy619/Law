@@ -118,6 +118,7 @@ const ChatBox = () => {
           role: "assistant",
           content: data.response.content,
           createdAt: new Date().toISOString(),
+          sources: data.sources || [],
         };
         setMessages((prev) => [...prev, botMessage]);
 

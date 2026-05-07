@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
@@ -221,15 +222,20 @@ async def chat(
         else:
             chat_history_formatted = "This is the start of our conversation.\n---\n"
 
+        print("[CHAT] History formatted.", flush=True)
+
         # Mode ke hisaab se context fetch karo
         kb_context = ""
         doc_context = ""
 
         if request.mode in ("knowledge-base", "both"):
+            print("[CHAT] Fetching KB context...", flush=True)
             kb_docs = retriever.invoke(request.message)
+            print(f"[CHAT] KB context fetched. Doc count: {len(kb_docs)}", flush=True)
             kb_context = "\n\n".join([doc.page_content for doc in kb_docs])
 
         if request.mode in ("user-uploads", "both") and request.user_id:
+            print("[CHAT] Fetching user doc context...", flush=True)
             from config.pinecone_initialize import get_user_namespace
             from vectorStore_Retrieval.store_embedding import (
                 get_retriever as get_ns_retriever,
@@ -239,12 +245,17 @@ async def chat(
                 namespace=get_user_namespace(request.user_id)
             )
             user_docs = user_retriever.invoke(request.message)
+            print(
+                f"[CHAT] User doc context fetched. Doc count: {len(user_docs)}",
+                flush=True,
+            )
             doc_context = "\n\n".join([doc.page_content for doc in user_docs])
 
         if not kb_context:
             kb_context = "No relevant information found in the legal knowledge base."
 
         # web search — sirf tab jab query recent/latest info maange
+        print("[CHAT] Checking web search...", flush=True)
         web_context = ""
         sources = []
         if needs_web_search(request.message):
@@ -296,7 +307,9 @@ async def chat(
 
         # print(f"[WEB CONTEXT] {web_context[:300] if web_context else 'EMPTY'}", flush=True)
 
+        print("[CHAT] Calling LLM...", flush=True)
         response = llm.invoke(formatted_prompt)
+        print("[CHAT] LLM called successfully.", flush=True)
 
         if hasattr(response, "content"):
             response_text = response.content
@@ -308,6 +321,7 @@ async def chat(
         return ChatResponse(response=response_text, sources=sources)
 
     except Exception as e:
+        print(f"[CHAT ERROR]\n{traceback.format_exc()}", flush=True)
         raise HTTPException(
             status_code=500, detail=f"Error processing question: {str(e)}"
         )
@@ -347,6 +361,7 @@ async def upload_document(
         raise HTTPException(status_code=422, detail=str(e))
 
     except Exception as e:
+        print(f"[UPLOAD ERROR]\n{traceback.format_exc()}", flush=True)
         raise HTTPException(
             status_code=500, detail=f"Document processing mein error: {str(e)}"
         )

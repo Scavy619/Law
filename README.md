@@ -126,6 +126,10 @@ LawBridge Database Schema:
 - LangChain `RecursiveCharacterTextSplitter` for chunking (chunk size 1000, overlap 200)
 - Custom production-safe batch embedding pipeline with resume-from-checkpoint, rate-limit retry logic, daily quota detection, and per-batch progress persistence
 - **Hybrid retrieval mode** - Query platform knowledge base, user uploads, or both simultaneously
+- **Hybrid RAG pipeline with LLM-based intent classification** - Web search and user document retrieval are triggered only when needed, not on every query
+- **Gemini-powered intent classifier** - Determines `needs_web_search` and `needs_user_docs` per query, reducing unnecessary Pinecone and Tavily calls
+- **Multilingual support** - Detects the user's language (Hindi, Hinglish, Tamil, Telugu, Bengali, etc.) and responds in the same language and style
+- **Translated Tavily search queries** - Web search queries are automatically translated to English before searching, ensuring accurate results regardless of input language
 - Session-aware RAG pipeline passing last 10 conversation turns as chat history into the prompt
 - Secure key header (`secure_key`) for backend-to-chatbot authentication
 - pydantic 2.x for request/response models

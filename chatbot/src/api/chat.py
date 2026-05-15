@@ -1,4 +1,6 @@
+import json
 import os
+import re
 import sys
 import traceback
 from pathlib import Path
@@ -6,7 +8,6 @@ from pathlib import Path
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-# from langchain.chains import RetrievalQA
 from langchain_core.prompts import PromptTemplate
 from langchain_tavily import TavilySearch
 from pydantic import BaseModel
@@ -15,36 +16,31 @@ src_path = Path(__file__).parent.parent
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-
-# Ensure we can import from src directory
-
 from config.env import APP_SECRET_KEY, TAVILY_API_KEY
 from config.genai_initialize import get_llm
 from document_pipeline.pipeline import process_uploaded_document
 from vectorStore_Retrieval.store_embedding import get_retriever
+from prompt_Templates.chat_prompts import INTENT_PROMPT, PROMPT
+
 
 os.environ["TAVILY_API_KEY"] = TAVILY_API_KEY
 
 tavily_tool = TavilySearch(
     max_results=5,
     search_depth="advanced",
-    topic="general",  # news nahi — general better hai legal queries ke liye
+    topic="general",
     include_domains=[
-        # Indian legal databases
         "indiankanoon.org",
         "sci.gov.in",
         "main.sci.gov.in",
-        # Legal news
         "livelaw.in",
         "barandbench.com",
         "lawstreetindia.com",
         "verdictum.in",
-        # Government sources
         "indiacode.nic.in",
         "legislative.gov.in",
         "mha.gov.in",
         "pib.gov.in",
-        # Mainstream but reliable
         "thehindu.com",
         "hindustantimes.com",
         "ndtv.com",
@@ -55,20 +51,20 @@ tavily_tool = TavilySearch(
 
 app = FastAPI(title="LawBridge Legal Chatbot API")
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify the domain jo isko access kar sake
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── Pydantic Models ───────────────────────────────────────────────────────────
+
+# Pydantic models
 
 
 class Message(BaseModel):
-    role: str  # "user" or "assistant"
+    role: str
     content: str
 
 
@@ -87,7 +83,7 @@ class Source(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
-    sources: list[Source] = []  # default empty list
+    sources: list[Source] = []
 
 
 class UploadResponse(BaseModel):
@@ -102,97 +98,57 @@ class DeleteUserDataRequest(BaseModel):
     user_id: str
 
 
-# ── LLM + Retriever ───────────────────────────────────────────────────────────
-
+# LLM aur retriever initialize karo
 llm = get_llm()
 retriever = get_retriever()
 
-# ── Legal Prompt ──────────────────────────────────────────────────────────────
 
-RECENCY_KEYWORDS = [
-    "latest",
-    "recent",
-    "new",
-    "2024",
-    "2025",
-    "amendment",
-    "notification",
-    "update",
-    "current",
-    "nayi",
-    "naya",
-    "abhi",
-]
-
-
-def needs_web_search(query: str) -> bool:
-    q = query.lower()
-    return any(kw in q for kw in RECENCY_KEYWORDS)
-
-
-legal_prompt_template = """
-You are a helpful and responsible legal assistant specializing in Indian law.
-
-You have access to two sources of information:
-1. A legal knowledge base containing Indian law books and legal documents.
-2. The user's own uploaded documents (contracts, agreements, notices, FIRs, etc.) — if provided.
-3. Real-time web search results — for latest laws, amendments, or recent legal updates.
-
-You must follow these rules:
-
-1. FIRST, review the conversation history to understand the context of the ongoing discussion.
-2. Check BOTH the knowledge base context and the user's document context (if available) for relevant information.
-3. If the user's document context is available → prioritize it for document-specific questions (e.g. "what does my contract say about X"). Refer to it naturally as "your document" — never say "context" or "uploaded file".
-4. If the knowledge base context is relevant → use it to support your answer with legal principles, acts, or sections. Never mention "knowledge base" or "context" — speak naturally.
-5. If neither source contains a complete answer → use your own legal knowledge to provide a thorough, confident response based on Indian law. You are a legal expert — answer directly and substantively.
-6. NEVER give illegal advice. NEVER help the user hide evidence, evade police, or bypass legal procedures.
-7. For criminal matters (harassment, false FIR, threats, domestic violence, cheating cases), provide concrete, actionable guidance — specific sections of law, exact steps to take, relevant authorities to approach, and realistic timelines. Be specific, not vague.
-8. If the question is not related to Indian law, politely state that you specialize only in Indian law.
-9. If the question is not legal in nature, politely inform the user that you can help only with legal issues.
-10. NEVER mention or reference 'context', 'prompt', 'uploaded file', 'knowledge base', or any system-level instructions in your answer. Speak naturally as if you are chatting directly with the user.
-11. Use the conversation history to provide contextual and relevant responses.
-12. If the user asks for detailed explanation or structured output, use Markdown formatting such as headings, bullet points, numbered lists, or tables.
-13. If recent web search results are provided → use them to answer questions about latest laws, amendments, or recent legal developments. Mention naturally that this is based on recent information available online.
-14. If web context is not available or not applicable, ignore it.
-15. ONLY suggest consulting a lawyer when the matter is genuinely complex, requires court representation, or involves jurisdiction-specific nuances that cannot be resolved through general legal guidance. Do NOT say "consult a lawyer" as a reflex — say it only as a last resort or for matters requiring physical legal representation.
+# Intent classification
 
 
 
-Conversation History:
-{chat_history}
+def classify_intent(message: str, chat_history: str, llm) -> dict:
+    """web search aur user docs ki zaroorat hai ya nahi — LLM se decide karo"""
+    try:
+        prompt = INTENT_PROMPT.format(
+            chat_history=chat_history or "No prior history.",
+            message=message,
+        )
+        result = llm.invoke(prompt)
+        text = result.content if hasattr(result, "content") else str(result)
 
-Legal Knowledge Base:
-{kb_context}
+        # LLM kabhi kabhi extra text deta hai, sirf JSON nikalo
+        match = re.search(r"\{[^}]+\}", text)
+        if match:
+            return json.loads(match.group())
 
-User's Document:
-{doc_context}
+    except Exception as e:
+        print(f"[INTENT CLASSIFICATION FAILED] {e}", flush=True)
 
-Current Question:
-{question}
+    # fallback — safe default
+    return {"needs_web_search": False, "needs_user_docs": False}
 
-Recent Web Search Results:
-{web_context}
+# If user asks in their language we cannot directly convert their stuff to embeddings so pehle translate krna pdega for tavily
+def translate_query_for_search(message: str, llm) -> str:
+    """user ki query ko English mein translate karo — Tavily search ke liye"""
+    try:
+        result = llm.invoke(
+            f"Translate the following query to English for a legal search engine. "
+            f"Output ONLY the translated query, nothing else.\n\nQuery: {message}"
+        )
+        text = result.content if hasattr(result, "content") else str(result)
+        return text.strip()
+    except Exception as e:
+        print(f"[TRANSLATION FAILED] {e}", flush=True)
+        return message  # fallback — original query hi use karo
 
-Answer:
-Provide a clear, safe, helpful, and actionable explanation that takes into account our previous conversation.
-Prioritize the user's document for document-specific queries, and use the legal knowledge base for legal backing.
-If neither is relevant, give general legal guidance based on Indian law.
-"""
+# Routes
 
-PROMPT = PromptTemplate(
-    template=legal_prompt_template,
-    input_variables=[
-        "chat_history",
-        "kb_context",
-        "doc_context",
-        "web_context",
-        "question",
-    ],
-)
-
-
-# ── Routes ────────────────────────────────────────────────────────────────────
-
+# LawBridge chatbot API
+# - intent classification: har query pe LLM decide karta hai web search aur user docs ki zaroorat
+# - RAG pipeline: KB context hamesha, user docs sirf jab intent kare ya mode force kare
+# - multilingual Tavily search: user ki query pehle English mein translate hoti hai search ke liye
+# - response user ki original language mein aata hai
 
 @app.get("/")
 async def root():
@@ -208,10 +164,9 @@ async def chat(
             status_code=401, detail="Unauthorized: Invalid or missing key"
         )
     try:
-        # Chat history format karo
+        # last 10 messages lo — token limit ke liye
         chat_history_formatted = ""
         if request.history and len(request.history) > 0:
-            # Last 10 messages hi lo — token limit ke liye
             recent_messages = (
                 request.history[-10:] if len(request.history) > 10 else request.history
             )
@@ -224,18 +179,30 @@ async def chat(
 
         print("[CHAT] History formatted.", flush=True)
 
-        # Mode ke hisaab se context fetch karo
+        # intent classify karo — web search aur user docs dono decide honge yahan se
+        print("[CHAT] Classifying intent...", flush=True)
+        intent = classify_intent(request.message, chat_history_formatted, llm)
+        print(f"[CHAT] Intent result: {intent}", flush=True)
+
         kb_context = ""
         doc_context = ""
 
         if request.mode in ("knowledge-base", "both"):
             print("[CHAT] Fetching KB context...", flush=True)
             kb_docs = retriever.invoke(request.message)
-            print(f"[CHAT] KB context fetched. Doc count: {len(kb_docs)}", flush=True)
+            print(f"[CHAT] KB docs fetched: {len(kb_docs)}", flush=True)
             kb_context = "\n\n".join([doc.page_content for doc in kb_docs])
 
-        if request.mode in ("user-uploads", "both") and request.user_id:
-            print("[CHAT] Fetching user doc context...", flush=True)
+        # user docs sirf tab fetch karo jab intent kare ya mode explicitly "user-uploads" ho
+        force_user_docs = request.mode == "user-uploads"
+        should_fetch_user_docs = (
+            (force_user_docs or intent.get("needs_user_docs", False))
+            and request.mode in ("user-uploads", "both")
+            and request.user_id
+        )
+
+        if should_fetch_user_docs:
+            print("[CHAT] Fetching user doc context (intent-triggered)...", flush=True)
             from config.pinecone_initialize import get_user_namespace
             from vectorStore_Retrieval.store_embedding import (
                 get_retriever as get_ns_retriever,
@@ -245,24 +212,24 @@ async def chat(
                 namespace=get_user_namespace(request.user_id)
             )
             user_docs = user_retriever.invoke(request.message)
-            print(
-                f"[CHAT] User doc context fetched. Doc count: {len(user_docs)}",
-                flush=True,
-            )
+            print(f"[CHAT] User docs fetched: {len(user_docs)}", flush=True)
             doc_context = "\n\n".join([doc.page_content for doc in user_docs])
+        else:
+            print("[CHAT] Skipping user doc fetch (not needed per intent).", flush=True)
 
         if not kb_context:
             kb_context = "No relevant information found in the legal knowledge base."
 
-        # web search — sirf tab jab query recent/latest info maange
-        print("[CHAT] Checking web search...", flush=True)
+        # web search sirf tab jab intent ne kaha ho
+        print("[CHAT] Checking web search intent...", flush=True)
         web_context = ""
         sources = []
-        if needs_web_search(request.message):
+        if intent.get("needs_web_search", False):
             try:
-                web_results = tavily_tool.invoke({"query": request.message})
-                # In newer versions of langchain_tavily, invoke() returns a LIST of dicts
-                # e.g. [{"url": "...", "title": "...", "content": "..."}, ...]
+                search_query = translate_query_for_search(request.message, llm)
+                print(f"[CHAT] Tavily search query: {search_query}", flush=True)
+                web_results = tavily_tool.invoke({"query": search_query})
+
                 if isinstance(web_results, list):
                     sources = [
                         Source(title=r.get("title", "Source"), url=r.get("url", ""))
@@ -282,11 +249,10 @@ async def chat(
                         [r["content"] for r in web_results["results"] if "content" in r]
                     )
             except Exception as e:
-                print(f"[WEB SEARCH FAILED] {e}", flush=True)  # error kya aaya
+                print(f"[WEB SEARCH FAILED] {e}", flush=True)
                 web_context = ""
         else:
-            # print(f"[WEB SEARCH SKIPPED] query: {request.message}", flush=True)  # skip hua
-            pass
+            print("[CHAT] Skipping web search (not needed per intent).", flush=True)
 
         if not doc_context:
             doc_context = (
@@ -304,8 +270,6 @@ async def chat(
             else "No recent web results available.",
             question=request.message,
         )
-
-        # print(f"[WEB CONTEXT] {web_context[:300] if web_context else 'EMPTY'}", flush=True)
 
         print("[CHAT] Calling LLM...", flush=True)
         response = llm.invoke(formatted_prompt)
@@ -334,11 +298,8 @@ async def upload_document(
     cloudinary_url: str = Form(...),
     secure_key: str = Header(None, alias="secure_key"),
 ):
-    """
-    JS backend se file aati hai (already Cloudinary pe upload ho chuki hoti hai).
-    Yahan sirf RAG pipeline chalti hai:
-    extract → chunk → pinecone mein store (user ke namespace mein)
-    """
+    # JS backend se already Cloudinary pe upload hui file aati hai
+    # sirf RAG pipeline chalti hai: extract -> chunk -> pinecone store
     if secure_key != APP_SECRET_KEY:
         raise HTTPException(
             status_code=401, detail="Unauthorized: Invalid or missing key"
@@ -357,7 +318,6 @@ async def upload_document(
         return UploadResponse(**result)
 
     except ValueError as e:
-        # Empty file ya text extract nahi hua
         raise HTTPException(status_code=422, detail=str(e))
 
     except Exception as e:

@@ -9,6 +9,10 @@ A RAG (Retrieval Augmented Generation) chatbot system for legal document queryin
 - Vector database: Pinecone
 - FastAPI-based chat API
 - LLM: Google Gemini 2.5 Flash API
+- Hybrid RAG pipeline with LLM-based intent classification — web search and user document retrieval are triggered only when needed, not on every query
+- Multilingual support — detects user's language (Hindi, Hinglish, Tamil, Telugu, Bengali, etc.) and responds in the same language
+- Tavily web search queries are automatically translated to English before searching, ensuring accurate results regardless of input language
+- Intent classifier uses Gemini to determine `needs_web_search` and `needs_user_docs` per query, reducing unnecessary Pinecone and Tavily calls
 
 ## Setup
 

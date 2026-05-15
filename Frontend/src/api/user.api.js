@@ -74,7 +74,6 @@ export const disable2FA = (payload) => {
   return api.post("/api/user/2fa/disable", payload);
 };
 
-
 // Magic link for login
 export const requestMagicLink = async (email) => {
   return api.post("/api/user/magic-link", { email });
@@ -82,4 +81,8 @@ export const requestMagicLink = async (email) => {
 
 export const verifyMagicLink = async (token) => {
   return api.get(`/api/user/verify-magic-link/${token}`);
+};
+
+export const verifyMagicLink2FA = async (token, twoFactorCode) => {
+  return api.post(`/api/user/verify-magic-link/${token}`, { twoFactorCode });
 };

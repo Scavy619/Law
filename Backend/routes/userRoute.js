@@ -20,7 +20,8 @@ import {
   createPaymentOrder,
   verifyPaymentAndCreateAppointment,
   requestMagicLink,
-  verifyMagicLink
+  verifyMagicLink,
+  verifyMagicLink2FA,
 } from "../controllers/userController.js";
 import { rateLimiter, routeLimiter } from "../middleware/rateLimiter.js";
 import {
@@ -91,9 +92,13 @@ userRouter.post("/2fa/verify", authUser, verify2FA);
 // disable 2fa
 userRouter.post("/2fa/disable", authUser, disable2FA);
 
-
 // Magic link for login
 userRouter.post("/magic-link", routeLimiter(3, 60 * 60), requestMagicLink);
 userRouter.get("/verify-magic-link/:token", verifyMagicLink);
+userRouter.post(
+  "/verify-magic-link/:token",
+  routeLimiter(10, 15 * 60),
+  verifyMagicLink2FA,
+);
 
 export default userRouter;

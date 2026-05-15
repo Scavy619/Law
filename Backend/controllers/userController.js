@@ -2044,8 +2044,84 @@ export const verifyMagicLink = async (req, res) => {
       });
     }
 
-    // One-time use — delete immediately
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    // If 2FA is enabled, do NOT consume the token yet.
+    // The client must complete 2FA via POST /verify-magic-link/:token first.
+    if (user.twoFactorEnabled) {
+      return res.status(200).json({
+        success: true,
+        requires2FA: true,
+        message: "2FA verification required to complete login.",
+      });
+    }
+
+    // No 2FA — one-time use, consume now
     await redis.del(redisKey);
+
+    const accessToken = generateAccessToken({ id: user._id });
+    const refreshToken = generateRefreshToken({ id: user._id });
+
+    user.refreshToken = hashToken(refreshToken);
+    await user.save({ validateBeforeSave: false });
+
+    return res
+      .cookie("refreshToken", refreshToken, refreshCookieOptions)
+      .status(200)
+      .json({
+        success: true,
+        message: "Logged in successfully",
+        accessToken,
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          phone: user.phone,
+          address: user.address,
+          gender: user.gender,
+          dob: user.dob,
+          emailVerified: user.emailVerified,
+          twoFactorEnabled: user.twoFactorEnabled,
+          authProvider: user.authProvider,
+        },
+      });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const verifyMagicLink2FA = async (req, res) => {
+  try {
+    const token = String(req.params.token);
+    const { twoFactorCode } = req.body;
+
+    if (!twoFactorCode) {
+      return res.status(400).json({
+        success: false,
+        message: "2FA code is required.",
+      });
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const redisKey = `magic:token:${hashedToken}`;
+    const userId = await redis.get(redisKey);
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Magic link is invalid or has expired.",
+      });
+    }
 
     const user = await userModel.findById(userId);
     if (!user) {
@@ -2055,7 +2131,40 @@ export const verifyMagicLink = async (req, res) => {
       });
     }
 
-    // Generate tokens — same as normal login
+    if (!user.twoFactorEnabled) {
+      return res.status(400).json({
+        success: false,
+        message: "2FA is not enabled for this account.",
+      });
+    }
+
+    // Brute-force protection — max 5 failed attempts per 15 minutes
+    const bruteKey = `2fa:magic:${userId}`;
+    const currentAttempts = await redis.get(bruteKey);
+    if (currentAttempts !== null && parseInt(currentAttempts, 10) >= 5) {
+      const ttl = await redis.ttl(bruteKey);
+      return res.status(429).json({
+        success: false,
+        message: `Too many 2FA attempts. Try again in ${Math.ceil(ttl / 60)} minutes.`,
+      });
+    }
+
+    const totp = createTOTP(decrypt(user.twoFactorSecret));
+    const delta = totp.validate({ token: twoFactorCode, window: 1 });
+
+    if (delta === null) {
+      const attempts = await redis.incr(bruteKey);
+      if (attempts === 1) await redis.expire(bruteKey, 15 * 60);
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired 2FA code.",
+      });
+    }
+
+    // 2FA verified — consume the magic link token and clear brute-force counter
+    await redis.del(redisKey);
+    await redis.del(bruteKey);
+
     const accessToken = generateAccessToken({ id: user._id });
     const refreshToken = generateRefreshToken({ id: user._id });
 

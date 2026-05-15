@@ -121,7 +121,8 @@ api.interceptors.response.use(
       status === 401 &&
       !originalRequest._retry &&
       !originalRequest.url?.includes("/api/auth/refresh") &&
-      !originalRequest.url?.includes("/api/user/login")
+      !originalRequest.url?.includes("/api/user/login") &&
+      !originalRequest.url?.includes("/api/user/verify-magic-link")
     ) {
       if (isRefreshing) {
         // Queue this request until refresh completes

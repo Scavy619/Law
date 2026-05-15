@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { AppProvider } from "./AppContext";
 import { appActions } from "./app.actions";
 import api from "../api/axiosClient";
@@ -22,6 +22,9 @@ const AppContextProvider = ({ children }) => {
   const [rateLimitCooldown, setRateLimitCooldown] = useState(false);
   const [creditsExhausted, setCreditsExhausted] = useState(false);
   const [creditsRemaining, setCreditsRemaining] = useState(null);
+
+  // tracks whether we've done the initial fresh profile fetch for the current session
+  const hasInitializedCredits = useRef(false);
 
   // document upload for chatbot
   const [userDocuments, setUserDocuments] = useState([]);
@@ -93,20 +96,29 @@ const AppContextProvider = ({ children }) => {
 
   useEffect(() => {
     if (!userData) {
+      // user logged out — reset everything
       setCreditsRemaining(null);
       setCreditsExhausted(false);
+      hasInitializedCredits.current = false;
       return;
     }
 
-    const remaining = userData?.credits?.remaining;
+    // First time userData becomes truthy (login / page refresh / token refresh):
+    // always fetch a fresh profile so the backend can apply the day-reset logic
+    // before we read credits.remaining. This fixes stale "0 msgs left" on new days.
+    if (!hasInitializedCredits.current) {
+      hasInitializedCredits.current = true;
+      actions.loadUserProfileData();
+      return;
+    }
 
+    // Subsequent runs — userData was just updated by loadUserProfileData itself,
+    // so remaining is now guaranteed to be the server-reset value.
+    const remaining = userData?.credits?.remaining;
     if (typeof remaining === "number") {
       setCreditsRemaining(remaining);
       setCreditsExhausted(remaining <= 0);
-      return;
     }
-
-    actions.loadUserProfileData();
   }, [userData, actions]);
 
   const contextValue = useMemo(

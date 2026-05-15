@@ -7,13 +7,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../../api/axiosClient";
 import DocumentUpload from "./DocumentUpload";
 
-const thinkingPhrases = [
-  "Analyzing your query...",
-  "Searching legal knowledge base...",
-  "Reviewing relevant provisions...",
-  "Drafting response...",
-];
-
 const getMessageKey = (message) =>
   `${message.role}|${message.content}|${message.createdAt}`;
 
@@ -51,7 +44,6 @@ const ChatBox = () => {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState([]);
   const [activeDocument, setActiveDocument] = useState(null);
-  const [thinkingPhrase, setThinkingPhrase] = useState(thinkingPhrases[0]);
 
   // Track the last failed prompt so we can offer a retry
   const [failedPrompt, setFailedPrompt] = useState(null);
@@ -174,29 +166,6 @@ const ChatBox = () => {
     await sendMessage(text);
   };
 
-  useEffect(() => {
-    if (!loadingResponse) return;
-
-    const pickRandomPhrase = () =>
-      thinkingPhrases[Math.floor(Math.random() * thinkingPhrases.length)];
-
-    setThinkingPhrase(pickRandomPhrase());
-
-    const intervalId = setInterval(() => {
-      setThinkingPhrase((prevPhrase) => {
-        if (thinkingPhrases.length <= 1) return prevPhrase;
-
-        let nextPhrase = pickRandomPhrase();
-        while (nextPhrase === prevPhrase) {
-          nextPhrase = pickRandomPhrase();
-        }
-        return nextPhrase;
-      });
-    }, 1800);
-
-    return () => clearInterval(intervalId);
-  }, [loadingResponse]);
-
   // ── side effects ───────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -305,20 +274,34 @@ const ChatBox = () => {
 
             {/* Thinking indicator */}
             {loadingResponse && (
-              <div className="flex items-center gap-2 py-4">
-                <div className="flex items-center gap-1.5 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
-                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" />
-                  <div
-                    className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
-                    style={{ animationDelay: "0.1s" }}
-                  />
-                  <div
-                    className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
-                    style={{ animationDelay: "0.2s" }}
-                  />
-                  <span className="text-sm text-gray-500 ml-2">
-                    {thinkingPhrase}
-                  </span>
+              <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-3 mb-4 w-full">
+                {/* Same avatar as assistant messages */}
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center flex-shrink-0 sm:self-end">
+                  <svg
+                    className="w-4 h-4 text-gray-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                {/* Thinking bubble — same style as assistant message bubble */}
+                <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md shadow-sm px-5 py-4">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" />
+                    <div
+                      className="w-2 h-2 rounded-full bg-purple-400 animate-bounce"
+                      style={{ animationDelay: "0.15s" }}
+                    />
+                    <div
+                      className="w-2 h-2 rounded-full bg-purple-400 animate-bounce"
+                      style={{ animationDelay: "0.3s" }}
+                    />
+                  </div>
                 </div>
               </div>
             )}

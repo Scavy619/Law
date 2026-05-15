@@ -13,34 +13,41 @@ export const checkCredit = async (req, res, next) => {
     const userId = req.user.id;
     const redisKey = `credits:${userId}`;
 
+    // 1. Check Redis FIRST — skip DB entirely on cache hit
+    let credits = await redis.get(redisKey);
+
+    if (credits !== null){
+      // Key exists → Redis is source of truth, no DB needed
+      console.log("Fetching from Redis, no DB call!!")
+      if (Number(credits) <= 0) {
+        return res.status(403).json({ success: false, message: "Daily credit limit reached" });
+      }
+      return next();
+    }
+
+    // 2. Cache miss → go to DB (first request of the day or after midnight expiry)
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false });
 
     const today = new Date().toDateString();
     const lastReset = new Date(user.credits.lastReset).toDateString();
 
-    // if today's date is different from last reset date, it means naya din has started. So we gotta refresh credits
     if (today !== lastReset) {
-      user.credits.remaining = user.credits.dailyLimit; // reset daily
+      user.credits.remaining = user.credits.dailyLimit;
       user.credits.lastReset = new Date();
       await user.save();
     }
 
-    let credits = await redis.get(redisKey);
-
-    // if redis does not have the credits, that means its first request of user or redis has expired at midnight, therefore we set the key
-    if (!credits) {
-      const ttl = getSecondsUntilMidnight();
-      credits = user.credits.remaining;
-      await redis.set(redisKey, credits, "EX", ttl); // auto expire at midnight
+    if (user.credits.remaining <= 0) {
+      return res.status(403).json({ success: false, message: "Daily credit limit reached" });
     }
 
-    if (Number(credits) <= 0) {
-      return res.status(403).json({
-        success: false,
-        message: "Daily credit limit reached",
-      });
-    }
+    console.log("Fetching from DB for credits!!")
+
+    
+    // 3. Warm Redis for all subsequent requests today
+    const ttl = getSecondsUntilMidnight();
+    await redis.set(redisKey, user.credits.remaining, "EX", ttl);
 
     next();
   } catch (err) {

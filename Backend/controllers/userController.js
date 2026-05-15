@@ -18,7 +18,7 @@ import redis from "../config/redis.js";
 import userModel from "../models/userModel.js";
 import lawyerModel from "../models/lawyerModel.js";
 import appointmentModel from "../models/appointmentModel.js";
-import documentModel from "../models/documentModel.js"
+import documentModel from "../models/documentModel.js";
 import crypto from "crypto";
 import { generateCryptoToken } from "../utils/cryptoToken.js";
 import { sendEmail } from "../services/mailService.js";
@@ -26,7 +26,7 @@ import {
   verifyEmailTemplate,
   resetPasswordTemplate,
   deleteAccountOtpTemplate,
-  magicLinkTemplate
+  magicLinkTemplate,
 } from "../services/emailTemplates.js";
 import {
   hashPasswordWithSalt,
@@ -458,6 +458,17 @@ export const getUserProfile = async (req, res) => {
       });
     }
 
+    // Reset credits if a new day has started (same logic as checkCredit middleware)
+    const today = new Date().toDateString();
+    const lastReset = new Date(user.credits?.lastReset).toDateString();
+    if (today !== lastReset) {
+      user.credits.remaining = user.credits.dailyLimit;
+      user.credits.lastReset = new Date();
+      await user.save();
+      // Invalidate Redis so checkCredit re-seeds the fresh value on next chat request
+      await redis.del(`credits:${userId}`);
+    }
+
     // Explicit safe response object
     const safeUser = {
       id: user._id,
@@ -831,7 +842,7 @@ export const listAppointment = async (req, res) => {
     const skip = (page - 1) * limit;
     const status = req.query.status;
     const sortOrder = String(req.query.sortOrder || "desc").toLowerCase();
-    
+
     const lawyerName =
       typeof req.query.lawyerName === "string"
         ? req.query.lawyerName.trim()
@@ -1245,52 +1256,51 @@ export const createPaymentOrder = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Slot Not Available" });
     }
-      
-    
+
     // meeting booking restrictions : per day 2 meeting hi book kr skta hai user
     // and maximum 3 meetings in next 5 days (done so as to avoid ki ek banda hi sbhi slots book krle)
     const userId = req.user.id;
-   
-       const today = new Date();
-       today.setHours(0, 0, 0, 0);
-       const windowEnd = new Date(today);
-       windowEnd.setDate(today.getDate() + 4); // today included = 5 days total
-   
-       const parseSlotDate = (sd) => {
-         const [d, m, y] = sd.split("_");
-         return new Date(y, m - 1, d);
-       };
-   
-       const existingAppointments = await appointmentModel.find({
-         userId,
-         cancelled: "Not Cancelled",
-         isCompleted: false,
-       });
-   
-       // Check: max 3 in next 5 days (rolling window)
-       const inWindow = existingAppointments.filter((apt) => {
-         const aptDate = parseSlotDate(apt.slotDate);
-         return aptDate >= today && aptDate <= windowEnd;
-       });
-   
-       if (inWindow.length >= 3){
-         return res.status(400).json({
-           success: false,
-           message: "You can only have 3 appointments within the next 5 days",
-         });
-       }
-   
-       // Check: max 2 per day
-       const onSameDay = existingAppointments.filter(
-         (apt) => apt.slotDate === slotDate
-       );
-   
-       if (onSameDay.length >= 2) {
-         return res.status(400).json({
-           success: false,
-           message: "You can only book 2 appointments per day",
-         });
-       }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const windowEnd = new Date(today);
+    windowEnd.setDate(today.getDate() + 4); // today included = 5 days total
+
+    const parseSlotDate = (sd) => {
+      const [d, m, y] = sd.split("_");
+      return new Date(y, m - 1, d);
+    };
+
+    const existingAppointments = await appointmentModel.find({
+      userId,
+      cancelled: "Not Cancelled",
+      isCompleted: false,
+    });
+
+    // Check: max 3 in next 5 days (rolling window)
+    const inWindow = existingAppointments.filter((apt) => {
+      const aptDate = parseSlotDate(apt.slotDate);
+      return aptDate >= today && aptDate <= windowEnd;
+    });
+
+    if (inWindow.length >= 3) {
+      return res.status(400).json({
+        success: false,
+        message: "You can only have 3 appointments within the next 5 days",
+      });
+    }
+
+    // Check: max 2 per day
+    const onSameDay = existingAppointments.filter(
+      (apt) => apt.slotDate === slotDate,
+    );
+
+    if (onSameDay.length >= 2) {
+      return res.status(400).json({
+        success: false,
+        message: "You can only book 2 appointments per day",
+      });
+    }
 
     // Create options for razorpay payment
     const options = {
@@ -1366,46 +1376,46 @@ export const verifyPaymentAndCreateAppointment = async (req, res) => {
         message: "Appointment Booked Successfully!",
       });
     }
-    
-    // restrictions checking 
+
+    // restrictions checking
     const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const windowEnd = new Date(today);
-        windowEnd.setDate(today.getDate() + 4);
-    
-        const parseSlotDate = (sd) => {
-          const [d, m, y] = sd.split("_");
-          return new Date(y, m - 1, d);
-        };
-    
-        const existingUserAppointments = await appointmentModel.find({
-          userId,
-          cancelled: "Not Cancelled",
-          isCompleted: false,
-        });
-    
-        const inWindow = existingUserAppointments.filter((apt) => {
-          const aptDate = parseSlotDate(apt.slotDate);
-          return aptDate >= today && aptDate <= windowEnd;
-        });
-    
-        if (inWindow.length >= 3) {
-          return res.status(400).json({
-            success: false,
-            message: "You can only have 3 appointments within the next 5 days",
-          });
-        }
-    
-        const onSameDay = existingUserAppointments.filter(
-          (apt) => apt.slotDate === slotDate
-        );
-    
-        if (onSameDay.length >= 2) {
-          return res.status(400).json({
-            success: false,
-            message: "You can only book 2 appointments per day",
-          });
-        }
+    today.setHours(0, 0, 0, 0);
+    const windowEnd = new Date(today);
+    windowEnd.setDate(today.getDate() + 4);
+
+    const parseSlotDate = (sd) => {
+      const [d, m, y] = sd.split("_");
+      return new Date(y, m - 1, d);
+    };
+
+    const existingUserAppointments = await appointmentModel.find({
+      userId,
+      cancelled: "Not Cancelled",
+      isCompleted: false,
+    });
+
+    const inWindow = existingUserAppointments.filter((apt) => {
+      const aptDate = parseSlotDate(apt.slotDate);
+      return aptDate >= today && aptDate <= windowEnd;
+    });
+
+    if (inWindow.length >= 3) {
+      return res.status(400).json({
+        success: false,
+        message: "You can only have 3 appointments within the next 5 days",
+      });
+    }
+
+    const onSameDay = existingUserAppointments.filter(
+      (apt) => apt.slotDate === slotDate,
+    );
+
+    if (onSameDay.length >= 2) {
+      return res.status(400).json({
+        success: false,
+        message: "You can only book 2 appointments per day",
+      });
+    }
 
     const lawyerData = await lawyerModel.findById(lawyerId).select("-password");
     if (!lawyerData) {
@@ -1587,38 +1597,42 @@ export const verifyDeleteAccountOtp = async (req, res) => {
         message: "Invalid OTP",
       });
     }
-    
+
     const userDocs = await documentModel.find({ userId });
-    
+
     if (userDocs.length > 0) {
       // Cloudinary cleanup
       await Promise.all(
         userDocs.map((doc) =>
-          cloudinary.uploader.destroy(doc.cloudinaryPublicId, {
-            resource_type: doc.fileType === "image" ? "image" : "raw",
-          }).catch(err => console.error("Cloudinary cleanup error:", err))
-        )
+          cloudinary.uploader
+            .destroy(doc.cloudinaryPublicId, {
+              resource_type: doc.fileType === "image" ? "image" : "raw",
+            })
+            .catch((err) => console.error("Cloudinary cleanup error:", err)),
+        ),
       );
-    
+
       // Pinecone cleanup — chatbot service se
       try {
-        await axios.delete(`${process.env.RAG_CHATBOT_API_URL || 'http://localhost:4000'}/delete-user-data`, {
-          headers: {
-            "Content-Type": "application/json",
-            "secure_key": process.env.RAG_SECRET_KEY,
+        await axios.delete(
+          `${process.env.RAG_CHATBOT_API_URL || "http://localhost:4000"}/delete-user-data`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              secure_key: process.env.RAG_SECRET_KEY,
+            },
+            data: {
+              user_id: userId.toString(),
+            },
           },
-          data: {
-            user_id: userId.toString(),
-          },
-        });
+        );
       } catch (err) {
         console.error("Failed to clear vector DB data:", err.message);
       }
-    
+
       await documentModel.deleteMany({ userId });
     }
-    
-    
+
     // delete user-related data first
     await appointmentModel.deleteMany({ userId });
     await conversationModel.deleteMany({ userId });
@@ -1929,8 +1943,7 @@ export const disable2FA = async (req, res) => {
   }
 };
 
-
-// Magic Link for logging in existing user's 
+// Magic Link for logging in existing user's
 
 export const requestMagicLink = async (req, res) => {
   try {
@@ -1947,7 +1960,7 @@ export const requestMagicLink = async (req, res) => {
     const user = await userModel.findOne({ email });
 
     // prevent user enumeration — same response whether user exists or not
-    if (!user || !user.emailVerified){
+    if (!user || !user.emailVerified) {
       return res.status(200).json({
         success: true,
         message: "If an account exists, a magic link has been sent.",
@@ -1955,7 +1968,7 @@ export const requestMagicLink = async (req, res) => {
     }
 
     // Google users should use Google login
-    if (user.authProvider === "google"){
+    if (user.authProvider === "google") {
       return res.status(400).json({
         success: false,
         message: "This account uses Google Sign-In. Please login with Google.",
@@ -1969,7 +1982,8 @@ export const requestMagicLink = async (req, res) => {
     if (currentCount !== null && parseInt(currentCount, 10) >= 2) {
       return res.status(429).json({
         success: false,
-        message: "You have reached the limit of 2 magic links per day. Please try again tomorrow.",
+        message:
+          "You have reached the limit of 2 magic links per day. Please try again tomorrow.",
       });
     }
 
@@ -1977,7 +1991,12 @@ export const requestMagicLink = async (req, res) => {
     const { rawToken, hashedToken } = generateCryptoToken();
 
     // Store in Redis: hashed token → userId, 15 min TTL
-    await redis.set(`magic:token:${hashedToken}`, user._id.toString(), "EX", 15 * 60);
+    await redis.set(
+      `magic:token:${hashedToken}`,
+      user._id.toString(),
+      "EX",
+      15 * 60,
+    );
 
     // Increment daily counter, expire at end of day (86400s max)
     const newCount = await redis.incr(countKey);

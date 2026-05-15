@@ -23,9 +23,24 @@ const MIMETYPE_TO_FILETYPE = {
   "image/webp": "image",
 };
 
-// Redis key for daily upload count — auto expires in 24 hours
+const getLocalDateKey = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getSecondsUntilMidnight = () => {
+  const now = new Date();
+  const midnight = new Date();
+  midnight.setHours(24, 0, 0, 0);
+  return Math.floor((midnight - now) / 1000);
+};
+
+// Redis key for daily upload count — resets at midnight, same as chat credits
 const getDailyUploadKey = (userId) => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateKey();
   return `doc_upload:${userId}:${today}`;
 };
 
@@ -68,7 +83,7 @@ export const uploadDocument = async (req, res) => {
     }
 
     // Upload to Cloudinary
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateKey();
 
     // PDF aur DOCX ke liye raw, images ke liye image
     const resourceType = ["pdf", "docx", "txt"].includes(fileType)
@@ -135,9 +150,10 @@ export const uploadDocument = async (req, res) => {
     });
 
     // Redis counter increment — set TTL only on first upload of the day
+    // so the upload limit resets at midnight, same as chat credits.
     const newCount = await redis.incr(redisKey);
     if (newCount === 1) {
-      await redis.expire(redisKey, 86400);
+      await redis.expire(redisKey, getSecondsUntilMidnight());
     }
 
     return res.status(201).json({

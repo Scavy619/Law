@@ -134,9 +134,11 @@ export const uploadDocument = async (req, res) => {
       uploadDate: today,
     });
 
-    // Redis counter increment karo — TTL 24 hours
-    await redis.incr(redisKey);
-    await redis.expire(redisKey, 86400);
+    // Redis counter increment — set TTL only on first upload of the day
+    const newCount = await redis.incr(redisKey);
+    if (newCount === 1) {
+      await redis.expire(redisKey, 86400);
+    }
 
     return res.status(201).json({
       success: true,

@@ -16,11 +16,12 @@ export const checkCredit = async (req, res, next) => {
     // 1. Check Redis FIRST — skip DB entirely on cache hit
     let credits = await redis.get(redisKey);
 
-    if (credits !== null){
+    if (credits !== null) {
       // Key exists → Redis is source of truth, no DB needed
-      console.log("Fetching from Redis, no DB call!!")
       if (Number(credits) <= 0) {
-        return res.status(403).json({ success: false, message: "Daily credit limit reached" });
+        return res
+          .status(403)
+          .json({ success: false, message: "Daily credit limit reached" });
       }
       return next();
     }
@@ -39,12 +40,11 @@ export const checkCredit = async (req, res, next) => {
     }
 
     if (user.credits.remaining <= 0) {
-      return res.status(403).json({ success: false, message: "Daily credit limit reached" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Daily credit limit reached" });
     }
 
-    console.log("Fetching from DB for credits!!")
-
-    
     // 3. Warm Redis for all subsequent requests today
     const ttl = getSecondsUntilMidnight();
     await redis.set(redisKey, user.credits.remaining, "EX", ttl);

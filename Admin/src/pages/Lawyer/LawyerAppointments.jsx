@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Video, ArrowDownAZ, ArrowUpZA, Filter, Check, X } from "lucide-react";
 import { LawyerContext } from "../../context/LawyerContext";
 import { AppContext } from "../../context/AppContext";
@@ -118,14 +118,23 @@ const LawyerAppointments = () => {
     setSearchParams({ ...currentParams, ...newParams });
   };
 
-  const setSortOrder = (val) => updateParams({ sort: typeof val === "function" ? val(sortOrder) : val, page: 1 });
+  const setSortOrder = (val) =>
+    updateParams({
+      sort: typeof val === "function" ? val(sortOrder) : val,
+      page: 1,
+    });
   const setStatusFilter = (val) => updateParams({ status: val, page: 1 });
   const setLimit = (val) => updateParams({ limit: val, page: 1 });
   const setCurrentPage = (val) => updateParams({ page: val });
 
   const fetchAppointments = async (page = currentPage) => {
     setLoading(true);
-    const response = await getAppointments(page, limit, statusFilter, sortOrder);
+    const response = await getAppointments(
+      page,
+      limit,
+      statusFilter,
+      sortOrder,
+    );
     if (response?.data?.pagination) {
       setTotalPages(response.data.pagination.totalPages);
     }

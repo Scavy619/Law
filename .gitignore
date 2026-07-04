@@ -1,0 +1,2 @@
+# Local dev services (Mongo/Redis binaries + data) — not source, don't version
+/local-services/

@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lawbridge-frontend",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "Frontend",
+      "port": 5173,
+      "autoPort": false
+    },
+    {
+      "name": "lawbridge-admin",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "Admin",
+      "port": 5174,
+      "autoPort": false
+    },
+    {
+      "name": "lawbridge-backend",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "Backend",
+      "port": 4001,
+      "autoPort": false
+    }
+  ]
+}

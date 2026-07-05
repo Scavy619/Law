@@ -187,7 +187,7 @@ const Sidebar = ({ isMenuOpen, setIsMenuOpen }) => {
     <div className="flex flex-col h-screen w-72 p-4 bg-gray-50 border-r border-gray-200">
       <div className="flex items-center justify-between">
         <span className="text-lg font-semibold text-black">
-          LawBridge
+          Shivam Parashar Advocate
         </span>
         <button
           type="button"

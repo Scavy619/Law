@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, MessageCircle, MessageSquare, Video, ArrowRight } from 'lucide-react';
+import { whatsappLink } from '../siteConfig';
 
 export default function Features() {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function Features() {
         description: "The simplest way to reach out — message your question whenever it's on your mind, and get a personal reply, no forms or waiting rooms.",
         action: "Message on WhatsApp",
         color: "emerald",
-        path: "https://wa.me/919472761482?text=Hi%20Shivam%2C%20I'd%20like%20to%20ask%20about%20my%20legal%20situation.",
+        path: whatsappLink(),
         isExternal: true
       },
       {

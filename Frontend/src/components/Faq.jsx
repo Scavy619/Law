@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
+import { lawyerProfile } from "../siteConfig";
 
 const faqs = [
   {
     question: "How do I book a consultation?",
     answer:
-      "Click 'Book a Consultation' anywhere on the site, pick an available date and time slot, and confirm your appointment — you'll be meeting directly with Adv. Shivam Parashar, not a rotating team.",
+      "Click 'Book a Consultation' anywhere on the site, pick an available date and time slot, and confirm your appointment — you'll be meeting directly with " +
+      lawyerProfile.name +
+      ", not a rotating team.",
   },
   {
     question: "Can I chat with the AI Legal Assistant for free?",
@@ -45,8 +48,8 @@ const Faq = () => {
         </h2>
         <div className="w-20 h-1 bg-primary mx-auto rounded-full mb-6"></div>
         <p className="text-slate-500 text-lg">
-          You're probably not the first person to wonder about this. Here are
-          the things people usually ask before their first chat.
+          You're probably not the first person to wonder about this. Here are the
+          things people usually ask before their first chat.
         </p>
       </div>
 

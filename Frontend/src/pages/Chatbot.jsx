@@ -36,7 +36,7 @@ const Chatbot = () => {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement("a");
       a.href = url;
-      a.download = `lawbridge-chat-${Date.now()}.${format}`;
+      a.download = `legal-chat-${Date.now()}.${format}`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch {

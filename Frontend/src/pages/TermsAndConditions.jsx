@@ -19,7 +19,7 @@ const TermsAndConditions = () => {
             Acceptance of Terms
           </h2>
           <p className="mb-4 text-sm md:text-base leading-relaxed">
-            By accessing and using the LawBridge platform, you acknowledge that
+            By accessing and using the Shivam Parashar Advocate platform, you acknowledge that
             you have read, understood, and agree to be bound by these Terms and
             Conditions. If you do not agree, you must discontinue use of the
             platform immediately.
@@ -31,7 +31,7 @@ const TermsAndConditions = () => {
             Service Description
           </h2>
           <p className="mb-4 text-sm md:text-base leading-relaxed">
-            LawBridge is a legal consultation and appointment-booking platform
+            Shivam Parashar Advocate is a legal consultation and appointment-booking platform
             that connects users with lawyers and legal professionals. We
             facilitate scheduling, communication, and discovery of legal
             services but do not provide legal advice ourselves.
@@ -43,7 +43,7 @@ const TermsAndConditions = () => {
             User Responsibilities
           </h2>
           <p className="mb-4 text-sm md:text-base leading-relaxed">
-            As a user of LawBridge, you agree to:
+            As a user of Shivam Parashar Advocate, you agree to:
           </p>
           <ul className="list-disc pl-6 space-y-2 text-sm md:text-base">
             <li>
@@ -69,7 +69,7 @@ const TermsAndConditions = () => {
             Appointment Booking and Cancellation
           </h2>
           <p className="mb-4 text-sm md:text-base leading-relaxed">
-            When you book a consultation through LawBridge, you enter into a
+            When you book a consultation through Shivam Parashar Advocate, you enter into a
             direct relationship with the selected lawyer or legal professional.
             To ensure fair access to services, users are permitted to book a
             maximum of 2 appointments per day and a total of 3 appointments
@@ -98,7 +98,7 @@ const TermsAndConditions = () => {
             Legal Disclaimer
           </h2>
           <p className="mb-4 text-sm md:text-base leading-relaxed">
-            LawBridge does not offer legal advice, representation, or any form
+            Shivam Parashar Advocate does not offer legal advice, representation, or any form
             of legal service. All advice, opinions, and services are provided
             solely by independent lawyers or legal professionals. We are not
             responsible for the accuracy, quality, or outcome of any legal
@@ -111,7 +111,7 @@ const TermsAndConditions = () => {
             Chat and Data Privacy
           </h2>
           <p className="mb-4 text-sm md:text-base leading-relaxed">
-            By using our AI chatbot and communication features, you acknowledge that while your chats are not end-to-end encrypted, they are securely stored and protected by LawBridge. We are committed to your privacy and do not leak or share your chat data with unauthorized parties. Please refer to our Privacy Policy for more details on how we protect your information.
+            By using our AI chatbot and communication features, you acknowledge that while your chats are not end-to-end encrypted, they are securely stored and protected by Shivam Parashar Advocate. We are committed to your privacy and do not leak or share your chat data with unauthorized parties. Please refer to our Privacy Policy for more details on how we protect your information.
           </p>
         </section>
 
@@ -120,7 +120,7 @@ const TermsAndConditions = () => {
             Limitation of Liability
           </h2>
           <p className="mb-4 text-sm md:text-base leading-relaxed">
-            LawBridge shall not be held liable for any direct, indirect,
+            Shivam Parashar Advocate shall not be held liable for any direct, indirect,
             incidental, or consequential damages arising from your use of the
             platform, appointment outcomes, or interactions with legal
             professionals.
@@ -144,7 +144,7 @@ const TermsAndConditions = () => {
             Changes to Terms
           </h2>
           <p className="mb-4 text-sm md:text-base leading-relaxed">
-            LawBridge may update or modify these Terms and Conditions at any
+            Shivam Parashar Advocate may update or modify these Terms and Conditions at any
             time. Changes become effective immediately upon posting. Continued
             use of the platform constitutes acceptance of the updated terms.
           </p>
@@ -156,7 +156,7 @@ const TermsAndConditions = () => {
           </h2>
           <p className="mb-4 text-sm md:text-base leading-relaxed">
             For questions or concerns regarding these Terms and Conditions, you
-            may contact us at legal@lawbridge.com or through our support page.
+            may contact us at contact@shivamparasharlaw.in or through our support page.
           </p>
         </section>
 

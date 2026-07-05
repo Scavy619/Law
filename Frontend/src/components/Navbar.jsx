@@ -1,23 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { assets } from "../assets/assets";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { Scale } from "lucide-react";
 import useApp from "../context/useApp";
 import api from "../api/axiosClient";
-
-const BrandLogo = ({ iconSize = "w-8 h-8" }) => (
-  <div className="flex items-center gap-2 shrink-0">
-    <div className="bg-primary text-white rounded-lg p-1.5 shrink-0">
-      <Scale className={iconSize} />
-    </div>
-    <div className="leading-tight">
-      <p className="font-bold text-gray-900 text-xl">Shivam Parashar</p>
-      <p className="text-[10px] sm:text-xs text-gray-500 tracking-wide uppercase -mt-0.5">
-        Advocate, Delhi
-      </p>
-    </div>
-  </div>
-);
+import Logo from "./common/Logo";
+import { site } from "../siteConfig";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -28,7 +15,10 @@ const Navbar = () => {
   const [activeLink, setActiveLink] = useState("/");
   const [dropletStyle, setDropletStyle] = useState({});
   const navRef = useRef(null);
-  const { userData, setUserData } = useApp();
+  const { userData, setUserData, lawyers } = useApp();
+  const bookingPath = lawyers?.[0]?._id
+    ? `/appointment/${lawyers[0]._id}`
+    : "/lawyers";
 
   // Track active link and update droplet position
   useEffect(() => {
@@ -105,7 +95,7 @@ const Navbar = () => {
   return (
     <div className="relative mb-5 flex w-full min-w-0 items-center justify-between border-b border-b-[#ADADAD] py-4 text-sm">
       <div onClick={() => navigate("/")} className="cursor-pointer">
-        <BrandLogo />
+        <Logo />
       </div>
       <nav
         ref={navRef}
@@ -136,10 +126,10 @@ const Navbar = () => {
           ABOUT
         </NavLink>
         <NavLink
-          to="/lawyers"
-          data-path="/lawyers"
+          to={bookingPath}
+          data-path={bookingPath}
           className={`relative z-10 block lg:px-3 xl:px-4 py-2 text-sm xl:text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
-            activeLink === "/lawyers" ? "text-primary font-semibold" : ""
+            activeLink === bookingPath ? "text-primary font-semibold" : ""
           }`}
         >
           BOOK APPOINTMENT
@@ -207,7 +197,7 @@ const Navbar = () => {
                     {(userData.name || "User").trim().split(/\s+/)[0]}
                   </p>
                   <p className="text-[11px] xl:text-xs text-gray-500">
-                    LawBridge User
+                    Client
                   </p>
                 </div>
               </div>
@@ -273,7 +263,7 @@ const Navbar = () => {
           className={`lg:hidden ${showMenu ? "fixed w-full" : "h-0 w-0"} right-0 top-0 bottom-0 z-20 overflow-hidden bg-white transition-all`}
         >
           <div className="flex items-center justify-between px-5 py-6">
-            <BrandLogo />
+            <Logo />
             <img
               onClick={() => setShowMenu(false)}
               src={assets.cross_icon}
@@ -306,9 +296,9 @@ const Navbar = () => {
             </NavLink>
             <NavLink
               onClick={() => setShowMenu(false)}
-              to="/lawyers"
+              to={bookingPath}
               className={`px-4 py-2 rounded-full inline-block hover:text-primary transition-colors duration-300 ${
-                activeLink === "/lawyers"
+                activeLink === bookingPath
                   ? "text-primary font-semibold bg-gradient-to-r from-primary/10 via-primary/20 to-primary/10"
                   : ""
               }`}

@@ -27,7 +27,6 @@ const TermsAndConditions = lazy(
   () => import("../pages/TermsAndConditions.jsx"),
 );
 const RefundPolicy = lazy(() => import("../pages/RefundPolicy.jsx"));
-const ContactUs = lazy(() => import("../pages/ContactUs.jsx"));
 const Resources = lazy(() => import("../pages/Resources.jsx"));
 const ResetPassword = lazy(() => import("../pages/ResetPassword.jsx"));
 const Verify = lazy(() => import("../pages/Verify.jsx"));
@@ -100,6 +99,7 @@ const router = createBrowserRouter(
           }
         />
 
+
         <Route
           path="my-profile"
           element={
@@ -160,7 +160,7 @@ const router = createBrowserRouter(
           path="contact-us"
           element={
             <Suspense fallback={<Loader />}>
-              <ContactUs />
+              <Contact />
             </Suspense>
           }
         />

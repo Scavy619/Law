@@ -31,6 +31,11 @@ setupSwagger(app);
 // CORS configuration - must be first
 const allowedOrigins =
   process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()) || [];
+const isDev = process.env.NODE_ENV !== "production";
+// Local dev frontends get an auto-assigned port each run (to avoid clashing with
+// unrelated projects on the same machine), so in dev we allow any localhost origin
+// instead of maintaining an exact port list here.
+const isLocalhostOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
 
 app.use(
   cors({
@@ -41,6 +46,10 @@ app.use(
       }
 
       if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      if (isDev && isLocalhostOrigin(origin)) {
         return callback(null, true);
       }
 

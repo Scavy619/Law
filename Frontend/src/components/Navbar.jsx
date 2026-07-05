@@ -3,6 +3,8 @@ import { assets } from "../assets/assets";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import useApp from "../context/useApp";
 import api from "../api/axiosClient";
+import Logo from "./common/Logo";
+import { site } from "../siteConfig";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -13,7 +15,10 @@ const Navbar = () => {
   const [activeLink, setActiveLink] = useState("/");
   const [dropletStyle, setDropletStyle] = useState({});
   const navRef = useRef(null);
-  const { userData, setUserData } = useApp();
+  const { userData, setUserData, lawyers } = useApp();
+  const bookingPath = lawyers?.[0]?._id
+    ? `/appointment/${lawyers[0]._id}`
+    : "/lawyers";
 
   // Track active link and update droplet position
   useEffect(() => {
@@ -89,12 +94,9 @@ const Navbar = () => {
 
   return (
     <div className="relative mb-5 flex w-full min-w-0 items-center justify-between border-b border-b-[#ADADAD] py-4 text-sm">
-      <img
-        onClick={() => navigate("/")}
-        className="h-12 w-auto shrink-0 cursor-pointer sm:h-14 md:h-16"
-        src={assets.legallogo}
-        alt=""
-      />
+      <div onClick={() => navigate("/")} className="cursor-pointer">
+        <Logo />
+      </div>
       <nav
         ref={navRef}
         className="lg:flex items-center lg:gap-0.5 xl:gap-2 font-medium hidden relative z-10"
@@ -124,13 +126,13 @@ const Navbar = () => {
           ABOUT
         </NavLink>
         <NavLink
-          to="/lawyers"
-          data-path="/lawyers"
+          to={bookingPath}
+          data-path={bookingPath}
           className={`relative z-10 block lg:px-3 xl:px-4 py-2 text-sm xl:text-base hover:text-primary transition-colors duration-300 cursor-pointer ${
-            activeLink === "/lawyers" ? "text-primary font-semibold" : ""
+            activeLink === bookingPath ? "text-primary font-semibold" : ""
           }`}
         >
-          BOOK A LAWYER
+          BOOK APPOINTMENT
         </NavLink>
         <NavLink
           to="/resources"
@@ -195,7 +197,7 @@ const Navbar = () => {
                     {(userData.name || "User").trim().split(/\s+/)[0]}
                   </p>
                   <p className="text-[11px] xl:text-xs text-gray-500">
-                    LawBridge User
+                    Client
                   </p>
                 </div>
               </div>
@@ -244,7 +246,7 @@ const Navbar = () => {
         ) : (
           <button
             onClick={() => navigate("/login")}
-            className="max-[359px]:hidden cursor-pointer rounded-full bg-[#5f6FFF] px-3 py-2 text-sm font-light text-white transition-colors duration-200 hover:bg-[#4f5fff] sm:px-6 sm:py-3 sm:text-base md:px-8"
+            className="max-[359px]:hidden cursor-pointer rounded-full bg-[#9333EA] px-3 py-2 text-sm font-light text-white transition-colors duration-200 hover:bg-[#7e22ce] sm:px-6 sm:py-3 sm:text-base md:px-8"
           >
             Sign up
           </button>
@@ -261,7 +263,7 @@ const Navbar = () => {
           className={`lg:hidden ${showMenu ? "fixed w-full" : "h-0 w-0"} right-0 top-0 bottom-0 z-20 overflow-hidden bg-white transition-all`}
         >
           <div className="flex items-center justify-between px-5 py-6">
-            <img src={assets.legallogo} className="w-auto h-14" alt="" />
+            <Logo />
             <img
               onClick={() => setShowMenu(false)}
               src={assets.cross_icon}
@@ -294,14 +296,14 @@ const Navbar = () => {
             </NavLink>
             <NavLink
               onClick={() => setShowMenu(false)}
-              to="/lawyers"
+              to={bookingPath}
               className={`px-4 py-2 rounded-full inline-block hover:text-primary transition-colors duration-300 ${
-                activeLink === "/lawyers"
+                activeLink === bookingPath
                   ? "text-primary font-semibold bg-gradient-to-r from-primary/10 via-primary/20 to-primary/10"
                   : ""
               }`}
             >
-              BOOK A LAWYER
+              BOOK APPOINTMENT
             </NavLink>
             <NavLink
               onClick={() => setShowMenu(false)}
@@ -389,7 +391,7 @@ const Navbar = () => {
                       setShowMenu(false);
                       navigate("/login");
                     }}
-                    className="border border-[#5f6FFF] text-[#5f6FFF] px-8 py-3 rounded-xl font-medium hover:bg-[#eef0ff] transition-colors duration-200 w-full"
+                    className="border border-[#9333EA] text-[#9333EA] px-8 py-3 rounded-xl font-medium hover:bg-[#f3e8ff] transition-colors duration-200 w-full"
                   >
                     Login
                   </button>
@@ -398,7 +400,7 @@ const Navbar = () => {
                       setShowMenu(false);
                       navigate("/login");
                     }}
-                    className="bg-[#5f6FFF] text-white px-8 py-3 rounded-xl font-medium hover:bg-[#4f5fff] transition-colors duration-200 w-full"
+                    className="bg-[#9333EA] text-white px-8 py-3 rounded-xl font-medium hover:bg-[#7e22ce] transition-colors duration-200 w-full"
                   >
                     Sign up
                   </button>

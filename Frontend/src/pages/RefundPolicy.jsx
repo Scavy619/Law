@@ -23,7 +23,7 @@ const RefundPolicy = () => {
             General Refund Policy
           </h2>
           <p className='mb-4 text-lg leading-relaxed'>
-            At LawBridge, we understand that plans may change, and you may need to cancel a scheduled legal consultation. 
+            At Shivam Parashar Advocate, we understand that plans may change, and you may need to cancel a scheduled legal consultation. 
             Our refund policy is designed to be fair to both clients and legal professionals while maintaining platform integrity.
           </p>
         </section>
@@ -147,7 +147,7 @@ const RefundPolicy = () => {
           </h2>
           <p className='mb-4'>To request a refund:</p>
           <ul className='list-disc pl-6 space-y-2'>
-            <li>Log into your LawBridge account</li>
+            <li>Log into your Shivam Parashar Advocate account</li>
             <li>Go to the “My Appointments” section</li>
             <li>Select the appointment you want to cancel</li>
             <li>Follow the on-screen cancellation and refund steps</li>
@@ -184,7 +184,7 @@ const RefundPolicy = () => {
           </h2>
           <p className='mb-4'>
             If you wish to dispute a refund decision or have concerns about our refund process, 
-            please contact us at refunds@lawbridge.com. Our team will review each case thoroughly.
+            please contact us at contact@shivamparasharlaw.in. Our team will review each case thoroughly.
           </p>
         </section>
 
@@ -198,7 +198,7 @@ const RefundPolicy = () => {
             Contact Us
           </h2>
           <p className='mb-4'>
-            For questions or refund-related assistance, please reach out to us at refunds@lawbridge.com 
+            For questions or refund-related assistance, please reach out to us at contact@shivamparasharlaw.in 
             or contact our customer support line for help.
           </p>
         </section>

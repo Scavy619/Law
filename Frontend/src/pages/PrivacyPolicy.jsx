@@ -24,7 +24,7 @@ const PrivacyPolicy = () => {
           </h2>
 
           <p className='mb-4 text-sm md:text-base leading-relaxed'>
-            At LawBridge, we collect information that you provide directly to us, such as when you create an account, 
+            At Shivam Parashar Advocate, we collect information that you provide directly to us, such as when you create an account, 
             book a legal consultation, or reach out to our support team. This may include:
           </p>
           <ul className='list-disc pl-6 space-y-2 text-sm md:text-base'>
@@ -75,7 +75,7 @@ const PrivacyPolicy = () => {
             <li>With legal professionals for consultations or case-related activities</li>
             <li>With trusted service providers who support our platform</li>
             <li>When required by law, court orders, or safety concerns</li>
-            <li>During mergers, acquisitions, or restructuring of LawBridge</li>
+            <li>During mergers, acquisitions, or restructuring of Shivam Parashar Advocate</li>
           </ul>
         </section>
 
@@ -90,7 +90,7 @@ const PrivacyPolicy = () => {
           </h2>
 
           <p className='mb-4 text-sm md:text-base leading-relaxed'>
-            When you use our Legal Assistant chatbot or communicate with legal professionals on LawBridge, your conversations are securely stored on our servers. While these chats are not end-to-end encrypted, we employ strict access controls and robust security measures to ensure your data is kept confidential and safe. We do not leak, sell, or share your chat history with unauthorized third parties.
+            When you use our Legal Assistant chatbot or communicate with legal professionals on Shivam Parashar Advocate, your conversations are securely stored on our servers. While these chats are not end-to-end encrypted, we employ strict access controls and robust security measures to ensure your data is kept confidential and safe. We do not leak, sell, or share your chat history with unauthorized third parties.
           </p>
         </section>
 
@@ -144,7 +144,7 @@ const PrivacyPolicy = () => {
 
           <p className='mb-4 text-sm md:text-base leading-relaxed'>
             If you have any questions or concerns about this Privacy Policy, you can contact us at 
-            privacy@lawbridge.com or via the support options listed on our platform.
+            contact@shivamparasharlaw.in or via the support options listed on our platform.
           </p>
         </section>
 

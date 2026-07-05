@@ -59,7 +59,7 @@ const SharedChat = () => {
            <a href="/"
             className="inline-block px-5 py-2 bg-[#A456F7] text-white text-sm font-medium rounded-xl hover:bg-[#9146E6] transition-colors"
           >
-            Go to LawBridge
+            Go to Homepage
           </a>
         </div>
       </div>
@@ -74,7 +74,7 @@ const SharedChat = () => {
           <div className="flex items-center gap-3">
             {/* Logo */}
             <a href="/" className="text-lg font-bold text-gray-900 tracking-tight">
-              Law<span className="text-[#A456F7]">Bridge</span>
+              Shivam<span className="text-[#A456F7]"> Parashar</span>
             </a>
             {/* Divider */}
             <span className="text-gray-300">|</span>
@@ -114,13 +114,13 @@ const SharedChat = () => {
         {/* Footer note */}
         <div className="pt-6 pb-2 text-center">
           <p className="text-xs text-gray-400">
-            This is a read-only view of a shared LawBridge conversation.
+            This is a read-only view of a shared AI assistant conversation.
           </p>
-          
+
           <a
             href="/"
             className="inline-block mt-3 text-xs text-[#A456F7] hover:underline font-medium">
-            Try LawBridge for free →
+            Try the AI legal assistant free →
           </a>
         </div>
       </div>

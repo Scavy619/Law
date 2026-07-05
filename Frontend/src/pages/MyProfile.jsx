@@ -187,7 +187,7 @@ const MyProfile = () => {
       );
       const a = document.createElement("a");
       a.href = url;
-      a.download = `lawbridge-chats-${Date.now()}.${extension}`;
+      a.download = `legal-chats-${Date.now()}.${extension}`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {

@@ -38,7 +38,7 @@ export default function ArticleCard({ article, categoryColors }) {
 
       {/* Body */}
       <div className="flex flex-col flex-1 p-5">
-        <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug group-hover:text-[#5f6FFF] transition-colors duration-200 line-clamp-2">
+        <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug group-hover:text-[#9333EA] transition-colors duration-200 line-clamp-2">
           {article.title}
         </h3>
         <p className="text-gray-500 text-sm leading-relaxed line-clamp-3 flex-1">
@@ -54,7 +54,7 @@ export default function ArticleCard({ article, categoryColors }) {
             </span>
           </div>
 
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-[#5f6FFF] opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0 transition-all duration-200">
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-[#9333EA] opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0 transition-all duration-200">
             Read more
             <ExternalLink className="w-3.5 h-3.5" />
           </span>

@@ -1,8 +1,23 @@
 import React, { useState, useEffect, useRef } from "react";
 import { assets } from "../assets/assets";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { Scale } from "lucide-react";
 import useApp from "../context/useApp";
 import api from "../api/axiosClient";
+
+const BrandLogo = ({ iconSize = "w-8 h-8" }) => (
+  <div className="flex items-center gap-2 shrink-0">
+    <div className="bg-primary text-white rounded-lg p-1.5 shrink-0">
+      <Scale className={iconSize} />
+    </div>
+    <div className="leading-tight">
+      <p className="font-bold text-gray-900 text-xl">Shivam Parashar</p>
+      <p className="text-[10px] sm:text-xs text-gray-500 tracking-wide uppercase -mt-0.5">
+        Advocate, Delhi
+      </p>
+    </div>
+  </div>
+);
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -89,12 +104,9 @@ const Navbar = () => {
 
   return (
     <div className="relative mb-5 flex w-full min-w-0 items-center justify-between border-b border-b-[#ADADAD] py-4 text-sm">
-      <img
-        onClick={() => navigate("/")}
-        className="h-12 w-auto shrink-0 cursor-pointer sm:h-14 md:h-16"
-        src={assets.legallogo}
-        alt=""
-      />
+      <div onClick={() => navigate("/")} className="cursor-pointer">
+        <BrandLogo />
+      </div>
       <nav
         ref={navRef}
         className="lg:flex items-center lg:gap-0.5 xl:gap-2 font-medium hidden relative z-10"
@@ -130,7 +142,7 @@ const Navbar = () => {
             activeLink === "/lawyers" ? "text-primary font-semibold" : ""
           }`}
         >
-          BOOK A LAWYER
+          BOOK APPOINTMENT
         </NavLink>
         <NavLink
           to="/resources"
@@ -244,7 +256,7 @@ const Navbar = () => {
         ) : (
           <button
             onClick={() => navigate("/login")}
-            className="max-[359px]:hidden cursor-pointer rounded-full bg-[#5f6FFF] px-3 py-2 text-sm font-light text-white transition-colors duration-200 hover:bg-[#4f5fff] sm:px-6 sm:py-3 sm:text-base md:px-8"
+            className="max-[359px]:hidden cursor-pointer rounded-full bg-[#9333EA] px-3 py-2 text-sm font-light text-white transition-colors duration-200 hover:bg-[#7e22ce] sm:px-6 sm:py-3 sm:text-base md:px-8"
           >
             Sign up
           </button>
@@ -261,7 +273,7 @@ const Navbar = () => {
           className={`lg:hidden ${showMenu ? "fixed w-full" : "h-0 w-0"} right-0 top-0 bottom-0 z-20 overflow-hidden bg-white transition-all`}
         >
           <div className="flex items-center justify-between px-5 py-6">
-            <img src={assets.legallogo} className="w-auto h-14" alt="" />
+            <BrandLogo />
             <img
               onClick={() => setShowMenu(false)}
               src={assets.cross_icon}
@@ -301,7 +313,7 @@ const Navbar = () => {
                   : ""
               }`}
             >
-              BOOK A LAWYER
+              BOOK APPOINTMENT
             </NavLink>
             <NavLink
               onClick={() => setShowMenu(false)}
@@ -389,7 +401,7 @@ const Navbar = () => {
                       setShowMenu(false);
                       navigate("/login");
                     }}
-                    className="border border-[#5f6FFF] text-[#5f6FFF] px-8 py-3 rounded-xl font-medium hover:bg-[#eef0ff] transition-colors duration-200 w-full"
+                    className="border border-[#9333EA] text-[#9333EA] px-8 py-3 rounded-xl font-medium hover:bg-[#f3e8ff] transition-colors duration-200 w-full"
                   >
                     Login
                   </button>
@@ -398,7 +410,7 @@ const Navbar = () => {
                       setShowMenu(false);
                       navigate("/login");
                     }}
-                    className="bg-[#5f6FFF] text-white px-8 py-3 rounded-xl font-medium hover:bg-[#4f5fff] transition-colors duration-200 w-full"
+                    className="bg-[#9333EA] text-white px-8 py-3 rounded-xl font-medium hover:bg-[#7e22ce] transition-colors duration-200 w-full"
                   >
                     Sign up
                   </button>

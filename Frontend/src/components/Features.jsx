@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Upload, MessageSquare, Video, ArrowRight } from 'lucide-react';
+import { BookOpen, MessageCircle, MessageSquare, Video, ArrowRight } from 'lucide-react';
 
 export default function Features() {
   const navigate = useNavigate();
@@ -15,20 +15,20 @@ export default function Features() {
 
   const features = [
       {
-        icon: Upload,
-        title: "Video Meeting Based Appointments",
-        mobileTitle: "Video Appointments",
-        description: "Schedule and attend secure video consultations with qualified lawyers from the comfort of your home or office or anywhere.",
-        action: "Book Video Meeting",
+        icon: MessageCircle,
+        title: "Chat on WhatsApp",
+        mobileTitle: "WhatsApp Chat",
+        description: "The simplest way to reach out — message your question whenever it's on your mind, and get a personal reply, no forms or waiting rooms.",
+        action: "Message on WhatsApp",
         color: "emerald",
-        path: "/lawyers",
-        isExternal: false
+        path: "https://wa.me/919472761482?text=Hi%20Shivam%2C%20I'd%20like%20to%20ask%20about%20my%20legal%20situation.",
+        isExternal: true
       },
       {
         icon: MessageSquare,
         title: "AI Legal Assistant",
         mobileTitle: "AI Assistant",
-        description: "Get instant answers to legal questions, understand your rights, and receive guidance on everyday legal matters through our intelligent AI chatbot.",
+        description: "Not ready to talk yet? Ask the free AI assistant first — a judgment-free way to understand your rights before your first conversation.",
         action: "Start Conversation",
         color: "violet",
         path: "/chatbot",
@@ -97,11 +97,11 @@ export default function Features() {
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Comprehensive Legal Tools
+            However You'd Like to Start
           </h2>
           <div className="w-20 h-1 bg-primary mx-auto rounded-full mb-6"></div>
           <p className="text-gray-600 text-lg">
-            Everything you need to navigate legal matters with clarity and confidence.
+            Everyone processes a legal worry differently. Pick whichever feels most comfortable.
           </p>
         </div>
 

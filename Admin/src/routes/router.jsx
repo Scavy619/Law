@@ -51,6 +51,7 @@ const router = createBrowserRouter(
       </Route>
     </>,
   ),
+  { basename: import.meta.env.BASE_URL.replace(/\/$/, "") },
 );
 
 export default router;

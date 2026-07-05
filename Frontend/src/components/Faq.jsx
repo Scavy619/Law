@@ -4,29 +4,29 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    question: "How do I book an appointment with a lawyer?",
+    question: "How do I book a consultation?",
     answer:
-      "Simply browse through our list of trusted lawyers, choose your preferred specialist, and click on 'Book Appointment'. You can schedule a video or in-person consultation securely.",
+      "Click 'Book a Consultation' anywhere on the site, pick an available date and time slot, and confirm your appointment — you'll be meeting directly with Adv. Shivam Parashar, not a rotating team.",
   },
   {
     question: "Can I chat with the AI Legal Assistant for free?",
     answer:
-      "Yes, our AI Legal Assistant is available 24/7 to answer general legal queries and guide you through basic procedures — free of charge.",
-  },
-  {
-    question: "Are all lawyers on LawBridge verified?",
-    answer:
-      "Absolutely. Every lawyer listed on LawBridge undergoes a strict verification process to ensure authenticity, expertise, and trustworthiness.",
+      "Yes, the AI Legal Assistant is available 24/7 to answer general legal queries and help you understand basic procedures — free of charge, before or after you book.",
   },
   {
     question: "What kind of legal issues can I discuss?",
     answer:
-      "You can discuss a wide range of matters — from family and property disputes to corporate, criminal, and civil litigation issues. Our platform covers 10+ specializations.",
+      "You can discuss criminal, civil, family, corporate, property, or tax matters. If your situation doesn't fit neatly into one category, that's fine too — bring it up during the consultation.",
+  },
+  {
+    question: "Do I need to meet in person?",
+    answer:
+      "No. Consultations can be done over secure video call, or in person if you prefer — whichever is more convenient for you.",
   },
   {
     question: "Is my data and conversation secure?",
     answer:
-      "Chatbot conversations are not end-to-end encrypted. However, we still keep them secure, and your data is encrypted in transit and at rest using industry-standard protections.",
+      "Chatbot conversations are not end-to-end encrypted, but your data is encrypted in transit and at rest using industry-standard protections, and is never shared with third parties.",
   },
 ];
 
@@ -41,12 +41,12 @@ const Faq = () => {
     <section id="faq-section" className="py-16 px-6 bg-slate-50">
       <div className="max-w-5xl mx-auto text-center mb-12">
         <h2 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4">
-          Frequently Asked Questions
+          Questions Before You Reach Out?
         </h2>
         <div className="w-20 h-1 bg-primary mx-auto rounded-full mb-6"></div>
         <p className="text-slate-500 text-lg">
-          Answers to the most common questions about booking lawyers, using our
-          AI assistant, and platform policies.
+          You're probably not the first person to wonder about this. Here are
+          the things people usually ask before their first chat.
         </p>
       </div>
 
@@ -85,12 +85,12 @@ const Faq = () => {
 
       <div className="text-center mt-12">
         <p className="text-slate-500">
-          Still have questions?{" "}
+          Still not sure?{" "}
           <Link
             to="/contact"
             className="text-primary font-semibold hover:underline"
           >
-            Contact our support
+            Just ask — I'm happy to clarify
           </Link>
         </p>
       </div>

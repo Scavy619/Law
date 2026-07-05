@@ -8,8 +8,8 @@ const LAWYER = {
   name: "Adv. Shivam Parashar",
   email: "shivam.parashar@example.com",
   password: "Lawyer@12345",
-  image:
-    "https://ui-avatars.com/api/?name=Shivam+Parashar&size=500&background=0f172a&color=ffffff&bold=true",
+  // Served from Frontend/public/shivam.jpg via the frontend origin
+  image: "/shivam.jpg",
   speciality: "General Practice Advocate",
   degree: "B.A. LL.B, Vivekananda Law College, Delhi",
   experience: "2 Years",
